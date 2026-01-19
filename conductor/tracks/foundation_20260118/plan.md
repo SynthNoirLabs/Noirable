@@ -43,7 +43,7 @@
     - [ ] Sub-task: Run tests (expect fail).
     - [ ] Sub-task: Implement `A2UIRenderer` component that maps JSON types to React components.
     - [ ] Sub-task: Implement "REDACTED" fallback for unknown types.
-- [~] Task: Integrate Editor & Preview
+- [x] Task: Integrate Editor & Preview 50f01ff
     - [ ] Sub-task: Create integration test for Editor input -> Renderer update.
     - [ ] Sub-task: Connect a simple Textarea (JSON Editor) to the `A2UIRenderer`.
 - [ ] Task: Conductor - User Manual Verification 'A2UI Renderer Engine (TDD)' (Protocol in workflow.md)
