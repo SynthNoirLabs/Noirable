@@ -1,9 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { DeskLayout } from './DeskLayout'
 import { A2UIRenderer } from '@/components/renderer/A2UIRenderer'
 import { ChatSidebar } from '@/components/chat/ChatSidebar'
+import { useA2UIStore } from '@/lib/store/useA2UIStore'
+import { useChat } from '@ai-sdk/react'
 
 const DEFAULT_JSON = JSON.stringify({
   type: 'text',
@@ -13,19 +15,58 @@ const DEFAULT_JSON = JSON.stringify({
 
 export function DetectiveWorkspace() {
   const [json, setJson] = useState(DEFAULT_JSON)
-  const [parsedData, setParsedData] = useState<any>(JSON.parse(DEFAULT_JSON))
   const [error, setError] = useState<string | null>(null)
+  const { evidence, setEvidence } = useA2UIStore()
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  // Initialize store
+  useEffect(() => {
+    try {
+      if (!evidence) {
+        setEvidence(JSON.parse(DEFAULT_JSON))
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []) // Once
+
+  const chat = useChat({
+    api: '/api/chat',
+    onError: (err) => console.error('useChat error:', err)
+  })
+  
+  const { messages, status } = chat
+  // Polyfill for API mismatch
+  const sendMessage = (chat as any).sendMessage || (chat as any).append
+  const isLoading = status === 'submitted' || status === 'streaming'
+
+  // Sync Tool Results to Store
+  useEffect(() => {
+    if (!messages || messages.length === 0) return
+    const lastMessage = messages[messages.length - 1]
+    
+    if (lastMessage.role === 'assistant' && (lastMessage as any).toolInvocations) {
+      const invocations = (lastMessage as any).toolInvocations
+      for (const tool of invocations) {
+        if (tool.toolName === 'generate_ui' && tool.state === 'result') {
+          console.log('Tool Result received:', tool.result)
+          const newEvidence = tool.result
+          setEvidence(newEvidence)
+          setJson(JSON.stringify(newEvidence, null, 2))
+          setError(null)
+        }
+      }
+    }
+  }, [messages, setEvidence])
+
+  const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value
     setJson(newVal)
     try {
       const data = JSON.parse(newVal)
-      setParsedData(data)
+      setEvidence(data)
       setError(null)
     } catch (err) {
       setError("Invalid JSON")
-      setParsedData(null)
     }
   }
 
@@ -36,7 +77,7 @@ export function DetectiveWorkspace() {
           <textarea 
             className="w-full h-full bg-transparent text-noir-paper/90 font-mono text-sm resize-none focus:outline-none p-2"
             value={json}
-            onChange={handleChange}
+            onChange={handleEditorChange}
             spellCheck={false}
           />
           {error && (
@@ -47,19 +88,24 @@ export function DetectiveWorkspace() {
         </div>
       }
       preview={
-        parsedData ? (
-          <A2UIRenderer data={parsedData} />
+        evidence ? (
+          <A2UIRenderer data={evidence} />
         ) : (
            <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
             <h3 className="text-noir-red font-typewriter font-bold mb-2">REDACTED</h3>
              <p className="text-noir-red/80 font-mono text-xs">
-              CORRUPTED DATA STREAM.<br/>
-              UNABLE TO DECRYPT.
+              NO EVIDENCE LOADED.
             </p>
           </div>
         )
       }
-      sidebar={<ChatSidebar />}
+      sidebar={
+        <ChatSidebar 
+          messages={messages} 
+          sendMessage={sendMessage} 
+          isLoading={isLoading} 
+        />
+      }
     />
   )
 }

@@ -2,16 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { getProvider } from './factory'
 import fs from 'fs'
 
-// Manual mock for fs
-vi.mock('fs', () => ({
-  default: {
-    existsSync: vi.fn(),
-    readFileSync: vi.fn(),
-  },
-  existsSync: vi.fn(),
-  readFileSync: vi.fn(),
-}))
-
 vi.mock('server-only', () => ({}))
 
 describe('ProviderFactory', () => {
@@ -21,31 +11,37 @@ describe('ProviderFactory', () => {
     vi.resetModules()
     process.env = { ...originalEnv }
     delete process.env.OPENAI_API_KEY
+    delete process.env.ANTHROPIC_API_KEY
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY
   })
 
   afterEach(() => {
     process.env = originalEnv
+    vi.restoreAllMocks()
   })
 
   it('uses env var if present', () => {
     process.env.OPENAI_API_KEY = 'env-key'
-    const provider = getProvider()
-    expect(provider).toBeDefined()
+    const result = getProvider()
+    expect(result.type).toBe('openai')
   })
 
   it('reads from local opencode config if env missing', () => {
-    vi.mocked(fs.existsSync).mockReturnValue(true)
-    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({
-      keys: { openai: 'file-key' }
+    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+    vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({
+      openai: 'file-key' // Root level key per new logic
     }))
     
-    const provider = getProvider()
-    expect(provider).toBeDefined()
+    const result = getProvider()
+    expect(result.type).toBe('openai')
     expect(fs.readFileSync).toHaveBeenCalled()
   })
 
   it('throws if no key found', () => {
-    vi.mocked(fs.existsSync).mockReturnValue(false)
-    expect(() => getProvider()).toThrow(/No API key found/)
+    vi.spyOn(fs, 'existsSync').mockReturnValue(false)
+    // Ensure NODE_ENV is NOT development for this test to trigger throw
+    process.env.NODE_ENV = 'production'
+    
+    expect(() => getProvider()).toThrow(/No valid API key found/)
   })
 })

@@ -1,24 +1,44 @@
 "use client"
 
-import React, { useEffect, useRef } from 'react'
-import { useChat } from '@ai-sdk/react'
+import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Send, User, Bot } from 'lucide-react'
 
 interface ChatSidebarProps {
   className?: string
+  messages: any[]
+  sendMessage: (message: any) => Promise<any>
+  isLoading: boolean
 }
 
-export function ChatSidebar({ className }: ChatSidebarProps) {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-  })
-  
+export function ChatSidebar({ className, messages, sendMessage, isLoading }: ChatSidebarProps) {
+  const [localInput, setLocalInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!localInput.trim() || isLoading) return
+
+    const content = localInput
+    setLocalInput('') 
+    
+    try {
+      await sendMessage({ role: 'user', content })
+    } catch (err) {
+      console.error('Failed to send message:', err)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      // Allow form submit
+    }
+  }
 
   return (
     <div className={cn("flex flex-col h-full bg-noir-black/80 border-l border-noir-gray/20", className)}>
@@ -30,7 +50,12 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map(m => (
+        {messages.length === 0 && (
+          <div className="text-center py-8 text-noir-gray/40 font-typewriter text-xs uppercase tracking-widest">
+            No record found. Begin interrogation.
+          </div>
+        )}
+        {messages.map((m: any) => (
           <div key={m.id} className={cn(
             "flex gap-3 text-sm p-3 rounded-sm border",
             m.role === 'user' 
@@ -57,16 +82,19 @@ export function ChatSidebar({ className }: ChatSidebarProps) {
       </div>
 
       <div className="p-4 bg-noir-dark border-t border-noir-gray/20">
-        <form onSubmit={handleSubmit} className="relative">
+        <form onSubmit={onSubmit} className="relative">
           <input
+            name="chat-input"
+            autoFocus
             className="w-full bg-noir-paper/5 border border-noir-gray/30 rounded-sm py-3 pl-4 pr-10 text-sm text-noir-paper focus:outline-none focus:border-noir-amber/50 font-mono placeholder:text-noir-gray/50"
-            value={input}
-            onChange={handleInputChange}
+            value={localInput}
+            onChange={(e) => setLocalInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Interrogate the system..."
           />
           <button 
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !localInput.trim()}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-noir-gray hover:text-noir-amber disabled:opacity-50 transition-colors"
           >
             <Send className="w-4 h-4" />

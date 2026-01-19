@@ -5,15 +5,24 @@ import { getProvider } from '@/lib/ai/factory'
 export async function POST(req: Request) {
   const { messages } = await req.json()
 
-  let provider
+  let auth
   try {
-    provider = getProvider()
+    auth = getProvider()
   } catch (e) {
     return new Response('Configuration Error: No API Key found.', { status: 500 })
   }
 
+  if (auth.type === 'mock') {
+    return new Response(
+      `0:"The streets are quiet... too quiet. (Detective Mode: No API Key detected. Using local simulation.)"
+`,
+      { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
+    )
+  }
+
+  // Use the detected provider and model
   const result = streamText({
-    model: provider('gpt-4o'),
+    model: auth.provider(auth.model),
     messages: convertToCoreMessages(messages),
     system: SYSTEM_PROMPT,
   })

@@ -12,7 +12,11 @@ vi.mock('ai', () => ({
 
 // Mock Provider Factory
 vi.mock('@/lib/ai/factory', () => ({
-  getProvider: vi.fn().mockReturnValue((modelId: string) => ({ modelId }))
+  getProvider: vi.fn().mockReturnValue({
+    provider: vi.fn().mockReturnValue({}),
+    model: 'gpt-4o',
+    type: 'openai'
+  })
 }))
 
 describe('/api/chat', () => {
