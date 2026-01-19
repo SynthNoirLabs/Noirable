@@ -27,7 +27,7 @@
     - [ ] Sub-task: Create `TypewriterText.test.tsx` (Snapshot & Prop tests).
     - [ ] Sub-task: Run tests (expect fail).
     - [ ] Sub-task: Implement `TypewriterText` component with monospaced font and typing animation.
-- [ ] Task: Implement Dossier Card Component
+- [~] Task: Implement Dossier Card Component
     - [ ] Sub-task: Create `DossierCard.test.tsx` (Snapshot & Layout tests).
     - [ ] Sub-task: Run tests (expect fail).
     - [ ] Sub-task: Implement `DossierCard` with shadow, border, and paper texture.
