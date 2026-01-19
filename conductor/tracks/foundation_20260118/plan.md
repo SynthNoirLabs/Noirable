@@ -1,6 +1,6 @@
 # Implementation Plan - Build the synthNoirUI Foundation
 
-## Phase 1: Project Scaffolding & Configuration
+## Phase 1: Project Scaffolding & Configuration [checkpoint: f8ceb83]
 - [x] Task: Initialize Next.js Project 01d3d48
     - [ ] Sub-task: Run `create-next-app` with TypeScript, Tailwind, ESLint.
     - [ ] Sub-task: Clean up default boilerplate code.
