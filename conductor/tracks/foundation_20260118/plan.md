@@ -22,7 +22,7 @@
     - [ ] Sub-task: Export TypeScript types from Zod schema.
 - [ ] Task: Conductor - User Manual Verification 'A2UI Protocol Definition (Logic)' (Protocol in workflow.md)
 
-## Phase 3: Core UI Components (TDD)
+## Phase 3: Core UI Components (TDD) [checkpoint: 7ddd037]
 - [x] Task: Implement Typewriter Text Component ec14b08
     - [ ] Sub-task: Create `TypewriterText.test.tsx` (Snapshot & Prop tests).
     - [ ] Sub-task: Run tests (expect fail).
