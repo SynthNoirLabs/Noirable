@@ -12,6 +12,10 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.15",
+    "@ai-sdk/openai": "^3.0.12",
+    "@ai-sdk/react": "^3.0.43",
+    "ai": "^6.0.41",
     "clsx": "^2.1.1",
     "framer-motion": "^12.27.0",
     "lucide-react": "^0.562.0",

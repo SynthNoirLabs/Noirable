@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { DeskLayout } from './DeskLayout'
 import { A2UIRenderer } from '@/components/renderer/A2UIRenderer'
+import { ChatSidebar } from '@/components/chat/ChatSidebar'
 
 const DEFAULT_JSON = JSON.stringify({
   type: 'text',
@@ -58,6 +59,7 @@ export function DetectiveWorkspace() {
           </div>
         )
       }
+      sidebar={<ChatSidebar />}
     />
   )
 }

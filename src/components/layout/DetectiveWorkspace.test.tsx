@@ -1,16 +1,28 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { DetectiveWorkspace } from './DetectiveWorkspace'
+
+// Mock Vercel AI SDK
+vi.mock('@ai-sdk/react', () => ({
+  useChat: () => ({
+    messages: [],
+    input: '',
+    handleInputChange: vi.fn(),
+    handleSubmit: vi.fn(),
+    isLoading: false
+  })
+}))
 
 describe('DetectiveWorkspace', () => {
   it('updates preview when json changes', () => {
-    render(<DetectiveWorkspace />)
+    const { container } = render(<DetectiveWorkspace />)
     
-    // Find textarea
-    const textarea = screen.getByRole('textbox')
+    // Find textarea (JSON Editor)
+    const textarea = container.querySelector('textarea')
+    if (!textarea) throw new Error('Textarea not found')
     
     // Default content should look like text
-    expect(screen.getByText('Evidence #1')).toBeInTheDocument()
+    expect(screen.getAllByText('Evidence #1').length).toBeGreaterThan(0)
     
     // Update JSON
     const newJson = JSON.stringify({
@@ -27,19 +39,13 @@ describe('DetectiveWorkspace', () => {
   })
 
   it('handles invalid json gracefully', () => {
-    render(<DetectiveWorkspace />)
-    const textarea = screen.getByRole('textbox')
+    const { container } = render(<DetectiveWorkspace />)
+    const textarea = container.querySelector('textarea')
+    if (!textarea) throw new Error('Textarea not found')
     
     // Invalid JSON
     fireEvent.change(textarea, { target: { value: '{ bad json ' } })
     
-    // Should verify error message or fallback?
-    // For now, let's say it shows "PARSING ERROR" or keeps old state?
-    // Or maybe A2UIRenderer handles "REDACTED" if passed invalid data? 
-    // But invalid JSON string cannot be passed to Renderer (expects object).
-    // So Workspace must catch JSON.parse error.
-    
     expect(screen.getByText(/CORRUPTED DATA/)).toBeInTheDocument() 
-    // or expect(screen.getByText(/Invalid JSON/)).toBeInTheDocument()
   })
 })
