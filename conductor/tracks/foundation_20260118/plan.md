@@ -8,7 +8,7 @@
     - [ ] Sub-task: Install Vitest/Jest and React Testing Library.
     - [ ] Sub-task: Create a "Hello World" test to verify the harness.
     - [ ] Sub-task: Configure test script in `package.json`.
-- [~] Task: Implement Noir Design System
+- [x] Task: Implement Noir Design System 54fe7d4
     - [ ] Sub-task: Configure Tailwind theme (colors: noir-black, paper-white, alert-amber).
     - [ ] Sub-task: Add "Special Elite" and "Inter" fonts via `next/font`.
     - [ ] Sub-task: Create global CSS for paper textures and venetian blind effects.
