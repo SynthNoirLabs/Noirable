@@ -15,7 +15,7 @@
 - [ ] Task: Conductor - User Manual Verification 'Project Scaffolding & Configuration' (Protocol in workflow.md)
 
 ## Phase 2: A2UI Protocol Definition (Logic)
-- [ ] Task: Define A2UI Schema with Zod
+- [~] Task: Define A2UI Schema with Zod
     - [ ] Sub-task: Create test file `schema.test.ts` with valid/invalid JSON samples.
     - [ ] Sub-task: Run tests (expect fail).
     - [ ] Sub-task: Implement Zod schema for `TextComponent` and `CardComponent`.
