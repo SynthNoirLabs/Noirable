@@ -4,7 +4,7 @@
 - [x] Task: Initialize Next.js Project 01d3d48
     - [ ] Sub-task: Run `create-next-app` with TypeScript, Tailwind, ESLint.
     - [ ] Sub-task: Clean up default boilerplate code.
-- [ ] Task: Configure Testing Environment (TDD Setup)
+- [~] Task: Configure Testing Environment (TDD Setup)
     - [ ] Sub-task: Install Vitest/Jest and React Testing Library.
     - [ ] Sub-task: Create a "Hello World" test to verify the harness.
     - [ ] Sub-task: Configure test script in `package.json`.
