@@ -37,7 +37,7 @@
     - [ ] Sub-task: Implement `DeskLayout` with resizable panes (JSON vs Preview).
 - [ ] Task: Conductor - User Manual Verification 'Core UI Components (TDD)' (Protocol in workflow.md)
 
-## Phase 4: A2UI Renderer Engine (TDD)
+## Phase 4: A2UI Renderer Engine (TDD) [checkpoint: 25665a0]
 - [x] Task: Implement A2UI Renderer 7072c31
     - [ ] Sub-task: Create `A2UIRenderer.test.tsx` (Mock JSON -> Component verify).
     - [ ] Sub-task: Run tests (expect fail).
