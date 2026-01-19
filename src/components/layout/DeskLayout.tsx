@@ -12,7 +12,7 @@ export function DeskLayout({ editor, preview, className }: DeskLayoutProps) {
     <div className={cn("min-h-screen grid grid-cols-2 gap-0 bg-noir-dark text-noir-paper", className)}>
       {/* Editor Pane (Left) */}
       <div className="border-r border-noir-gray/30 p-4 overflow-auto bg-noir-black/50">
-        <h2 className="font-typewriter text-sm text-noir-gray mb-4 border-b border-noir-gray/20 pb-2">
+        <h2 className="font-typewriter text-sm text-noir-paper/70 mb-4 border-b border-noir-gray/20 pb-2">
           CASE FILE // JSON DATA
         </h2>
         {editor}

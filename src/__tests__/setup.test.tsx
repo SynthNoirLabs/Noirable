@@ -8,6 +8,6 @@ describe('Home Page Smoke Test', () => {
     // Check for the editor pane header
     expect(screen.getByText(/CASE FILE \/\/ JSON DATA/i)).toBeInTheDocument()
     // Check for the preview content
-    expect(screen.getByText(/CLASSIFIED EVIDENCE/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Evidence #1/i)[0]).toBeInTheDocument()
   })
 })

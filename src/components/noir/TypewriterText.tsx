@@ -11,8 +11,8 @@ interface TypewriterTextProps {
 }
 
 const priorityMap = {
-  low: 'text-noir-gray',
-  normal: 'text-noir-ink', // Assumes light background (paper)
+  low: 'text-noir-paper/50',
+  normal: 'text-noir-paper',
   high: 'text-noir-amber',
   critical: 'text-noir-red',
 }

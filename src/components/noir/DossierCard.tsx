@@ -21,11 +21,11 @@ export function DossierCard({ title, description, status = 'active', className }
       </div>
 
       <div className="border-b-2 border-noir-ink/10 pb-4 mb-4">
-        <TypewriterText content={title} className="text-2xl font-bold" />
+        <TypewriterText content={title} className="text-2xl font-bold text-noir-ink" />
       </div>
       
       {description && (
-        <TypewriterText content={description} priority="low" className="text-sm leading-relaxed" />
+        <TypewriterText content={description} priority="low" className="text-sm leading-relaxed text-noir-ink/80" />
       )}
     </div>
   )

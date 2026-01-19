@@ -19,6 +19,6 @@ describe('TypewriterText', () => {
   it('applies normal priority styling by default', () => {
     render(<TypewriterText content="Standard report" />)
     const element = screen.getByText('Standard report')
-    expect(element).toHaveClass('text-noir-ink') // or default color
+    expect(element).toHaveClass('text-noir-paper') // or default color
   })
 })
