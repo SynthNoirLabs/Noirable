@@ -10,6 +10,11 @@ vi.mock('ai', () => ({
   convertToCoreMessages: vi.fn(msgs => msgs)
 }))
 
+// Mock Provider Factory
+vi.mock('@/lib/ai/factory', () => ({
+  getProvider: vi.fn().mockReturnValue((modelId: string) => ({ modelId }))
+}))
+
 describe('/api/chat', () => {
   it('exports a POST handler', () => {
     expect(typeof POST).toBe('function')

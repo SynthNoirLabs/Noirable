@@ -4,12 +4,12 @@
 As a developer, I want to support various LLM providers via env vars or CLI-style config, so I'm not locked in and can use Agent CLIs.
 
 ## Acceptance Criteria
-- [ ] Create `src/lib/ai/factory.ts` (Server-Only).
-- [ ] Implement `getProvider()` logic:
+- [x] Create `src/lib/ai/factory.ts` (Server-Only).
+- [x] Implement `getProvider()` logic:
     1. Check Env Vars (`OPENAI_API_KEY`).
     2. Check Local Config (`~/.config/opencode/auth.json` or standard locations).
     3. Return configured AI SDK provider instance.
-- [ ] Update `/api/chat` to use the Factory.
+- [x] Update `/api/chat` to use the Factory.
 
 ## Technical Notes
 - **Security:** Ensure this code NEVER bundles to client (`import 'server-only'`).

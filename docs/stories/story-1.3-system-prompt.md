@@ -4,12 +4,12 @@
 As a user, I want the AI to speak like a Noir detective, so that I feel immersed.
 
 ## Acceptance Criteria
-- [ ] Create `src/lib/ai/prompts.ts` to hold the system prompt.
-- [ ] Define the "Hard-boiled Detective" persona:
+- [x] Create `src/lib/ai/prompts.ts` to hold the system prompt.
+- [x] Define the "Hard-boiled Detective" persona:
     - Tone: Cynical, professional, atmospheric.
     - Style: Short sentences, metaphor-heavy.
     - Constraints: Never break character.
-- [ ] Inject this prompt into the `/api/chat` route (DetectiveBrain).
+- [x] Inject this prompt into the `/api/chat` route (DetectiveBrain).
 
 ## Technical Notes
 - Template string allowing injection of current context (if needed later).
