@@ -2,10 +2,12 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import Home from '@/app/page'
 
-describe('Setup Test', () => {
-  it('renders the hello world text', () => {
+describe('Home Page Smoke Test', () => {
+  it('renders the Detective Desk layout', () => {
     render(<Home />)
-    const heading = screen.getByText(/Detective's Desk Loading.../i)
-    expect(heading).toBeInTheDocument()
+    // Check for the editor pane header
+    expect(screen.getByText(/CASE FILE \/\/ JSON DATA/i)).toBeInTheDocument()
+    // Check for the preview content
+    expect(screen.getByText(/CLASSIFIED EVIDENCE/i)).toBeInTheDocument()
   })
 })
