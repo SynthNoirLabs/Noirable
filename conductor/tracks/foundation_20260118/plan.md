@@ -31,7 +31,7 @@
     - [ ] Sub-task: Create `DossierCard.test.tsx` (Snapshot & Layout tests).
     - [ ] Sub-task: Run tests (expect fail).
     - [ ] Sub-task: Implement `DossierCard` with shadow, border, and paper texture.
-- [~] Task: Implement Split-Pane "Detective's Desk" Layout
+- [x] Task: Implement Split-Pane "Detective's Desk" Layout 15b3967
     - [ ] Sub-task: Create `DeskLayout.test.tsx` (Layout structure tests).
     - [ ] Sub-task: Run tests (expect fail).
     - [ ] Sub-task: Implement `DeskLayout` with resizable panes (JSON vs Preview).
