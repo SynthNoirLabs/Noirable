@@ -38,7 +38,7 @@
 - [ ] Task: Conductor - User Manual Verification 'Core UI Components (TDD)' (Protocol in workflow.md)
 
 ## Phase 4: A2UI Renderer Engine (TDD)
-- [ ] Task: Implement A2UI Renderer
+- [~] Task: Implement A2UI Renderer
     - [ ] Sub-task: Create `A2UIRenderer.test.tsx` (Mock JSON -> Component verify).
     - [ ] Sub-task: Run tests (expect fail).
     - [ ] Sub-task: Implement `A2UIRenderer` component that maps JSON types to React components.
