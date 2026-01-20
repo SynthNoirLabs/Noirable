@@ -12,9 +12,7 @@ describe("TypewriterText", () => {
     const element = container.querySelector(".font-typewriter");
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("Case #1234");
-    expect(element).toHaveClass(
-      "drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]",
-    );
+    expect(element).toHaveClass("drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]");
   });
 
   it("applies critical priority styling", () => {

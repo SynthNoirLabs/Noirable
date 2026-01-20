@@ -81,6 +81,6 @@ function renderNode(node: A2UIComponent): string {
 
 export function exportA2UI(component: A2UIComponent) {
   return `export default function CaseIntake() {\n  return (\n    ${renderNode(
-      component,
-    )}\n  );\n}`;
+    component,
+  )}\n  );\n}`;
 }

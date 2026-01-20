@@ -186,6 +186,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
         );
       case "image":
         return (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={node.src}
             alt={node.alt}
@@ -198,7 +199,9 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
         );
       case "input":
         return (
-          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+          <label
+            className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
+          >
             <span className="font-typewriter text-noir-paper/70">
               {node.label}
             </span>
@@ -215,7 +218,9 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
         );
       case "textarea":
         return (
-          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+          <label
+            className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
+          >
             <span className="font-typewriter text-noir-paper/70">
               {node.label}
             </span>
@@ -233,7 +238,9 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
         );
       case "select":
         return (
-          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+          <label
+            className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
+          >
             <span className="font-typewriter text-noir-paper/70">
               {node.label}
             </span>
@@ -254,7 +261,12 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
         );
       case "checkbox":
         return (
-          <label className={cn("flex items-center gap-2 text-xs", node.style?.className)}>
+          <label
+            className={cn(
+              "flex items-center gap-2 text-xs",
+              node.style?.className,
+            )}
+          >
             <input type="checkbox" checked={node.checked ?? false} readOnly />
             <span className="font-typewriter text-noir-paper/70">
               {node.label}

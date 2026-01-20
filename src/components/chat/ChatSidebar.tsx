@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Send, User, Bot, Settings as SettingsIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TypewriterText } from "@/components/noir/TypewriterText";
+import Image from "next/image";
 
 // Define Message interface locally since 'ai' package exports are unstable/mismatched
 export interface Message {
@@ -77,9 +78,11 @@ export function ChatSidebar({
     >
       <div className="p-4 border-b border-noir-gray/20 bg-noir-dark/95 sticky top-0 z-10 backdrop-blur-sm flex justify-between items-center">
         <h2 className="font-typewriter text-sm text-noir-paper/70 tracking-widest flex items-center gap-2">
-          <img
+          <Image
             src="/assets/noir/detective-avatar.jpg"
             alt="Detective avatar"
+            width={32}
+            height={32}
             className="w-8 h-8 rounded-full object-cover border border-noir-amber/40 shadow-[0_0_10px_rgba(255,191,0,0.18)]"
           />
           <Bot className="w-4 h-4 text-noir-amber/70" />
@@ -125,9 +128,11 @@ export function ChatSidebar({
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.length === 0 && (
           <div className="text-center py-12 text-noir-gray/30 font-typewriter text-xs uppercase tracking-[0.2em] relative">
-            <img
+            <Image
               src="/assets/noir/search-icon.jpg"
               alt="Search icon"
+              width={80}
+              height={80}
               className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 opacity-10 pointer-events-none"
             />
             <span className="relative z-10">

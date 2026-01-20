@@ -1,0 +1,11 @@
+# Ignore non-source docs and external method artifacts
+bmad-method/**
+conductor/**
+docs/**
+
+# Ignore generated artifacts
+coverage/**
+test-results/**
+
+# Lockfile is managed by pnpm
+pnpm-lock.yaml
