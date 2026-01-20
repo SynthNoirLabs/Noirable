@@ -42,4 +42,9 @@ describe('DetectiveWorkspace', () => {
     
     expect(screen.getByText(/Invalid JSON/)).toBeInTheDocument() 
   })
+
+  it('renders chat sidebar', () => {
+    render(<DetectiveWorkspace />)
+    expect(screen.getByText('INTERROGATION LOG')).toBeInTheDocument()
+  })
 })

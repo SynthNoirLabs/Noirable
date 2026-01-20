@@ -9,17 +9,17 @@
     - [ ] Implement the route handler in `src/app/api/chat/route.ts` using the Auth Factory.
 - [x] Task: Conductor - User Manual Verification 'Environment & Auth Scaffolding' (Protocol in workflow.md)
 
-#### Phase 2: Core Chat UI (Noir Style)
+#### Phase 2: Core Chat UI (Noir Style) [checkpoint: dd7d055]
 - [x] Task: Implement Noir Chat Sidebar Component 1558f8d
-    - [ ] Write tests for `ChatSidebar.tsx` (Prop rendering, loading states).
-    - [ ] Implement the UI with "Logbook" styling and Framer Motion integration.
-- [~] Task: Implement Typewriter Animation Hook/Component
-    - [ ] Write tests for character-by-character rendering logic.
-    - [ ] Implement `TypewriterText` component for AI messages.
-- [ ] Task: Integrate Sidebar into Detective Workspace
-    - [ ] Write integration test for the split-pane layout with Sidebar.
-    - [ ] Add `ChatSidebar` to `DetectiveWorkspace.tsx`.
-- [ ] Task: Conductor - User Manual Verification 'Core Chat UI (Noir Style)' (Protocol in workflow.md)
+    - [x] Write tests for `ChatSidebar.tsx` (Prop rendering, loading states).
+    - [x] Implement the UI with "Logbook" styling and Framer Motion integration.
+- [x] Task: Implement Typewriter Animation Hook/Component
+    - [x] Write tests for character-by-character rendering logic.
+    - [x] Implement `TypewriterText` component for AI messages.
+- [x] Task: Integrate Sidebar into Detective Workspace 18d3eca
+    - [x] Write integration test for the split-pane layout with Sidebar.
+    - [x] Add `ChatSidebar` to `DetectiveWorkspace.tsx`.
+- [x] Task: Conductor - User Manual Verification 'Core Chat UI (Noir Style)' (Protocol in workflow.md)
 
 #### Phase 3: Persona & Polish
 - [ ] Task: Define System Prompt (Narrator-Veteran)
