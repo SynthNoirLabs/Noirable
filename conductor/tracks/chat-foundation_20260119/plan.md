@@ -23,9 +23,9 @@
 
 #### Phase 3: Persona & Polish
 - [x] Task: Define System Prompt (Narrator-Veteran)
-    - [ ] Write tests to verify prompt inclusion in the API payload.
-    - [ ] Implement `SYSTEM_PROMPT` in `src/lib/ai/prompts.ts`.
+    - [x] Write tests to verify prompt inclusion in the API payload.
+    - [x] Implement `SYSTEM_PROMPT` in `src/lib/ai/prompts.ts`.
 - [x] Task: Implement Configurable UI Toggles
-    - [ ] Write tests for the configuration store/state.
-    - [ ] Add simple toggles (e.g., animation speed) to the Sidebar or a settings menu.
-- [ ] Task: Conductor - User Manual Verification 'Persona & Polish' (Protocol in workflow.md)
+    - [x] Write tests for the configuration store/state.
+    - [x] Add simple toggles (e.g., animation speed) to the Sidebar or a settings menu.
+- [x] Task: Conductor - User Manual Verification 'Persona & Polish' (Protocol in workflow.md)
