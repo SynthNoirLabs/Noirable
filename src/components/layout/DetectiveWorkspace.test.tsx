@@ -135,4 +135,39 @@ describe("DetectiveWorkspace", () => {
     expect(screen.getByText("Missing: Jane Doe")).toBeInTheDocument();
     expect(screen.getByText("MISSING")).toBeInTheDocument();
   });
+
+  it("renders nested tool output", () => {
+    mockMessages = [
+      {
+        id: "m1",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-generate_ui",
+            state: "output-available",
+            output: {
+              type: "container",
+              style: { padding: "md", gap: "sm" },
+              children: [
+                { type: "heading", level: 2, text: "Case Intake" },
+                {
+                  type: "row",
+                  style: { gap: "sm" },
+                  children: [
+                    { type: "input", label: "Name", placeholder: "Jane Doe" },
+                    { type: "button", label: "Submit", variant: "primary" },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ];
+
+    render(<DetectiveWorkspace />);
+    expect(screen.getByText("Case Intake")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByText("Submit")).toBeInTheDocument();
+  });
 });
