@@ -1,13 +1,13 @@
 # Implementation Plan: chat-foundation_20260119
 
-#### Phase 1: Environment & Auth Scaffolding
+#### Phase 1: Environment & Auth Scaffolding [checkpoint: e1012ec]
 - [x] Task: Implement Multi-provider Auth Factory e9f0df9
     - [ ] Write tests for `getProvider` to check `auth.json`, Env vars, and fallback logic.
     - [ ] Implement `getProvider` in `src/lib/ai/factory.ts`.
 - [x] Task: Create Chat API Route 0bd9db9
     - [ ] Write tests for `POST /api/chat` (mocking the AI SDK response).
     - [ ] Implement the route handler in `src/app/api/chat/route.ts` using the Auth Factory.
-- [ ] Task: Conductor - User Manual Verification 'Environment & Auth Scaffolding' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Environment & Auth Scaffolding' (Protocol in workflow.md)
 
 #### Phase 2: Core Chat UI (Noir Style)
 - [ ] Task: Implement Noir Chat Sidebar Component
