@@ -63,4 +63,32 @@ describe('ChatSidebar', () => {
     )
     expect(screen.getByText(/Processing Evidence/i)).toBeInTheDocument()
   })
+
+  it('shows settings toggle when onUpdateSettings is provided', () => {
+    const onUpdateSettings = vi.fn()
+    render(
+      <ChatSidebar 
+        messages={[]} 
+        sendMessage={mockSendMessage} 
+        isLoading={false} 
+        onUpdateSettings={onUpdateSettings}
+      />
+    )
+    
+    // Find settings button (by title "Configuration")
+    const settingsBtn = screen.getByTitle("Configuration")
+    expect(settingsBtn).toBeInTheDocument()
+    
+    // Open settings
+    fireEvent.click(settingsBtn)
+    
+    // Check for speed toggle text
+    expect(screen.getByText("TYPEWRITER SPEED")).toBeInTheDocument()
+    
+    // Click toggle button (defaults to NORMAL, so clicking should set INSTANT/0)
+    const toggleBtn = screen.getByText("NORMAL")
+    fireEvent.click(toggleBtn)
+    
+    expect(onUpdateSettings).toHaveBeenCalledWith({ typewriterSpeed: 0 })
+  })
 })

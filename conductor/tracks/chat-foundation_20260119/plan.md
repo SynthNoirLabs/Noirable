@@ -25,7 +25,7 @@
 - [x] Task: Define System Prompt (Narrator-Veteran)
     - [ ] Write tests to verify prompt inclusion in the API payload.
     - [ ] Implement `SYSTEM_PROMPT` in `src/lib/ai/prompts.ts`.
-- [ ] Task: Implement Configurable UI Toggles
+- [x] Task: Implement Configurable UI Toggles
     - [ ] Write tests for the configuration store/state.
     - [ ] Add simple toggles (e.g., animation speed) to the Sidebar or a settings menu.
 - [ ] Task: Conductor - User Manual Verification 'Persona & Polish' (Protocol in workflow.md)

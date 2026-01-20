@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Send, User, Bot } from 'lucide-react'
+import { Send, User, Bot, Settings as SettingsIcon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TypewriterText } from '@/components/noir/TypewriterText'
 
@@ -20,10 +20,19 @@ interface ChatSidebarProps {
   sendMessage: (message: { role: 'user', content: string }) => Promise<string | null | undefined>
   isLoading: boolean
   typewriterSpeed?: number
+  onUpdateSettings?: (settings: { typewriterSpeed: number }) => void
 }
 
-export function ChatSidebar({ className, messages, sendMessage, isLoading, typewriterSpeed = 30 }: ChatSidebarProps) {
+export function ChatSidebar({ 
+  className, 
+  messages, 
+  sendMessage, 
+  isLoading, 
+  typewriterSpeed = 30,
+  onUpdateSettings 
+}: ChatSidebarProps) {
   const [localInput, setLocalInput] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -51,14 +60,54 @@ export function ChatSidebar({ className, messages, sendMessage, isLoading, typew
     }
   }
 
+  const toggleSpeed = () => {
+    const newSpeed = typewriterSpeed === 0 ? 30 : 0
+    onUpdateSettings?.({ typewriterSpeed: newSpeed })
+  }
+
   return (
     <div className={cn("flex flex-col h-full bg-noir-black/90 border-l border-noir-gray/20 shadow-[-10px_0_20px_rgba(0,0,0,0.5)]", className)}>
-      <div className="p-4 border-b border-noir-gray/20 bg-noir-dark/95 sticky top-0 z-10 backdrop-blur-sm">
+      <div className="p-4 border-b border-noir-gray/20 bg-noir-dark/95 sticky top-0 z-10 backdrop-blur-sm flex justify-between items-center">
         <h2 className="font-typewriter text-sm text-noir-paper/70 tracking-widest flex items-center gap-2">
           <Bot className="w-4 h-4 text-noir-amber/70" />
           INTERROGATION LOG
         </h2>
+        {onUpdateSettings && (
+          <button 
+            onClick={() => setShowSettings(!showSettings)}
+            className="text-noir-gray hover:text-noir-amber transition-colors p-1"
+            title="Configuration"
+          >
+            <SettingsIcon className="w-4 h-4" />
+          </button>
+        )}
       </div>
+
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-b border-noir-gray/20 bg-noir-dark/50"
+          >
+            <div className="p-4 text-xs font-mono flex items-center justify-between">
+              <span className="text-noir-paper/70">TYPEWRITER SPEED</span>
+              <button 
+                onClick={toggleSpeed}
+                className={cn(
+                  "px-2 py-1 border rounded-sm transition-colors",
+                  typewriterSpeed === 0 
+                    ? "border-noir-amber text-noir-amber bg-noir-amber/10" 
+                    : "border-noir-gray/50 text-noir-gray hover:border-noir-paper"
+                )}
+              >
+                {typewriterSpeed === 0 ? "INSTANT" : "NORMAL"}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.length === 0 && (

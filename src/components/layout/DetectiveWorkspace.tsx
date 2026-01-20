@@ -16,7 +16,7 @@ const DEFAULT_JSON = JSON.stringify({
 export function DetectiveWorkspace() {
   const [json, setJson] = useState(DEFAULT_JSON)
   const [error, setError] = useState<string | null>(null)
-  const { evidence, setEvidence } = useA2UIStore()
+  const { evidence, setEvidence, settings, updateSettings } = useA2UIStore()
 
   // Initialize store
   useEffect(() => {
@@ -109,6 +109,8 @@ export function DetectiveWorkspace() {
           messages={messages as any[]} 
           sendMessage={sendMessage} 
           isLoading={isLoading} 
+          typewriterSpeed={settings.typewriterSpeed}
+          onUpdateSettings={updateSettings}
         />
       }
     />
