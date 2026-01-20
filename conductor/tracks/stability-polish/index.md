@@ -1,4 +1,4 @@
-# Track chat-foundation_20260119 Context
+# Track stability-polish Context
 
 - [Specification](./spec.md)
 - [Implementation Plan](./plan.md)
