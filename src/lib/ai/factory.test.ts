@@ -28,7 +28,18 @@ describe('ProviderFactory', () => {
     expect(result.type).toBe('openai')
   })
 
-  it('reads from local opencode config if env missing', () => {
+  it('reads from local opencode config (nested object) if env missing', () => {
+    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+    vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({
+      openai: { access: 'file-key-nested' }
+    }))
+    
+    const result = getProvider()
+    expect(result.type).toBe('openai')
+    expect(fs.readFileSync).toHaveBeenCalled()
+  })
+
+  it('reads from local opencode config (string) if env missing', () => {
     vi.spyOn(fs, 'existsSync').mockReturnValue(true)
     vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({
       openai: 'file-key' // Root level key per new logic

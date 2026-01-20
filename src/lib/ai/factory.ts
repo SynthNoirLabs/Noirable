@@ -23,7 +23,11 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
   }
 
   // 1. Check OpenAI (Env or Config)
-  const openAIKey = process.env.OPENAI_API_KEY || config.openai
+  let openAIKey = process.env.OPENAI_API_KEY
+  if (!openAIKey && config.openai) {
+    openAIKey = typeof config.openai === 'string' ? config.openai : config.openai.access
+  }
+  
   if (openAIKey) {
     return { 
       provider: createOpenAI({ apiKey: openAIKey }), 
@@ -33,7 +37,11 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
   }
 
   // 2. Check Anthropic (Env or Config)
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || config.anthropic
+  let anthropicKey = process.env.ANTHROPIC_API_KEY
+  if (!anthropicKey && config.anthropic) {
+    anthropicKey = typeof config.anthropic === 'string' ? config.anthropic : config.anthropic.access
+  }
+
   if (anthropicKey) {
     return { 
       provider: createAnthropic({ apiKey: anthropicKey }), 
@@ -43,7 +51,11 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
   }
 
   // 3. Check Google/Gemini (Env or Config)
-  const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || config.google
+  let googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  if (!googleKey && config.google) {
+    googleKey = typeof config.google === 'string' ? config.google : config.google.access
+  }
+
   if (googleKey) {
     return { 
       provider: createGoogleGenerativeAI({ apiKey: googleKey }), 
