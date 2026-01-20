@@ -1,7 +1,7 @@
 # Implementation Plan: chat-foundation_20260119
 
 #### Phase 1: Environment & Auth Scaffolding
-- [ ] Task: Implement Multi-provider Auth Factory
+- [x] Task: Implement Multi-provider Auth Factory e9f0df9
     - [ ] Write tests for `getProvider` to check `auth.json`, Env vars, and fallback logic.
     - [ ] Implement `getProvider` in `src/lib/ai/factory.ts`.
 - [ ] Task: Create Chat API Route
