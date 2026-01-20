@@ -22,7 +22,7 @@
 - [x] Task: Conductor - User Manual Verification 'Core Chat UI (Noir Style)' (Protocol in workflow.md)
 
 #### Phase 3: Persona & Polish
-- [ ] Task: Define System Prompt (Narrator-Veteran)
+- [x] Task: Define System Prompt (Narrator-Veteran)
     - [ ] Write tests to verify prompt inclusion in the API payload.
     - [ ] Implement `SYSTEM_PROMPT` in `src/lib/ai/prompts.ts`.
 - [ ] Task: Implement Configurable UI Toggles

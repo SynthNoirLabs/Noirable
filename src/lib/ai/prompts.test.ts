@@ -8,8 +8,8 @@ describe('System Prompt', () => {
   })
 
   it('contains noir persona keywords', () => {
-    expect(SYSTEM_PROMPT).toMatch(/detective/i)
-    expect(SYSTEM_PROMPT).toMatch(/noir/i)
-    expect(SYSTEM_PROMPT).toMatch(/json/i) // Must mention JSON format
+    expect(SYSTEM_PROMPT).toMatch(/rain-slicked/i)
+    expect(SYSTEM_PROMPT).toMatch(/monologue/i)
+    expect(SYSTEM_PROMPT).toMatch(/generate_ui/i)
   })
 })
