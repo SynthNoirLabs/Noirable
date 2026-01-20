@@ -30,7 +30,6 @@ export function DetectiveWorkspace() {
   }, []) // Once
 
   const chat = useChat({
-    api: '/api/chat',
     onError: (err) => console.error('useChat error:', err)
   })
   
