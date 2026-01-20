@@ -22,6 +22,10 @@ vi.mock('@/lib/ai/factory', () => ({
   })
 }))
 
+import { getProvider } from '@/lib/ai/factory'
+
+// ... existing mocks ...
+
 describe('/api/chat', () => {
   it('exports a POST handler', () => {
     expect(typeof POST).toBe('function')
@@ -37,5 +41,23 @@ describe('/api/chat', () => {
     expect(res).toBeInstanceOf(Response)
     const text = await res.text()
     expect(text).toBe('mock-stream')
+  })
+
+  it('returns local simulation message when provider is mock', async () => {
+    // Override mock for this test
+    vi.mocked(getProvider).mockReturnValueOnce({
+      provider: null,
+      model: 'mock',
+      type: 'mock'
+    })
+
+    const req = new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'Hello' }] })
+    })
+
+    const res = await POST(req)
+    const text = await res.text()
+    expect(text).toContain('The streets are quiet')
   })
 })
