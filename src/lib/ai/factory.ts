@@ -6,17 +6,18 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AIProviderInstance = any // Flexible for multiple SDK providers
 
 export function getProvider(): { provider: AIProviderInstance, model: string, type: 'openai' | 'anthropic' | 'google' | 'mock' } {
   const home = os.homedir()
   const authPath = path.join(home, '.local/share/opencode/auth.json')
-  let config: any = {}
+  let config: Record<string, string | undefined> = {}
 
   if (fs.existsSync(authPath)) {
     try {
       config = JSON.parse(fs.readFileSync(authPath, 'utf-8'))
-    } catch (e) {
+    } catch {
       console.warn('Failed to parse auth.json')
     }
   }
@@ -42,7 +43,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
   }
 
   // 3. Check Google/Gemini (Env or Config)
-  const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || config.google
+  const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || config.google
   if (googleKey) {
     return { 
       provider: createGoogleGenerativeAI({ apiKey: googleKey }), 

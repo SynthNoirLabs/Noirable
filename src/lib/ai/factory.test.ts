@@ -13,6 +13,8 @@ describe('ProviderFactory', () => {
     delete process.env.OPENAI_API_KEY
     delete process.env.ANTHROPIC_API_KEY
     delete process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    delete process.env.GEMINI_API_KEY
+    vi.spyOn(fs, 'existsSync').mockReturnValue(false)
   })
 
   afterEach(() => {
@@ -37,10 +39,16 @@ describe('ProviderFactory', () => {
     expect(fs.readFileSync).toHaveBeenCalled()
   })
 
+  it('uses GEMINI_API_KEY if present', () => {
+    process.env.GEMINI_API_KEY = 'gemini-key'
+    const result = getProvider()
+    expect(result.type).toBe('google')
+  })
+
   it('throws if no key found', () => {
     vi.spyOn(fs, 'existsSync').mockReturnValue(false)
     // Ensure NODE_ENV is NOT development for this test to trigger throw
-    process.env.NODE_ENV = 'production'
+    vi.stubEnv('NODE_ENV', 'production')
     
     expect(() => getProvider()).toThrow(/No valid API key found/)
   })
