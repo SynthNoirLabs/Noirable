@@ -24,6 +24,14 @@ describe("DeskLayout", () => {
     expect(layout).toHaveClass("grid-cols-2");
   });
 
+  it("uses widened sidebar width when present", () => {
+    const { container } = render(
+      <DeskLayout editor={<div />} preview={<div />} sidebar={<div />} />,
+    );
+    const layout = container.firstChild;
+    expect(layout).toHaveClass("grid-cols-[1fr_1fr_420px]");
+  });
+
   it("renders noir background layers", () => {
     render(<DeskLayout editor={<div />} preview={<div />} />);
     expect(screen.getByTestId("noir-rain-bg")).toBeInTheDocument();

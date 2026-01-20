@@ -18,13 +18,13 @@ export function DeskLayout({
     <div
       className={cn(
         "min-h-screen grid gap-0 bg-noir-dark text-noir-paper relative isolate overflow-hidden",
-        sidebar ? "grid-cols-[1fr_1fr_350px]" : "grid-cols-2",
+        sidebar ? "grid-cols-[1fr_1fr_420px]" : "grid-cols-2",
         className,
       )}
     >
       <div
         data-testid="noir-rain-bg"
-        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-center opacity-20 pointer-events-none"
+        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-top opacity-15 pointer-events-none"
         aria-hidden="true"
       />
       <div
@@ -35,7 +35,7 @@ export function DeskLayout({
       <div className="border-r border-noir-gray/30 p-4 overflow-auto bg-noir-black/50 relative z-10">
         <div
           data-testid="noir-case-file"
-          className="absolute inset-0 bg-[url('/assets/noir/case-file.jpg')] bg-cover bg-center opacity-15 pointer-events-none"
+          className="absolute inset-0 bg-[url('/assets/noir/case-file.jpg')] bg-contain bg-left-bottom bg-no-repeat opacity-10 pointer-events-none"
           aria-hidden="true"
         />
         <div className="relative z-10">

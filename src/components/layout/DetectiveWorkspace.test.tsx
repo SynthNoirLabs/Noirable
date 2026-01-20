@@ -70,6 +70,15 @@ describe("DetectiveWorkspace", () => {
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
   });
 
+  it("allows the editor to fill available height", () => {
+    mockMessages = [];
+    const { container } = render(<DetectiveWorkspace />);
+    const textarea = container.querySelector("textarea");
+    if (!textarea) throw new Error("Textarea not found");
+    expect(textarea.className).toContain("flex-1");
+    expect(textarea.className).toContain("min-h-0");
+  });
+
   it("handles invalid json gracefully", () => {
     mockMessages = [];
     const { container } = render(<DetectiveWorkspace />);

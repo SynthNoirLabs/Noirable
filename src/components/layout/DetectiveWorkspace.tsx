@@ -1,85 +1,144 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { DeskLayout } from './DeskLayout'
-import { A2UIRenderer } from '@/components/renderer/A2UIRenderer'
-import { ChatSidebar } from '@/components/chat/ChatSidebar'
-import { useA2UIStore } from '@/lib/store/useA2UIStore'
-import { useChat } from '@ai-sdk/react'
+import React, { useMemo, useState, useEffect } from "react";
+import { DeskLayout } from "./DeskLayout";
+import { A2UIRenderer } from "@/components/renderer/A2UIRenderer";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useChat } from "@ai-sdk/react";
+import { a2uiSchema } from "@/lib/protocol/schema";
+import type { UIMessage } from "ai";
 
-const DEFAULT_JSON = JSON.stringify({
-  type: 'text',
-  content: 'Evidence #1',
-  priority: 'normal'
-}, null, 2)
+const DEFAULT_JSON = JSON.stringify(
+  {
+    type: "text",
+    content: "Evidence #1",
+    priority: "normal",
+  },
+  null,
+  2,
+);
 
 export function DetectiveWorkspace() {
-  const [json, setJson] = useState(DEFAULT_JSON)
-  const [error, setError] = useState<string | null>(null)
-  const { evidence, setEvidence, settings, updateSettings } = useA2UIStore()
+  const [json, setJson] = useState(DEFAULT_JSON);
+  const [error, setError] = useState<string | null>(null);
+  const { evidence, setEvidence, settings, updateSettings } = useA2UIStore();
 
   // Initialize store
   useEffect(() => {
     try {
       if (!evidence) {
-        setEvidence(JSON.parse(DEFAULT_JSON))
+        setEvidence(JSON.parse(DEFAULT_JSON));
       }
     } catch {
       // ignore
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Once
 
   const chat = useChat({
-    onError: (err) => console.error('useChat error:', err)
-  })
-  
-  const { messages, status } = chat
-  
-  // Cast to any because type definition for append/sendMessage might be mismatched in current SDK version
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sendMessage = (chat as any).append
-  const isLoading = status === 'submitted' || status === 'streaming'
+    onError: (err) => console.error("useChat error:", err),
+  });
+
+  const { messages, status, sendMessage } = chat;
+  const isLoading = status === "submitted" || status === "streaming";
+
+  const uiMessages = useMemo(
+    () =>
+      messages.map((message: UIMessage & { content?: string }) => {
+        const parts = Array.isArray(message.parts) ? message.parts : null;
+        const contentFromParts = parts
+          ? parts
+              .filter((part) => part.type === "text")
+              .map((part) => part.text)
+              .join("")
+          : "";
+        const content = contentFromParts || message.content || "";
+
+        return {
+          id: message.id,
+          role: message.role,
+          content,
+        };
+      }),
+    [messages],
+  );
 
   // Sync Tool Results to Store
   useEffect(() => {
-    if (!messages || messages.length === 0) return
-    const lastMessage = messages[messages.length - 1]
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (lastMessage.role === 'assistant' && (lastMessage as any).toolInvocations) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const invocations = (lastMessage as any).toolInvocations
-      for (const tool of invocations) {
-        if (tool.toolName === 'generate_ui' && tool.state === 'result') {
-          console.log('Tool Result received:', tool.result)
-          const newEvidence = tool.result
-          setEvidence(newEvidence)
-          setJson(JSON.stringify(newEvidence, null, 2))
-          setError(null)
-        }
+    if (!messages || messages.length === 0) return;
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage.role !== "assistant") return;
+
+    const parts = Array.isArray(lastMessage.parts) ? lastMessage.parts : [];
+    for (const part of parts) {
+      if (
+        part.type !== "tool-generate_ui" ||
+        part.state !== "output-available"
+      ) {
+        continue;
       }
+
+      const parsed = a2uiSchema.safeParse(part.output);
+      if (!parsed.success) {
+        setError("Invalid tool output");
+        continue;
+      }
+
+      console.log("Tool Result received:", parsed.data);
+      setEvidence(parsed.data);
+      setJson(JSON.stringify(parsed.data, null, 2));
+      setError(null);
+      return;
     }
-  }, [messages, setEvidence])
+
+    const legacyInvocations = (lastMessage as { toolInvocations?: unknown })
+      .toolInvocations;
+    if (!Array.isArray(legacyInvocations)) return;
+
+    for (const tool of legacyInvocations) {
+      if (
+        typeof tool !== "object" ||
+        tool === null ||
+        (tool as { toolName?: string }).toolName !== "generate_ui"
+      ) {
+        continue;
+      }
+
+      const result = (tool as { state?: string; result?: unknown }).result;
+      const parsed = a2uiSchema.safeParse(result);
+      if (!parsed.success) {
+        setError("Invalid tool output");
+        continue;
+      }
+
+      console.log("Tool Result received:", parsed.data);
+      setEvidence(parsed.data);
+      setJson(JSON.stringify(parsed.data, null, 2));
+      setError(null);
+      return;
+    }
+  }, [messages, setEvidence]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newVal = e.target.value
-    setJson(newVal)
+    const newVal = e.target.value;
+    setJson(newVal);
     try {
-      const data = JSON.parse(newVal)
-      setEvidence(data)
-      setError(null)
+      const data = JSON.parse(newVal);
+      setEvidence(data);
+      setError(null);
     } catch {
-      setError("Invalid JSON")
+      setError("Invalid JSON");
     }
-  }
+  };
 
   return (
     <DeskLayout
       editor={
-        <div className="h-full flex flex-col">
-          <textarea 
-            className="w-full h-full bg-transparent text-noir-paper/90 font-mono text-sm resize-none focus:outline-none p-2"
+        <div className="h-full min-h-0 flex flex-col">
+          <textarea
+            className="w-full flex-1 min-h-0 bg-transparent text-noir-paper/90 font-mono text-sm resize-none focus:outline-none p-2"
             value={json}
             onChange={handleEditorChange}
             spellCheck={false}
@@ -95,24 +154,25 @@ export function DetectiveWorkspace() {
         evidence ? (
           <A2UIRenderer data={evidence} />
         ) : (
-           <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
-            <h3 className="text-noir-red font-typewriter font-bold mb-2">REDACTED</h3>
-             <p className="text-noir-red/80 font-mono text-xs">
+          <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
+            <h3 className="text-noir-red font-typewriter font-bold mb-2">
+              REDACTED
+            </h3>
+            <p className="text-noir-red/80 font-mono text-xs">
               NO EVIDENCE LOADED.
             </p>
           </div>
         )
       }
       sidebar={
-        <ChatSidebar 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          messages={messages as any[]} 
-          sendMessage={sendMessage} 
-          isLoading={isLoading} 
+        <ChatSidebar
+          messages={uiMessages}
+          sendMessage={sendMessage}
+          isLoading={isLoading}
           typewriterSpeed={settings.typewriterSpeed}
           onUpdateSettings={updateSettings}
         />
       }
     />
-  )
+  );
 }

@@ -80,7 +80,7 @@ export function ChatSidebar({
           <img
             src="/assets/noir/detective-avatar.jpg"
             alt="Detective avatar"
-            className="w-6 h-6 rounded-full object-cover border border-noir-amber/40 shadow-[0_0_8px_rgba(255,191,0,0.15)]"
+            className="w-8 h-8 rounded-full object-cover border border-noir-amber/40 shadow-[0_0_10px_rgba(255,191,0,0.18)]"
           />
           <Bot className="w-4 h-4 text-noir-amber/70" />
           INTERROGATION LOG
