@@ -12,7 +12,8 @@ vi.mock('next/font/google', () => ({
 
 describe('RootLayout', () => {
   it('uses the correct Noir fonts', () => {
-    const result = RootLayout({ children: <div /> }) as React.ReactElement
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = RootLayout({ children: <div /> }) as any
     // Result is <html ...><body className="...">...</body></html>
     const body = result.props.children
     

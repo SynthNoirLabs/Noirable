@@ -14,6 +14,7 @@ describe('AI Tools', () => {
   // We can't easily test the schema internal validation without calling execute, 
   // but we can verify it exists.
   it('has parameters schema', () => {
-    expect(tools.generate_ui.parameters).toBeDefined()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((tools.generate_ui as any).parameters).toBeDefined()
   })
 })

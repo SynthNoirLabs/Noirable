@@ -4,10 +4,18 @@ import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Send, User, Bot } from 'lucide-react'
 
+// Define Message interface locally since 'ai' package exports are unstable/mismatched
+export interface Message {
+  id: string
+  role: 'system' | 'user' | 'assistant' | 'data' | 'tool' | string
+  content: string
+  toolInvocations?: unknown[]
+}
+
 interface ChatSidebarProps {
   className?: string
-  messages: any[]
-  sendMessage: (message: any) => Promise<any>
+  messages: Message[]
+  sendMessage: (message: { role: 'user', content: string }) => Promise<string | null | undefined>
   isLoading: boolean
 }
 
@@ -55,7 +63,7 @@ export function ChatSidebar({ className, messages, sendMessage, isLoading }: Cha
             No record found. Begin interrogation.
           </div>
         )}
-        {messages.map((m: any) => (
+        {messages.map((m: Message) => (
           <div key={m.id} className={cn(
             "flex gap-3 text-sm p-3 rounded-sm border",
             m.role === 'user' 

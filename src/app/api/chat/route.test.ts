@@ -5,9 +5,12 @@ import { NextRequest } from 'next/server'
 // Mock Vercel AI SDK
 vi.mock('ai', () => ({
   streamText: vi.fn().mockReturnValue({
-    toDataStreamResponse: () => new Response('mock-stream')
+    toDataStreamResponse: vi.fn(() => new Response('mock-stream')), // Keep for compat
+    toUIMessageStreamResponse: vi.fn(() => new Response('mock-stream')),
+    toTextStreamResponse: vi.fn(() => new Response('mock-stream')),
   }),
-  convertToCoreMessages: vi.fn(msgs => msgs)
+  convertToModelMessages: vi.fn(async msgs => msgs), // Make async
+  tool: vi.fn(config => config)
 }))
 
 // Mock Provider Factory
