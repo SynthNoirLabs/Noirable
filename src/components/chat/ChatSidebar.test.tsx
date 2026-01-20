@@ -29,7 +29,7 @@ describe('ChatSidebar', () => {
         isLoading={false} 
       />
     )
-    expect(screen.getByPlaceholderText(/Interrogate/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Type your command/i)).toBeInTheDocument()
   })
 
   it('submits message on enter', () => {
@@ -40,7 +40,7 @@ describe('ChatSidebar', () => {
         isLoading={false} 
       />
     )
-    const input = screen.getByPlaceholderText(/Interrogate/i)
+    const input = screen.getByPlaceholderText(/Type your command/i)
     fireEvent.change(input, { target: { value: 'Hello' } })
     fireEvent.submit(input)
     expect(mockSendMessage).toHaveBeenCalledWith(
@@ -49,5 +49,16 @@ describe('ChatSidebar', () => {
         content: 'Hello'
       })
     )
+  })
+
+  it('shows typing indicator when loading', () => {
+    render(
+      <ChatSidebar 
+        messages={[]} 
+        sendMessage={mockSendMessage} 
+        isLoading={true} 
+      />
+    )
+    expect(screen.getByText(/Processing Evidence/i)).toBeInTheDocument()
   })
 })
