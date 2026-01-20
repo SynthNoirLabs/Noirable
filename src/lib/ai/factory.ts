@@ -39,7 +39,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
         baseURL: openAIBaseUrl,
         apiKey: compatKey || 'dummy',
       }),
-      model: process.env.AI_MODEL || 'gpt-5.2(auto)',
+      model: process.env.AI_MODEL || 'gpt-5.2(medium)',
       type: 'openai-compatible'
     }
   }
