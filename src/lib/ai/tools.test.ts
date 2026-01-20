@@ -15,6 +15,9 @@ describe('AI Tools', () => {
   // but we can verify it exists.
   it('has parameters schema', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((tools.generate_ui as any).parameters).toBeDefined()
+    const params = (tools.generate_ui as any).parameters
+    expect(params).toBeDefined()
+    // Verify it is an object schema with a 'component' property
+    expect(params.shape.component).toBeDefined()
   })
 })
