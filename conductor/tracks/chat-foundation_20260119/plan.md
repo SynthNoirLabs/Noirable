@@ -4,7 +4,7 @@
 - [x] Task: Implement Multi-provider Auth Factory e9f0df9
     - [ ] Write tests for `getProvider` to check `auth.json`, Env vars, and fallback logic.
     - [ ] Implement `getProvider` in `src/lib/ai/factory.ts`.
-- [ ] Task: Create Chat API Route
+- [x] Task: Create Chat API Route 0bd9db9
     - [ ] Write tests for `POST /api/chat` (mocking the AI SDK response).
     - [ ] Implement the route handler in `src/app/api/chat/route.ts` using the Auth Factory.
 - [ ] Task: Conductor - User Manual Verification 'Environment & Auth Scaffolding' (Protocol in workflow.md)
