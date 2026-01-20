@@ -24,7 +24,7 @@ The project has a functional foundation with a Noir-styled split-pane workspace.
 
 ### Non-Functional
 - **NFR1:** < 3s latency for text generation.
-- **NFR2:** Strict adherence to `src/lib/protocol/schema.ts` (Zod).
+- **NFR2:** Strict adherence to `src/lib/protocol/schema.ts` (Zod v4).
 - **NFR3:** Handle LLM errors with thematic "The lead went cold" fallbacks.
 
 ## 3. User Interface Design Goals
@@ -33,10 +33,10 @@ The project has a functional foundation with a Noir-styled split-pane workspace.
 - **Branding:** Muted tones, sepia, CRT scanline effects for AI text.
 
 ## 4. Technical Assumptions
-- **Framework:** Next.js (App Router), Vercel AI SDK.
+- **Framework:** Next.js (App Router), Vercel AI SDK v6.
 - **State:** Zustand for managing the current A2UI JSON artifact.
-- **LLM:** GPT-4o / Claude 3.5 Sonnet with Tool Calling.
-- **Auth:** Compatibility with Agent-based CLI environments (Gemini CLI, etc.).
+- **LLM:** GPT-4o / Claude 3.5 Sonnet / Gemini with tool calling.
+- **Auth:** Env vars or `~/.local/share/opencode/auth.json` (fallback).
 
 ## 5. Roadmap & Epics
 ### Epic 1: Foundation & Persona

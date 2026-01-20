@@ -13,11 +13,11 @@
 -   **Fonts:** Google Fonts (Special Elite for typewriter, Inter for UI)
 
 ## AI & Data Protocol
--   **AI SDK:** Vercel AI SDK (with @ai-sdk/openai-compatible for local proxies)
--   **LLM Provider:** Flexible (OpenAI, Anthropic, Gemini, or Local Proxies via custom Base URL)
--   **Authentication:** Hybrid Factory (Supports .env vars, ~/.local/share/opencode/auth.json, and custom API Keys)
--   **Schema Validation:** Zod (Strict A2UI protocol enforcement)
--   **Protocol:** Custom A2UI-inspired JSON schema
+-   **AI SDK:** Vercel AI SDK v6 (streaming via `toUIMessageStreamResponse`)
+-   **LLM Provider:** Flexible (OpenAI, Anthropic, Gemini, or local proxies via `OPENAI_BASE_URL`)
+-   **Authentication:** Hybrid factory (env vars + `~/.local/share/opencode/auth.json`)
+-   **Schema Validation:** Zod v4 (A2UI protocol enforcement)
+-   **Protocol:** Custom A2UI-inspired JSON schema (tool inputs must be root objects)
 
 ## State & Ejection
 -   **State Management:** Zustand (Global editor state)

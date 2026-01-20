@@ -7,18 +7,16 @@ As a user, when the AI generates a UI, I want the "Evidence Board" to update ins
 - [x] Create `src/lib/store/useA2UIStore.ts` (Zustand).
 - [x] Store should hold `currentEvidence` (A2UIComponent | null).
 - [x] Update `DetectiveWorkspace` (or `ChatSidebar`) to handle tool calls.
-- [x] **Crucial:** Vercel AI SDK handles tool execution on server (`execute: async ...`) OR client (`onToolCall`?).
-    - *Decision:* We want the *client* to update the store.
-    - *Pattern:* The server executes the tool (validation/logic) and returns the result. The client `useChat` hook receives `toolInvocations`.
-    - *Refinement:* We can use `onToolCall` in `useChat` OR watch `toolInvocations`.
-    - *Better:* Use `maxSteps: 5` on server to allow multi-step? No, simple generation.
-    - *Architecture:* Server validates. Client watches `messages` for tool results and updates store? OR Server-side tool updates DB? No DB.
-    - *Solution:* Server-side tool execution is "stateless". It just returns "UI Generated". The *Payload* of the tool call is what matters.
-    - *Client Side:* Watch `toolInvocations` in `useChat`. When a tool result arrives (or even call), update Zustand.
+- [x] **Crucial:** Vercel AI SDK v6 executes tools on the server (`execute: async ...`), then streams UI messages back.
+    - *Decision:* The client updates the store when a tool output arrives.
+    - *Pattern:* Server validates tool output and returns it in UI message parts.
+    - *Client Side:* Watch `messages[].parts` for `tool-generate_ui` with `state: "output-available"` and update Zustand.
+    - *Legacy fallback:* If `parts` are missing, read `toolInvocations`.
 
 ## Technical Notes
-- `useEffect` in `ChatSidebar` (or a headless component) to sync `toolInvocations` -> `useA2UIStore`.
-- Handle "partial" JSON? No, wait for complete tool call.
+- `useEffect` in `DetectiveWorkspace` to sync `messages[].parts` tool output -> `useA2UIStore`.
+- Legacy fallback: `toolInvocations` when `parts` are absent.
+- Handle "partial" JSON? No, wait for complete tool output.
 
 ## Test Plan
 - Unit test: Zustand store actions.

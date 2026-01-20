@@ -5,13 +5,14 @@ As a system, I want a structured tool definition for the LLM, so it knows the A2
 
 ## Acceptance Criteria
 - [x] Create `src/lib/ai/tools.ts`.
-- [x] Define `generate_ui` tool using `zod` schema from `src/lib/protocol/schema.ts`.
-- [x] The tool should accept a `component` object (A2UIComponent).
+- [x] Define `generate_ui` tool using Zod (input must be a root object).
+- [x] The tool currently accepts an `instruction` string in an object payload.
 - [x] Update `/api/chat` to register this tool in the `streamText` call.
 
 ## Technical Notes
-- Use `tool()` helper from `ai`.
+- Use `tool()` helper from `ai` and `inputSchema` (AI SDK v6).
 - Ensure schema description is clear so LLM knows when to use it.
+- Reminder: tool schemas must be JSON Schema with root `type: "object"`.
 
 ## Test Plan
 - Unit test: Verify tool definition exports correct schema.

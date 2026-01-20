@@ -8,7 +8,7 @@ This design builds on the established Next.js + Tailwind v4 + Zod foundation. It
 
 ## 2. High Level Architecture
 ### Technical Summary
-The system uses a streaming serverless architecture. The frontend (Next.js) requests a stream from the backend (/api/chat), which orchestrates an LLM call with tool-calling enabled. Results are streamed back to update a client-side Zustand store.
+The system uses a streaming serverless architecture. The frontend (Next.js) requests a stream from the backend (`/api/chat`), which orchestrates an LLM call with tool-calling enabled. Results are streamed back as UI messages and used to update a client-side Zustand store.
 
 ### High Level Diagram
 ```mermaid
@@ -26,9 +26,9 @@ graph TD
 | Category | Technology | Version | Purpose |
 | :--- | :--- | :--- | :--- |
 | Framework | Next.js | 16.x | Application Core |
-| AI SDK | Vercel AI SDK | 3.x | Streaming & Tools |
+| AI SDK | Vercel AI SDK | 6.x | Streaming & Tools |
 | State | Zustand | 5.x | Evidence State |
-| Schema | Zod | 3.x | Protocol Validation |
+| Schema | Zod | 4.x | Protocol Validation |
 | Auth | Multi-Tier | N/A | CLI/Env Key Discovery |
 
 ## 4. Components
@@ -39,7 +39,7 @@ graph TD
 
 ### ProviderFactory (Server-only)
 - **Role:** Resolves API keys.
-- **Hierarchy:** process.env -> local config (~/.config/opencode/auth.json) -> User Headers.
+- **Hierarchy:** process.env -> local config (`~/.local/share/opencode/auth.json`) -> request headers.
 
 ### ChatSidebar (Client)
 - **Role:** UI for conversation.
@@ -47,12 +47,13 @@ graph TD
 
 ## 5. Core Workflows
 ### AI UI Generation
-1. User types "Make a card".
-2. AI calls `generate_ui` tool.
-3. System validates JSON via Zod.
-4. Valid JSON is sent to client.
-5. Zustand state updates.
-6. Renderer displays the new component.
+1. User sends a chat message.
+2. `/api/chat` normalizes messages and calls `convertToModelMessages`.
+3. AI calls `generate_ui` (tool inputs must be root objects).
+4. Server validates tool output via Zod.
+5. Server streams UI messages via `toUIMessageStreamResponse`.
+6. Client inspects `message.parts` (with legacy `toolInvocations` fallback) and updates Zustand.
+7. Renderer displays the new component.
 
 ## 6. Coding Standards
 - **Server-Only:** Auth logic must never be imported in client components.
