@@ -39,7 +39,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
         baseURL: openAIBaseUrl,
         apiKey: compatKey || 'dummy',
       }),
-      model: 'gpt-4o', // Or whatever default model your proxy expects/maps
+      model: process.env.AI_MODEL || 'gpt-5.2(auto)',
       type: 'openai-compatible'
     }
   }
@@ -53,7 +53,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
   if (openAIKey) {
     return { 
       provider: createOpenAI({ apiKey: openAIKey }), 
-      model: 'gpt-4o', 
+      model: process.env.AI_MODEL || 'gpt-4o', 
       type: 'openai' 
     }
   }
@@ -67,7 +67,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
   if (anthropicKey) {
     return { 
       provider: createAnthropic({ apiKey: anthropicKey }), 
-      model: 'claude-3-5-sonnet-latest', 
+      model: process.env.AI_MODEL || 'claude-3-5-sonnet-latest', 
       type: 'anthropic' 
     }
   }
@@ -81,7 +81,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
   if (googleKey) {
     return { 
       provider: createGoogleGenerativeAI({ apiKey: googleKey }), 
-      model: 'gemini-1.5-pro', 
+      model: process.env.AI_MODEL || 'gemini-1.5-pro', 
       type: 'google' 
     }
   }

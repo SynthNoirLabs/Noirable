@@ -28,6 +28,13 @@ describe('ProviderFactory', () => {
     expect(result.type).toBe('openai')
   })
 
+  it('uses AI_MODEL if set', () => {
+    process.env.OPENAI_API_KEY = 'env-key'
+    process.env.AI_MODEL = 'custom-model'
+    const result = getProvider()
+    expect(result.model).toBe('custom-model')
+  })
+
   it('uses openai-compatible if OPENAI_BASE_URL is set', () => {
     process.env.OPENAI_BASE_URL = 'http://localhost:1234'
     const result = getProvider()
