@@ -13,8 +13,9 @@
 -   **Fonts:** Google Fonts (Special Elite for typewriter, Inter for UI)
 
 ## AI & Data Protocol
--   **AI SDK:** Vercel AI SDK (for streaming chat and tool calling)
--   **LLM Provider:** OpenAI (GPT-4o) or Anthropic (Claude 3.5 Sonnet)
+-   **AI SDK:** Vercel AI SDK (with @ai-sdk/openai-compatible for local proxies)
+-   **LLM Provider:** Flexible (OpenAI, Anthropic, Gemini, or Local Proxies via custom Base URL)
+-   **Authentication:** Hybrid Factory (Supports .env vars, ~/.local/share/opencode/auth.json, and custom API Keys)
 -   **Schema Validation:** Zod (Strict A2UI protocol enforcement)
 -   **Protocol:** Custom A2UI-inspired JSON schema
 

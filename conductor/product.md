@@ -13,7 +13,7 @@
 3.  **Hybrid Architecture:** Successfully implement and demonstrate the bridge between a rigid UI protocol and flexible code generation.
 
 ## Key Features
--   **AI-Driven Command Center:** A natural language chat interface where users describe their desired interface (e.g., "Create a suspect dossier card"), and the system generates the corresponding A2UI JSON.
+-   **AI-Driven Command Center:** A natural language chat interface ("The Interrogation Log") led by a hard-boiled "Narrator-Veteran" persona. Users describe their desired interface, and the system acts as a detective gathering "evidence" (A2UI JSON).
 -   **Split-Pane "Detective's Desk":** A live workspace featuring the raw A2UI JSON on one side and the instantly rendered UI on the other, allowing for manual tweaking or AI-driven updates.
 -   **"Eject" to Code:** A robust transformation engine that compiles the current state into a single, copy-pasteable React component file using Tailwind CSS.
 
