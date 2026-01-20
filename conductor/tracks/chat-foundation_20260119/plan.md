@@ -13,7 +13,7 @@
 - [x] Task: Implement Noir Chat Sidebar Component 1558f8d
     - [ ] Write tests for `ChatSidebar.tsx` (Prop rendering, loading states).
     - [ ] Implement the UI with "Logbook" styling and Framer Motion integration.
-- [ ] Task: Implement Typewriter Animation Hook/Component
+- [~] Task: Implement Typewriter Animation Hook/Component
     - [ ] Write tests for character-by-character rendering logic.
     - [ ] Implement `TypewriterText` component for AI messages.
 - [ ] Task: Integrate Sidebar into Detective Workspace

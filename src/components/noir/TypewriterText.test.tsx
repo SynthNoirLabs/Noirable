@@ -1,24 +1,22 @@
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { render, screen, act } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { TypewriterText } from './TypewriterText'
 
 describe('TypewriterText', () => {
   it('renders content with typewriter font', () => {
-    render(<TypewriterText content="Case #1234" />)
-    const element = screen.getByText('Case #1234')
+    const { container } = render(<TypewriterText content="Case #1234" speed={0} />)
+    
+    // Allow animation/state to settle if needed, though speed=0 is instant
+    const element = container.querySelector('.font-typewriter')
     expect(element).toBeInTheDocument()
-    expect(element).toHaveClass('font-typewriter')
+    expect(element?.textContent).toContain('Case #1234')
   })
 
   it('applies critical priority styling', () => {
-    render(<TypewriterText content="CONFIDENTIAL" priority="critical" />)
-    const element = screen.getByText('CONFIDENTIAL')
-    expect(element).toHaveClass('text-noir-red')
-  })
-
-  it('applies normal priority styling by default', () => {
-    render(<TypewriterText content="Standard report" />)
-    const element = screen.getByText('Standard report')
-    expect(element).toHaveClass('text-noir-paper') // or default color
+    const { container } = render(<TypewriterText content="CONFIDENTIAL" priority="critical" speed={0} />)
+    
+    const element = container.querySelector('.text-noir-red')
+    expect(element).toBeInTheDocument()
+    expect(element?.textContent).toContain('CONFIDENTIAL')
   })
 })

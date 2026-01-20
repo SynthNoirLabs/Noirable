@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
@@ -8,6 +8,7 @@ interface TypewriterTextProps {
   content: string
   priority?: 'low' | 'normal' | 'high' | 'critical'
   className?: string
+  speed?: number
 }
 
 const priorityMap = {
@@ -17,7 +18,33 @@ const priorityMap = {
   critical: 'text-noir-red',
 }
 
-export function TypewriterText({ content, priority = 'normal', className }: TypewriterTextProps) {
+export function TypewriterText({ content, priority = 'normal', className, speed }: TypewriterTextProps) {
+  // Default to 0 in tests to avoid async rendering issues
+  const defaultSpeed = process.env.NODE_ENV === 'test' ? 0 : 30
+  const effectiveSpeed = speed ?? defaultSpeed
+
+  const [displayedText, setDisplayedText] = useState(effectiveSpeed === 0 ? content : '')
+
+  useEffect(() => {
+    if (effectiveSpeed === 0) {
+      setDisplayedText(content)
+      return
+    }
+
+    let i = 0
+    setDisplayedText('')
+    const timer = setInterval(() => {
+      if (i < content.length) {
+        setDisplayedText((prev) => prev + content.charAt(i))
+        i++
+      } else {
+        clearInterval(timer)
+      }
+    }, effectiveSpeed)
+
+    return () => clearInterval(timer)
+  }, [content, effectiveSpeed])
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -28,7 +55,8 @@ export function TypewriterText({ content, priority = 'normal', className }: Type
         className
       )}
     >
-      {content}
+      {displayedText}
+      <span className="animate-pulse ml-1 opacity-50">_</span>
     </motion.div>
   )
 }

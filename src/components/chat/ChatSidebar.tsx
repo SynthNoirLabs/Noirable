@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Send, User, Bot } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { TypewriterText } from '@/components/noir/TypewriterText'
 
 // Define Message interface locally since 'ai' package exports are unstable/mismatched
 export interface Message {
@@ -18,9 +19,10 @@ interface ChatSidebarProps {
   messages: Message[]
   sendMessage: (message: { role: 'user', content: string }) => Promise<string | null | undefined>
   isLoading: boolean
+  typewriterSpeed?: number
 }
 
-export function ChatSidebar({ className, messages, sendMessage, isLoading }: ChatSidebarProps) {
+export function ChatSidebar({ className, messages, sendMessage, isLoading, typewriterSpeed = 30 }: ChatSidebarProps) {
   const [localInput, setLocalInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -93,7 +95,11 @@ export function ChatSidebar({ className, messages, sendMessage, isLoading }: Cha
                 {m.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
               </div>
               <div className="flex-1 whitespace-pre-wrap leading-relaxed opacity-90">
-                {m.content}
+                {m.role === 'user' ? (
+                  m.content
+                ) : (
+                  <TypewriterText content={m.content} speed={typewriterSpeed} className="text-sm" />
+                )}
               </div>
             </motion.div>
           ))}

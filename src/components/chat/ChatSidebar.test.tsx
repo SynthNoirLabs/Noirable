@@ -9,16 +9,18 @@ const mockMessages = [
 ]
 
 describe('ChatSidebar', () => {
-  it('renders messages', () => {
+  it('renders messages', async () => {
     render(
       <ChatSidebar 
         messages={mockMessages} 
         sendMessage={mockSendMessage} 
         isLoading={false} 
+        typewriterSpeed={0}
       />
     )
     expect(screen.getByText('Hello')).toBeInTheDocument()
-    expect(screen.getByText('Greetings, detective.')).toBeInTheDocument()
+    // Use regex to match text ignoring the cursor suffix if present
+    expect(screen.getByText(/Greetings, detective/)).toBeInTheDocument()
   })
 
   it('renders input field', () => {

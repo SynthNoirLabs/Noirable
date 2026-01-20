@@ -17,7 +17,8 @@ describe('AI Tools', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const params = (tools.generate_ui as any).parameters
     expect(params).toBeDefined()
-    // Verify it is an object schema with a 'component' property
-    expect(params.shape.component).toBeDefined()
+    // Verify it is a flat object schema (simplified for proxy compatibility)
+    expect(params.shape.type).toBeDefined()
+    expect(params.shape.content).toBeDefined()
   })
 })
