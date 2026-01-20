@@ -1,7 +1,5 @@
-import { DetectiveWorkspace } from '@/components/layout/DetectiveWorkspace'
+import { DetectiveWorkspace } from "@/components/layout/DetectiveWorkspace";
 
 export default function Home() {
-  return (
-    <DetectiveWorkspace />
-  );
+  return <DetectiveWorkspace />;
 }

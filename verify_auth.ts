@@ -1,8 +1,8 @@
-import { getProvider } from './src/lib/ai/factory'
+import { getProvider } from "./src/lib/ai/factory";
 
 try {
-    const auth = getProvider()
-    console.log('Provider resolved:', auth.type)
+  const auth = getProvider();
+  console.log("Provider resolved:", auth.type);
 } catch (e) {
-    console.error('Provider resolution failed:', e)
+  console.error("Provider resolution failed:", e);
 }

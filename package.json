@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check": "prettier --check . && eslint && vitest",
+    "sanity:chat": "tsx scripts/sanity-chat.ts",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
     "test": "vitest",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -30,6 +34,7 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -49,5 +54,6 @@
     "typescript": "^5",
     "vitest": "^4.0.17",
     "zod-to-json-schema": "^3.25.1"
-  }
+  },
+  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }
