@@ -28,6 +28,12 @@ describe('ProviderFactory', () => {
     expect(result.type).toBe('openai')
   })
 
+  it('uses openai-compatible if OPENAI_BASE_URL is set', () => {
+    process.env.OPENAI_BASE_URL = 'http://localhost:1234'
+    const result = getProvider()
+    expect(result.type).toBe('openai-compatible')
+  })
+
   it('reads from local opencode config (nested object) if env missing', () => {
     vi.spyOn(fs, 'existsSync').mockReturnValue(true)
     vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({

@@ -5,14 +5,16 @@ import os from 'os'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AIProviderInstance = any // Flexible for multiple SDK providers
 
-export function getProvider(): { provider: AIProviderInstance, model: string, type: 'openai' | 'anthropic' | 'google' | 'mock' } {
+export function getProvider(): { provider: AIProviderInstance, model: string, type: 'openai' | 'anthropic' | 'google' | 'openai-compatible' | 'mock' } {
   const home = os.homedir()
   const authPath = path.join(home, '.local/share/opencode/auth.json')
-  let config: Record<string, string | undefined> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let config: any = {}
 
   if (fs.existsSync(authPath)) {
     try {
@@ -22,7 +24,27 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
     }
   }
 
-  // 1. Check OpenAI (Env or Config)
+  // 1. Check OpenAI Compatible (Prioritize Custom Proxy)
+  const openAIBaseUrl = process.env.OPENAI_BASE_URL
+  if (openAIBaseUrl) {
+    // Check for a key, but default to 'dummy' if using a local proxy that doesn't need one
+    let compatKey = process.env.OPENAI_API_KEY
+    if (!compatKey && config.openai) {
+       compatKey = typeof config.openai === 'string' ? config.openai : config.openai.access
+    }
+
+    return {
+      provider: createOpenAICompatible({
+        name: 'cliproxy',
+        baseURL: openAIBaseUrl,
+        apiKey: compatKey || 'dummy',
+      }),
+      model: 'gpt-4o', // Or whatever default model your proxy expects/maps
+      type: 'openai-compatible'
+    }
+  }
+
+  // 2. Check OpenAI (Env or Config)
   let openAIKey = process.env.OPENAI_API_KEY
   if (!openAIKey && config.openai) {
     openAIKey = typeof config.openai === 'string' ? config.openai : config.openai.access
@@ -36,7 +58,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
     }
   }
 
-  // 2. Check Anthropic (Env or Config)
+  // 3. Check Anthropic (Env or Config)
   let anthropicKey = process.env.ANTHROPIC_API_KEY
   if (!anthropicKey && config.anthropic) {
     anthropicKey = typeof config.anthropic === 'string' ? config.anthropic : config.anthropic.access
@@ -50,7 +72,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
     }
   }
 
-  // 3. Check Google/Gemini (Env or Config)
+  // 4. Check Google/Gemini (Env or Config)
   let googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
   if (!googleKey && config.google) {
     googleKey = typeof config.google === 'string' ? config.google : config.google.access
@@ -64,7 +86,7 @@ export function getProvider(): { provider: AIProviderInstance, model: string, ty
     }
   }
 
-  // 4. Fallback to Mock in Dev
+  // 5. Fallback to Mock in Dev
   if (process.env.NODE_ENV === 'development') {
     return { provider: null, model: 'mock', type: 'mock' }
   }
