@@ -16,6 +16,9 @@ const specialElite = Special_Elite({
 export const metadata: Metadata = {
   title: "synthNoirUI",
   description: "A Detective Noir UI Generator",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
