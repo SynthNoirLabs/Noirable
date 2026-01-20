@@ -10,7 +10,7 @@
 - [x] Task: Conductor - User Manual Verification 'Environment & Auth Scaffolding' (Protocol in workflow.md)
 
 #### Phase 2: Core Chat UI (Noir Style)
-- [ ] Task: Implement Noir Chat Sidebar Component
+- [x] Task: Implement Noir Chat Sidebar Component 1558f8d
     - [ ] Write tests for `ChatSidebar.tsx` (Prop rendering, loading states).
     - [ ] Implement the UI with "Logbook" styling and Framer Motion integration.
 - [ ] Task: Implement Typewriter Animation Hook/Component
