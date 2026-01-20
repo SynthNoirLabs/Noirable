@@ -1,0 +1,34 @@
+# AI SDK Documentation
+
+> The AI SDK is a TypeScript toolkit designed to help you build AI-powered applications with React, Next.js, Vue, Svelte, Node.js, and more.
+
+- [AI SDK Core](https://ai-sdk.dev/docs/ai-sdk-core/overview): unified API for generating text, structured objects, and tool calls with LLMs.
+- [AI SDK UI](https://ai-sdk.dev/docs/ai-sdk-ui/overview): framework-independent hooks for building chat interfaces.
+- [AI SDK RSC](https://ai-sdk.dev/docs/ai-sdk-rsc/overview): library for streaming generative user interfaces with React Server Components (RSC).
+
+## Guides
+
+- [Quickstart](https://ai-sdk.dev/docs/introduction): get started with the AI SDK.
+- [Providers](https://ai-sdk.dev/providers/ai-sdk-providers): list of supported providers.
+- [Migration Guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-3-3): migration guide for AI SDK 3.3.
+- [Migration Guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-4-0): migration guide for AI SDK 4.0.
+
+## AI SDK Core
+
+- [generateText](https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text): generates text from a prompt.
+- [streamText](https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text): streams text from a prompt.
+- [generateObject](https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-object): generates a typed object from a prompt.
+- [streamObject](https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-object): streams a typed object from a prompt.
+- [embed](https://ai-sdk.dev/docs/reference/ai-sdk-core/embed): generates an embedding for a value.
+- [embedMany](https://ai-sdk.dev/docs/reference/ai-sdk-core/embed-many): generates embeddings for multiple values.
+
+## AI SDK UI
+
+- [useChat](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat): hook for building chat interfaces.
+- [useCompletion](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-completion): hook for building completion interfaces.
+- [useObject](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-object): hook for streaming JSON objects.
+- [useAssistant](https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-assistant): hook for interacting with OpenAI Assistants.
+
+## Error Handling
+
+- [AI SDK Errors](https://ai-sdk.dev/docs/reference/ai-sdk-errors/ai-sdk-error): error handling in the AI SDK.
