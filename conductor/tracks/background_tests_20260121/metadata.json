@@ -1,0 +1,8 @@
+{
+  "track_id": "background_tests_20260121",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-01-21T08:52:00Z",
+  "updated_at": "2026-01-21T08:52:00Z",
+  "description": "Design a set of reproducible tests for the gemini cli background process/terms feature."
+}
