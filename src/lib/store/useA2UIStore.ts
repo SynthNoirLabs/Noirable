@@ -14,9 +14,21 @@ interface Layout {
   sidebarWidth: number;
 }
 
+export interface EvidenceEntry {
+  id: string;
+  createdAt: number;
+  label: string;
+  status?: string;
+  data: A2UIComponent;
+}
+
 interface A2UIState {
   evidence: A2UIComponent | null;
   setEvidence: (evidence: A2UIComponent) => void;
+  evidenceHistory: EvidenceEntry[];
+  activeEvidenceId: string | null;
+  addEvidence: (entry: EvidenceEntry) => void;
+  setActiveEvidenceId: (id: string | null) => void;
   settings: Settings;
   updateSettings: (settings: Partial<Settings>) => void;
   layout: Layout;
@@ -28,6 +40,14 @@ export const useA2UIStore = create<A2UIState>()(
     (set) => ({
       evidence: null,
       setEvidence: (evidence) => set({ evidence }),
+      evidenceHistory: [],
+      activeEvidenceId: null,
+      addEvidence: (entry) =>
+        set((state) => ({
+          evidenceHistory: [...state.evidenceHistory, entry],
+          activeEvidenceId: entry.id,
+        })),
+      setActiveEvidenceId: (id) => set({ activeEvidenceId: id }),
       settings: {
         typewriterSpeed: 30,
         soundEnabled: true,

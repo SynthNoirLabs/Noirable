@@ -2,12 +2,16 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { DeskLayout } from "./DeskLayout";
-import { A2UIRenderer } from "@/components/renderer/A2UIRenderer";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useChat } from "@ai-sdk/react";
 import { a2uiInputSchema } from "@/lib/protocol/schema";
 import type { UIMessage } from "ai";
+import { EvidenceBoard } from "@/components/board/EvidenceBoard";
+import {
+  deriveEvidenceLabel,
+  deriveEvidenceStatus,
+} from "@/lib/evidence/utils";
 
 const DEFAULT_JSON = JSON.stringify(
   {
@@ -25,6 +29,10 @@ export function DetectiveWorkspace() {
   const {
     evidence,
     setEvidence,
+    addEvidence,
+    evidenceHistory,
+    activeEvidenceId,
+    setActiveEvidenceId,
     settings,
     updateSettings,
     layout,
@@ -95,7 +103,19 @@ export function DetectiveWorkspace() {
       }
 
       console.log("Tool Result received:", parsed.data);
+      const entry = {
+        id:
+          typeof globalThis.crypto?.randomUUID === "function"
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: Date.now(),
+        label: deriveEvidenceLabel(parsed.data),
+        status: deriveEvidenceStatus(parsed.data),
+        data: parsed.data,
+      };
+      addEvidence(entry);
       setEvidence(parsed.data);
+      setActiveEvidenceId(entry.id);
       setJson(JSON.stringify(parsed.data, null, 2));
       setError(null);
       return;
@@ -122,12 +142,24 @@ export function DetectiveWorkspace() {
       }
 
       console.log("Tool Result received:", parsed.data);
+      const entry = {
+        id:
+          typeof globalThis.crypto?.randomUUID === "function"
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: Date.now(),
+        label: deriveEvidenceLabel(parsed.data),
+        status: deriveEvidenceStatus(parsed.data),
+        data: parsed.data,
+      };
+      addEvidence(entry);
       setEvidence(parsed.data);
+      setActiveEvidenceId(entry.id);
       setJson(JSON.stringify(parsed.data, null, 2));
       setError(null);
       return;
     }
-  }, [messages, setEvidence]);
+  }, [addEvidence, messages, setActiveEvidenceId, setEvidence]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value;
@@ -139,6 +171,14 @@ export function DetectiveWorkspace() {
     } catch {
       setError("Invalid JSON");
     }
+  };
+
+  const handleSelectEvidence = (id: string) => {
+    const entry = evidenceHistory.find((item) => item.id === id);
+    if (!entry) return;
+    setActiveEvidenceId(id);
+    setEvidence(entry.data);
+    setJson(JSON.stringify(entry.data, null, 2));
   };
 
   return (
@@ -170,7 +210,12 @@ export function DetectiveWorkspace() {
       }
       preview={
         evidence ? (
-          <A2UIRenderer data={evidence} />
+          <EvidenceBoard
+            entries={evidenceHistory}
+            activeId={activeEvidenceId}
+            onSelect={handleSelectEvidence}
+            fallbackEvidence={evidence}
+          />
         ) : (
           <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
             <h3 className="text-noir-red font-typewriter font-bold mb-2">

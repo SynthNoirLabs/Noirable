@@ -37,6 +37,8 @@ describe("DetectiveWorkspace", () => {
   beforeEach(() => {
     useA2UIStore.setState({
       evidence: null,
+      evidenceHistory: [],
+      activeEvidenceId: null,
       settings: { typewriterSpeed: 30, soundEnabled: true },
     });
     useChatMock.mockImplementation(() => ({
@@ -127,7 +129,7 @@ describe("DetectiveWorkspace", () => {
     });
   });
 
-  it("updates evidence when tool output arrives", () => {
+  it("updates evidence when tool output arrives", async () => {
     mockMessages = [
       {
         id: "m1",
@@ -148,11 +150,43 @@ describe("DetectiveWorkspace", () => {
     ];
 
     render(<DetectiveWorkspace />);
-    expect(screen.getByText("Missing: Jane Doe")).toBeInTheDocument();
-    expect(screen.getByText("MISSING")).toBeInTheDocument();
+    const titles = await screen.findAllByText("Missing: Jane Doe");
+    expect(titles.length).toBeGreaterThan(0);
+    const statuses = await screen.findAllByText("MISSING");
+    expect(statuses.length).toBeGreaterThan(0);
   });
 
-  it("renders nested tool output", () => {
+  it("records evidence history and sets active evidence id", () => {
+    mockMessages = [
+      {
+        id: "m1",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-generate_ui",
+            state: "output-available",
+            output: {
+              type: "card",
+              title: "Suspect Profile",
+              description: "Classified",
+              status: "active",
+            },
+          },
+        ],
+      },
+    ];
+
+    render(<DetectiveWorkspace />);
+    const state = useA2UIStore.getState() as {
+      evidenceHistory?: Array<{ id: string }>;
+      activeEvidenceId?: string;
+    };
+
+    expect(state.evidenceHistory?.length).toBe(1);
+    expect(state.activeEvidenceId).toBe(state.evidenceHistory?.[0]?.id);
+  });
+
+  it("renders nested tool output", async () => {
     mockMessages = [
       {
         id: "m1",
@@ -182,8 +216,10 @@ describe("DetectiveWorkspace", () => {
     ];
 
     render(<DetectiveWorkspace />);
-    expect(screen.getByText("Case Intake")).toBeInTheDocument();
-    expect(screen.getByLabelText("Name")).toBeInTheDocument();
-    expect(screen.getByText("Submit")).toBeInTheDocument();
+    const headers = await screen.findAllByText("Case Intake");
+    expect(headers.length).toBeGreaterThan(0);
+    expect(await screen.findByLabelText("Name")).toBeInTheDocument();
+    const submits = await screen.findAllByText("Submit");
+    expect(submits.length).toBeGreaterThan(0);
   });
 });
