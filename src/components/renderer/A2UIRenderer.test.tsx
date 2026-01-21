@@ -66,6 +66,45 @@ describe("A2UIRenderer", () => {
     expect(screen.getByText("Keep eyes on the exits.")).toBeInTheDocument();
   });
 
+  it("renders list and table components", () => {
+    const data = {
+      type: "container",
+      style: { gap: "sm" },
+      children: [
+        { type: "list", items: ["Dock gate", "Warehouse"] },
+        {
+          type: "table",
+          columns: ["Field", "Value"],
+          rows: [["Status", "Active"]],
+        },
+      ],
+    };
+    render(<A2UIRenderer data={data} />);
+    expect(screen.getByText("Dock gate")).toBeInTheDocument();
+    expect(screen.getByText("Field")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
+  it("renders tabs component", () => {
+    const data = {
+      type: "tabs",
+      tabs: [
+        {
+          label: "Summary",
+          content: { type: "paragraph", text: "Case notes." },
+        },
+        {
+          label: "Leads",
+          content: { type: "list", items: ["Call witness"] },
+        },
+      ],
+      activeIndex: 0,
+    };
+    render(<A2UIRenderer data={data} />);
+    expect(screen.getByText("Summary")).toBeInTheDocument();
+    expect(screen.getByText("Case notes.")).toBeInTheDocument();
+  });
+
   it("renders redacted placeholder for unknown type", () => {
     const data = {
       type: "alien_tech",

@@ -65,6 +65,47 @@ describe("A2UI Schema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("validates list and badge components", () => {
+    const list = {
+      type: "list",
+      items: ["Dock gate", "Warehouse", "Pier 9"],
+    };
+    const badge = {
+      type: "badge",
+      label: "ACTIVE",
+      variant: "primary",
+    };
+    expect(a2uiSchema.safeParse(list).success).toBe(true);
+    expect(a2uiSchema.safeParse(badge).success).toBe(true);
+  });
+
+  it("validates table and tabs components", () => {
+    const table = {
+      type: "table",
+      columns: ["Field", "Value"],
+      rows: [
+        ["Status", "Active"],
+        ["Location", "Docks"],
+      ],
+    };
+    const tabs = {
+      type: "tabs",
+      tabs: [
+        {
+          label: "Summary",
+          content: { type: "paragraph", text: "Case notes." },
+        },
+        {
+          label: "Leads",
+          content: { type: "list", items: ["Call witness", "Check CCTV"] },
+        },
+      ],
+      activeIndex: 0,
+    };
+    expect(a2uiSchema.safeParse(table).success).toBe(true);
+    expect(a2uiSchema.safeParse(tabs).success).toBe(true);
+  });
+
   it("fails on invalid image", () => {
     const data = {
       type: "image",

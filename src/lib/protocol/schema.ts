@@ -75,6 +75,55 @@ const calloutSchema = z.object({
   style: styleSchema.optional(),
 });
 
+const badgeSchema = z.object({
+  type: z.literal("badge"),
+  label: z.string(),
+  variant: variantToken.optional(),
+  style: styleSchema.optional(),
+});
+
+const dividerSchema = z.object({
+  type: z.literal("divider"),
+  label: z.string().optional(),
+  style: styleSchema.optional(),
+});
+
+const listSchema = z.object({
+  type: z.literal("list"),
+  items: z.array(z.string()).min(1),
+  ordered: z.boolean().optional(),
+  style: styleSchema.optional(),
+});
+
+const tableSchema = z.object({
+  type: z.literal("table"),
+  columns: z.array(z.string()).min(1),
+  rows: z.array(z.array(z.string())).default([]),
+  style: styleSchema.optional(),
+});
+
+const statSchema = z.object({
+  type: z.literal("stat"),
+  label: z.string(),
+  value: z.string(),
+  helper: z.string().optional(),
+  style: styleSchema.optional(),
+});
+
+const tabsSchema = z.object({
+  type: z.literal("tabs"),
+  tabs: z
+    .array(
+      z.object({
+        label: z.string(),
+        content: z.lazy(() => a2uiSchema),
+      }),
+    )
+    .min(1),
+  activeIndex: z.number().int().min(0).optional(),
+  style: styleSchema.optional(),
+});
+
 const imageSchema = z.object({
   type: z.literal("image"),
   src: z.string(),
@@ -134,6 +183,12 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   headingSchema,
   paragraphSchema,
   calloutSchema,
+  badgeSchema,
+  dividerSchema,
+  listSchema,
+  tableSchema,
+  statSchema,
+  tabsSchema,
   imageSchema,
   inputSchema,
   textareaSchema,
@@ -171,6 +226,34 @@ export function normalizeA2UI(input: unknown): unknown {
     normalized = {
       ...normalized,
       children: normalized.children.map((child) => normalizeA2UI(child)),
+    };
+  }
+
+  if (type === "tabs" && Array.isArray(normalized.tabs)) {
+    normalized = {
+      ...normalized,
+      tabs: normalized.tabs.map((tab) => {
+        if (typeof tab !== "object" || tab === null) return tab;
+        const tabObj = tab as Record<string, unknown>;
+        let updated = { ...tabObj };
+
+        if (!("content" in tabObj) && Array.isArray(tabObj.children)) {
+          updated = {
+            ...updated,
+            content: { type: "container", children: tabObj.children },
+          };
+          delete (updated as Record<string, unknown>).children;
+        }
+
+        if (updated.content) {
+          updated = {
+            ...updated,
+            content: normalizeA2UI(updated.content),
+          };
+        }
+
+        return updated;
+      }),
     };
   }
 
