@@ -25,17 +25,17 @@ async function generateImageDataUrl(prompt: string) {
 
     let result;
 
-    if (gatewayKey) {
-      result = await generateImage({
-        model: process.env.AI_IMAGE_MODEL ?? DEFAULT_GATEWAY_IMAGE_MODEL,
-        prompt,
-      });
-    } else if (googleKey) {
+    if (googleKey) {
       const google = createGoogleGenerativeAI({ apiKey: googleKey });
       result = await generateImage({
         model: google.image(
           process.env.AI_IMAGE_MODEL ?? DEFAULT_GOOGLE_IMAGE_MODEL,
         ),
+        prompt,
+      });
+    } else if (gatewayKey) {
+      result = await generateImage({
+        model: process.env.AI_IMAGE_MODEL ?? DEFAULT_GATEWAY_IMAGE_MODEL,
         prompt,
       });
     } else {
