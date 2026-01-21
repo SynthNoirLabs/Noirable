@@ -360,11 +360,23 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
         );
       }
       case "image":
+        if (!node.src) {
+          return (
+            <div
+              className={cn(
+                "border border-noir-gray/40 bg-noir-black/35 px-4 py-3 rounded-sm text-xs font-mono text-noir-paper/70",
+                node.style?.className,
+              )}
+            >
+              IMAGE PENDING
+            </div>
+          );
+        }
         return (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={node.src}
-            alt={node.alt}
+            alt={node.alt ?? "Generated image"}
             className={cn(
               "rounded-sm object-cover",
               node.style?.width ? widthMap[node.style.width] : null,

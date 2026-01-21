@@ -131,6 +131,18 @@ const imageSchema = z.object({
   style: styleSchema.optional(),
 });
 
+const imageInputSchema = z
+  .object({
+    type: z.literal("image"),
+    src: z.string().optional(),
+    prompt: z.string().optional(),
+    alt: z.string().optional(),
+    style: styleSchema.optional(),
+  })
+  .refine((value) => Boolean(value.src || value.prompt), {
+    message: "Image requires either src or prompt",
+  });
+
 const inputSchema = z.object({
   type: z.literal("input"),
   label: z.string(),
@@ -222,6 +234,16 @@ export function normalizeA2UI(input: unknown): unknown {
     normalized = { ...normalized, content: normalized.text };
   }
 
+  if (type === "image") {
+    const altFallback =
+      typeof normalized.alt === "string"
+        ? normalized.alt
+        : typeof normalized.prompt === "string"
+          ? normalized.prompt
+          : "Generated image";
+    normalized = { ...normalized, alt: altFallback };
+  }
+
   if (Array.isArray(normalized.children)) {
     normalized = {
       ...normalized,
@@ -260,4 +282,58 @@ export function normalizeA2UI(input: unknown): unknown {
   return normalized;
 }
 
-export const a2uiInputSchema = z.preprocess(normalizeA2UI, a2uiSchema);
+const containerInputSchema = containerSchema.extend({
+  children: z.array(z.lazy(() => a2uiInputSchema)),
+});
+
+const rowInputSchema = rowSchema.extend({
+  children: z.array(z.lazy(() => a2uiInputSchema)),
+});
+
+const columnInputSchema = columnSchema.extend({
+  children: z.array(z.lazy(() => a2uiInputSchema)),
+});
+
+const gridInputSchema = gridSchema.extend({
+  children: z.array(z.lazy(() => a2uiInputSchema)),
+});
+
+const tabsInputSchema = tabsSchema.extend({
+  tabs: z
+    .array(
+      z.object({
+        label: z.string(),
+        content: z.lazy(() => a2uiInputSchema),
+      }),
+    )
+    .min(1),
+});
+
+export const a2uiInputSchema = z.preprocess(
+  normalizeA2UI,
+  z.discriminatedUnion("type", [
+    textComponentSchema,
+    cardComponentSchema,
+    containerInputSchema,
+    rowInputSchema,
+    columnInputSchema,
+    gridInputSchema,
+    headingSchema,
+    paragraphSchema,
+    calloutSchema,
+    badgeSchema,
+    dividerSchema,
+    listSchema,
+    tableSchema,
+    statSchema,
+    tabsInputSchema,
+    imageInputSchema,
+    inputSchema,
+    textareaSchema,
+    selectSchema,
+    checkboxSchema,
+    buttonSchema,
+  ]),
+);
+
+export type A2UIInput = z.infer<typeof a2uiInputSchema>;

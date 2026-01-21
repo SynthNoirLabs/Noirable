@@ -105,6 +105,16 @@ describe("A2UIRenderer", () => {
     expect(screen.getByText("Case notes.")).toBeInTheDocument();
   });
 
+  it("renders a placeholder for image prompts without src", () => {
+    const data = {
+      type: "image",
+      prompt: "Noir alley under neon rain",
+      alt: "Noir alley",
+    };
+    render(<A2UIRenderer data={data} />);
+    expect(screen.getByText(/IMAGE PENDING/i)).toBeInTheDocument();
+  });
+
   it("renders redacted placeholder for unknown type", () => {
     const data = {
       type: "alien_tech",

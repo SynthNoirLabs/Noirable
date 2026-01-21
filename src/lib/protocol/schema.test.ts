@@ -106,6 +106,18 @@ describe("A2UI Schema", () => {
     expect(a2uiSchema.safeParse(tabs).success).toBe(true);
   });
 
+  it("accepts image inputs with prompt only", () => {
+    const data = {
+      type: "image",
+      prompt: "Noir alleyway under neon rain",
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.alt).toContain("Noir alleyway");
+    }
+  });
+
   it("fails on invalid image", () => {
     const data = {
       type: "image",

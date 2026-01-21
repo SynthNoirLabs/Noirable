@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { a2uiInputSchema, a2uiSchema } from "@/lib/protocol/schema";
+import { resolveA2UIImagePrompts } from "@/lib/ai/images";
 
 export const tools = {
   generate_ui: tool({
@@ -9,7 +10,9 @@ export const tools = {
       component: a2uiInputSchema.describe("The A2UI component to render"),
     }),
     execute: async ({ component }) => {
-      return a2uiSchema.parse(component);
+      const parsed = a2uiInputSchema.parse(component);
+      const resolved = await resolveA2UIImagePrompts(parsed);
+      return a2uiSchema.parse(resolved);
     },
   }),
 };
