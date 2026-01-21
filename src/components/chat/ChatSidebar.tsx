@@ -127,7 +127,7 @@ export function ChatSidebar({
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.length === 0 && (
-          <div className="text-center py-12 text-noir-gray/30 font-typewriter text-xs uppercase tracking-[0.2em] relative">
+          <div className="text-center py-12 text-noir-paper/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
             <Image
               src="/assets/noir/search-icon.jpg"
               alt="Search icon"
@@ -223,7 +223,7 @@ export function ChatSidebar({
           <input
             name="chat-input"
             autoFocus
-            className="w-full bg-transparent border-b border-noir-gray/30 rounded-none py-3 pl-2 pr-10 text-sm text-noir-paper focus:outline-none focus:border-noir-amber/50 font-mono placeholder:text-noir-gray/30 transition-colors"
+            className="w-full bg-transparent border-b border-noir-gray/30 rounded-none py-3 pl-2 pr-10 text-sm text-noir-paper focus:outline-none focus:border-noir-amber/50 font-mono placeholder:text-noir-paper/45 transition-colors"
             value={localInput}
             onChange={(e) => setLocalInput(e.target.value)}
             onKeyDown={handleKeyDown}

@@ -72,7 +72,11 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
     switch (node.type) {
       case "text":
         return (
-          <TypewriterText content={node.content} priority={node.priority} />
+          <TypewriterText
+            content={node.content}
+            priority={node.priority}
+            className="px-4 py-2 bg-noir-black/35 border border-noir-gray/40 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]"
+          />
         );
       case "card":
         return (
