@@ -1,5 +1,5 @@
 import { streamText, convertToModelMessages } from "ai";
-import { SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { getProvider } from "@/lib/ai/factory";
 import { tools } from "@/lib/ai/tools";
 
@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const json = await req.json();
     console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
 
-    const { messages } = json;
+    const { messages, evidence } = json;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Messages missing or invalid", { status: 400 });
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: auth.provider(auth.model),
       messages: convertedMessages,
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(evidence),
       tools,
     });
 

@@ -77,4 +77,22 @@ describe("/api/chat", () => {
     const call = vi.mocked(streamText).mock.calls[0]?.[0];
     expect(call?.tools).toBe(tools);
   });
+
+  it("includes evidence in system prompt when provided", async () => {
+    vi.mocked(streamText).mockClear();
+
+    const req = new NextRequest("http://localhost/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "Hello" }],
+        evidence: { type: "text", content: "Evidence #1" },
+      }),
+    });
+
+    await POST(req);
+
+    const call = vi.mocked(streamText).mock.calls[0]?.[0];
+    expect(call?.system).toContain("Current Evidence");
+    expect(call?.system).toContain("Evidence #1");
+  });
 });
