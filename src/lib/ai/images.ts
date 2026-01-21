@@ -2,8 +2,8 @@ import { generateImage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 
-const DEFAULT_GATEWAY_IMAGE_MODEL = "google/gemini-2.5-flash-image";
-const DEFAULT_GOOGLE_IMAGE_MODEL = "imagen-4.0-fast-generate-001";
+const DEFAULT_GATEWAY_IMAGE_MODEL = "google/gemini-3-pro-image";
+const DEFAULT_GOOGLE_IMAGE_MODEL = "gemini-3-pro-image-preview";
 
 function fallbackSvgDataUrl(message: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
