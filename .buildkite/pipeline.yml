@@ -1,0 +1,27 @@
+env:
+  CI: "true"
+  PLAYWRIGHT_BROWSERS_PATH: "0"
+
+steps:
+  - label: ":package: Install"
+    key: "install"
+    command:
+      - "corepack enable"
+      - "pnpm install --frozen-lockfile"
+    agents:
+      queue: "mac"
+
+  - label: ":lint-roller: Check (format, lint, tests)"
+    command:
+      - "pnpm check"
+    depends_on: "install"
+    agents:
+      queue: "mac"
+
+  - label: ":playwright: E2E"
+    command:
+      - "pnpm exec playwright install"
+      - "pnpm e2e"
+    depends_on: "install"
+    agents:
+      queue: "mac"
