@@ -6,7 +6,7 @@ import { A2UIRenderer } from "@/components/renderer/A2UIRenderer";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useChat } from "@ai-sdk/react";
-import { a2uiSchema } from "@/lib/protocol/schema";
+import { a2uiInputSchema } from "@/lib/protocol/schema";
 import type { UIMessage } from "ai";
 
 const DEFAULT_JSON = JSON.stringify(
@@ -81,7 +81,7 @@ export function DetectiveWorkspace() {
         continue;
       }
 
-      const parsed = a2uiSchema.safeParse(part.output);
+      const parsed = a2uiInputSchema.safeParse(part.output);
       if (!parsed.success) {
         setError("Invalid tool output");
         continue;
@@ -108,7 +108,7 @@ export function DetectiveWorkspace() {
       }
 
       const result = (tool as { state?: string; result?: unknown }).result;
-      const parsed = a2uiSchema.safeParse(result);
+      const parsed = a2uiInputSchema.safeParse(result);
       if (!parsed.success) {
         setError("Invalid tool output");
         continue;

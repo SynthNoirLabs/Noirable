@@ -1,5 +1,5 @@
 import React from "react";
-import { a2uiSchema } from "@/lib/protocol/schema";
+import { a2uiInputSchema } from "@/lib/protocol/schema";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { DossierCard } from "@/components/noir/DossierCard";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,7 @@ interface A2UIRendererProps {
 }
 
 export function A2UIRenderer({ data }: A2UIRendererProps) {
-  const result = a2uiSchema.safeParse(data);
+  const result = a2uiInputSchema.safeParse(data);
 
   if (!result.success) {
     return (
@@ -187,6 +187,22 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
           >
             {node.text}
           </p>
+        );
+      case "callout":
+        return (
+          <div
+            className={cn(
+              "border-l-2 border-noir-amber/60 bg-noir-black/45 px-4 py-3 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]",
+              node.style?.width ? widthMap[node.style.width] : null,
+              node.style?.className,
+            )}
+          >
+            <TypewriterText
+              content={node.content}
+              priority={node.priority}
+              className="text-sm"
+            />
+          </div>
         );
       case "image":
         return (

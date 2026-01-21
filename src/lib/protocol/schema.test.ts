@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { a2uiSchema } from "./schema";
+import { a2uiSchema, a2uiInputSchema } from "./schema";
 
 describe("A2UI Schema", () => {
   it("validates a correct text component", () => {
@@ -10,6 +10,18 @@ describe("A2UI Schema", () => {
     };
     const result = a2uiSchema.safeParse(data);
     expect(result.success).toBe(true);
+  });
+
+  it("accepts text components with legacy text field", () => {
+    const data = {
+      type: "text",
+      text: "Legacy content field.",
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.content).toBe("Legacy content field.");
+    }
   });
 
   it("validates a correct card component", () => {
@@ -38,6 +50,16 @@ describe("A2UI Schema", () => {
           ],
         },
       ],
+    };
+    const result = a2uiSchema.safeParse(data);
+    expect(result.success).toBe(true);
+  });
+
+  it("validates a callout component", () => {
+    const data = {
+      type: "callout",
+      content: "Keep eyes on the exits.",
+      priority: "high",
     };
     const result = a2uiSchema.safeParse(data);
     expect(result.success).toBe(true);

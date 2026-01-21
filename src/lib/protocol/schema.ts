@@ -4,6 +4,7 @@ const spacingToken = z.enum(["none", "xs", "sm", "md", "lg", "xl"]);
 const alignToken = z.enum(["start", "center", "end", "stretch"]);
 const widthToken = z.enum(["auto", "full", "1/2", "1/3", "2/3"]);
 const variantToken = z.enum(["primary", "secondary", "ghost", "danger"]);
+const priorityToken = z.enum(["low", "normal", "high", "critical"]);
 
 export const styleSchema = z.object({
   padding: spacingToken.optional(),
@@ -17,7 +18,7 @@ export const styleSchema = z.object({
 export const textComponentSchema = z.object({
   type: z.literal("text"),
   content: z.string(),
-  priority: z.enum(["low", "normal", "high", "critical"]).default("normal"),
+  priority: priorityToken.default("normal"),
 });
 
 export const cardComponentSchema = z.object({
@@ -64,6 +65,13 @@ const headingSchema = z.object({
 const paragraphSchema = z.object({
   type: z.literal("paragraph"),
   text: z.string(),
+  style: styleSchema.optional(),
+});
+
+const calloutSchema = z.object({
+  type: z.literal("callout"),
+  content: z.string(),
+  priority: priorityToken.default("normal"),
   style: styleSchema.optional(),
 });
 
@@ -125,6 +133,7 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   gridSchema,
   headingSchema,
   paragraphSchema,
+  calloutSchema,
   imageSchema,
   inputSchema,
   textareaSchema,
@@ -136,3 +145,36 @@ export const a2uiSchema = z.discriminatedUnion("type", [
 export type TextComponent = z.infer<typeof textComponentSchema>;
 export type CardComponent = z.infer<typeof cardComponentSchema>;
 export type A2UIComponent = z.infer<typeof a2uiSchema>;
+
+export function normalizeA2UI(input: unknown): unknown {
+  if (Array.isArray(input)) {
+    return input.map((entry) => normalizeA2UI(entry));
+  }
+
+  if (typeof input !== "object" || input === null) {
+    return input;
+  }
+
+  const node = input as Record<string, unknown>;
+  const type = node.type;
+  let normalized = { ...node };
+
+  if (
+    (type === "text" || type === "callout") &&
+    typeof normalized.content !== "string" &&
+    typeof normalized.text === "string"
+  ) {
+    normalized = { ...normalized, content: normalized.text };
+  }
+
+  if (Array.isArray(normalized.children)) {
+    normalized = {
+      ...normalized,
+      children: normalized.children.map((child) => normalizeA2UI(child)),
+    };
+  }
+
+  return normalized;
+}
+
+export const a2uiInputSchema = z.preprocess(normalizeA2UI, a2uiSchema);

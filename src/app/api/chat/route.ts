@@ -34,13 +34,30 @@ export async function POST(req: Request) {
 
     // Normalize messages to ensure they have 'parts' if coming from older client
     const normalizedMessages = messages.map((m) => {
-      if (!m.parts && typeof m.content === "string") {
-        return {
-          ...m,
-          parts: [{ type: "text", text: m.content }],
-        };
+      const sanitized = { ...m };
+
+      if (sanitized.providerMetadata) {
+        delete sanitized.providerMetadata;
       }
-      return m;
+
+      if (!sanitized.parts && typeof sanitized.content === "string") {
+        sanitized.parts = [{ type: "text", text: sanitized.content }];
+        return sanitized;
+      }
+
+      if (Array.isArray(sanitized.parts)) {
+        sanitized.parts = sanitized.parts.map((part) => {
+          if (typeof part !== "object" || part === null) return part;
+          const { providerMetadata, callProviderMetadata, ...rest } = part as {
+            providerMetadata?: unknown;
+            callProviderMetadata?: unknown;
+            [key: string]: unknown;
+          };
+          return rest;
+        });
+      }
+
+      return sanitized;
     });
 
     // Await message conversion (Confirmed async in ai@6.0.41)

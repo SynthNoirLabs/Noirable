@@ -13,6 +13,15 @@ describe("A2UIRenderer", () => {
     expect(screen.getByText("Evidence #1")).toBeInTheDocument();
   });
 
+  it("renders legacy text components with text field", () => {
+    const data = {
+      type: "text",
+      text: "Legacy note",
+    };
+    render(<A2UIRenderer data={data} />);
+    expect(screen.getByText("Legacy note")).toBeInTheDocument();
+  });
+
   it("renders a card component", () => {
     const data = {
       type: "card",
@@ -45,6 +54,16 @@ describe("A2UIRenderer", () => {
     expect(screen.getByText("Case Intake")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByText("Submit")).toBeInTheDocument();
+  });
+
+  it("renders a callout component", () => {
+    const data = {
+      type: "callout",
+      content: "Keep eyes on the exits.",
+      priority: "high",
+    };
+    render(<A2UIRenderer data={data} />);
+    expect(screen.getByText("Keep eyes on the exits.")).toBeInTheDocument();
   });
 
   it("renders redacted placeholder for unknown type", () => {
