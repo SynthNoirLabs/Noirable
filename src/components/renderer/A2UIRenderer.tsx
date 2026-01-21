@@ -1,5 +1,5 @@
 import React from "react";
-import { a2uiInputSchema } from "@/lib/protocol/schema";
+import { a2uiInputSchema, type A2UIComponent } from "@/lib/protocol/schema";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { DossierCard } from "@/components/noir/DossierCard";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,57 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
     danger: "bg-noir-red text-noir-paper border-noir-red/60",
   };
 
-  const renderComponent = (node: typeof component): React.ReactNode => {
+  type TabsNode = Extract<A2UIComponent, { type: "tabs" }>;
+
+  const TabsRenderer = ({
+    node,
+    renderComponent,
+  }: {
+    node: TabsNode;
+    renderComponent: (node: A2UIComponent) => React.ReactNode;
+  }) => {
+    const [activeIndex, setActiveIndex] = React.useState(() => {
+      if (typeof node.activeIndex === "number") {
+        return Math.min(Math.max(node.activeIndex, 0), node.tabs.length - 1);
+      }
+      return 0;
+    });
+
+    const activeTab = node.tabs[activeIndex];
+
+    return (
+      <div
+        className={cn(
+          "w-full border border-noir-gray/40 bg-noir-black/35 rounded-sm",
+          node.style?.width ? widthMap[node.style.width] : null,
+          node.style?.className,
+        )}
+      >
+        <div className="flex gap-2 border-b border-noir-gray/30 px-2">
+          {node.tabs.map((tab, index) => (
+            <button
+              key={`${tab.label}-${index}`}
+              type="button"
+              onClick={() => setActiveIndex(index)}
+              className={cn(
+                "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2 transition-colors",
+                index === activeIndex
+                  ? "text-noir-amber border-noir-amber"
+                  : "text-noir-paper/60 border-transparent hover:text-noir-paper",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="p-4">
+          {activeTab ? renderComponent(activeTab.content) : null}
+        </div>
+      </div>
+    );
+  };
+
+  const renderComponent = (node: A2UIComponent): React.ReactNode => {
     switch (node.type) {
       case "text":
         return (
@@ -305,39 +355,8 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
           </div>
         );
       case "tabs": {
-        const activeIndex =
-          typeof node.activeIndex === "number"
-            ? Math.min(Math.max(node.activeIndex, 0), node.tabs.length - 1)
-            : 0;
-        const activeTab = node.tabs[activeIndex];
-
         return (
-          <div
-            className={cn(
-              "w-full border border-noir-gray/40 bg-noir-black/35 rounded-sm",
-              node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
-            )}
-          >
-            <div className="flex gap-2 border-b border-noir-gray/30 px-2">
-              {node.tabs.map((tab, index) => (
-                <div
-                  key={`${tab.label}-${index}`}
-                  className={cn(
-                    "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2",
-                    index === activeIndex
-                      ? "text-noir-amber border-noir-amber"
-                      : "text-noir-paper/60 border-transparent",
-                  )}
-                >
-                  {tab.label}
-                </div>
-              ))}
-            </div>
-            <div className="p-4">
-              {activeTab ? renderComponent(activeTab.content) : null}
-            </div>
-          </div>
+          <TabsRenderer node={node} renderComponent={renderComponent} />
         );
       }
       case "image":
@@ -363,8 +382,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
             </span>
             <input
               placeholder={node.placeholder}
-              value={node.value ?? ""}
-              readOnly
+              defaultValue={node.value ?? ""}
               className={cn(
                 "bg-transparent border-b border-noir-gray/30 py-2 text-sm text-noir-paper focus:outline-none",
                 node.variant ? variantMap[node.variant] : "",
@@ -382,8 +400,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
             </span>
             <textarea
               placeholder={node.placeholder}
-              value={node.value ?? ""}
-              readOnly
+              defaultValue={node.value ?? ""}
               rows={node.rows ?? 3}
               className={cn(
                 "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
@@ -401,7 +418,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
               {node.label}
             </span>
             <select
-              value={node.value ?? node.options[0]}
+              defaultValue={node.value ?? node.options[0]}
               className={cn(
                 "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
                 node.variant ? variantMap[node.variant] : "",
@@ -423,7 +440,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
               node.style?.className,
             )}
           >
-            <input type="checkbox" checked={node.checked ?? false} readOnly />
+            <input type="checkbox" defaultChecked={node.checked ?? false} />
             <span className="font-typewriter text-noir-paper/70">
               {node.label}
             </span>
