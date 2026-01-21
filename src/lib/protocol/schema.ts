@@ -305,6 +305,20 @@ export function normalizeA2UI(input: unknown): unknown {
     normalized = { ...normalized, content: normalized.text };
   }
 
+  if (type === "badge" && typeof normalized.label !== "string") {
+    const badgeLabel =
+      typeof normalized.text === "string"
+        ? normalized.text
+        : typeof normalized.content === "string"
+          ? normalized.content
+          : undefined;
+    if (badgeLabel) {
+      normalized = { ...normalized, label: badgeLabel };
+      delete (normalized as Record<string, unknown>).text;
+      delete (normalized as Record<string, unknown>).content;
+    }
+  }
+
   if (type === "image") {
     const altFallback =
       typeof normalized.alt === "string"

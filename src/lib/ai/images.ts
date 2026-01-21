@@ -1,12 +1,63 @@
 import { generateImage, generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 import { saveImageBase64 } from "@/lib/ai/imageStore";
+import {
+  getImageGenerationModels,
+  getModelInfo,
+  type ModelInfo,
+} from "@/lib/ai/model-registry";
 
-const DEFAULT_GATEWAY_IMAGE_MODEL = "google/gemini-3-pro-image";
-const DEFAULT_GOOGLE_IMAGE_MODEL = "gemini-3-pro-image-preview";
 const NOIR_STYLE_PROMPT =
   "noir cinematic, rain-slicked streets, moody low-key lighting, high contrast, film grain, 35mm photography, neon glow, deep shadows, light fog, desaturated palette";
+
+function selectImageModel(): {
+  model: ModelInfo;
+  provider: "google" | "openai";
+} | null {
+  const explicitModel = process.env.AI_IMAGE_MODEL;
+  const googleKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const gatewayKey = process.env.AI_GATEWAY_API_KEY;
+
+  if (explicitModel) {
+    const modelInfo = getModelInfo(explicitModel);
+    if (modelInfo?.capabilities.imageGen) {
+      return {
+        model: modelInfo,
+        provider: modelInfo.provider as "google" | "openai",
+      };
+    }
+  }
+
+  const imageModels = getImageGenerationModels();
+
+  if (googleKey) {
+    const googleModels = imageModels.filter((m) => m.provider === "google");
+    const preferred =
+      googleModels.find((m) => m.id === "gemini-3-pro-image-preview") ||
+      googleModels.find((m) => m.id === "gemini-2.5-flash-image") ||
+      googleModels[0];
+    if (preferred) {
+      return { model: preferred, provider: "google" };
+    }
+  }
+
+  if (openaiKey || gatewayKey) {
+    const openaiModels = imageModels.filter((m) => m.provider === "openai");
+    const preferred =
+      openaiModels.find((m) => m.id === "gpt-image-1.5") ||
+      openaiModels.find((m) => m.id === "dall-e-3") ||
+      openaiModels[0];
+    if (preferred) {
+      return { model: preferred, provider: "openai" };
+    }
+  }
+
+  return null;
+}
 
 export function buildNoirImagePrompt(prompt: string) {
   if (!prompt.trim()) return NOIR_STYLE_PROMPT;
@@ -27,18 +78,21 @@ function fallbackSvgDataUrl(message: string) {
 
 async function generateImageDataUrl(prompt: string) {
   try {
-    const gatewayKey = process.env.AI_GATEWAY_API_KEY;
-    const googleKey =
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    const selection = selectImageModel();
+    if (!selection) return null;
+
+    const { model, provider } = selection;
+    const styledPrompt = buildNoirImagePrompt(prompt);
+    const method = model.capabilities.imageGenMethod;
 
     let result;
 
-    const styledPrompt = buildNoirImagePrompt(prompt);
-
-    if (googleKey) {
-      const google = createGoogleGenerativeAI({ apiKey: googleKey });
+    if (provider === "google" && method === "generateText") {
+      const googleKey =
+        process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+      const google = createGoogleGenerativeAI({ apiKey: googleKey! });
       result = await generateText({
-        model: google(process.env.AI_IMAGE_MODEL ?? DEFAULT_GOOGLE_IMAGE_MODEL),
+        model: google(model.id),
         prompt: styledPrompt,
         providerOptions: {
           google: {
@@ -46,9 +100,16 @@ async function generateImageDataUrl(prompt: string) {
           },
         },
       });
-    } else if (gatewayKey) {
+    } else if (provider === "openai" && method === "generateImage") {
+      const openaiKey = process.env.OPENAI_API_KEY;
+      const openai = createOpenAI({ apiKey: openaiKey });
       result = await generateImage({
-        model: process.env.AI_IMAGE_MODEL ?? DEFAULT_GATEWAY_IMAGE_MODEL,
+        model: openai.image(model.id),
+        prompt: styledPrompt,
+      });
+    } else if (method === "generateImage") {
+      result = await generateImage({
+        model: model.id,
         prompt: styledPrompt,
       });
     } else {

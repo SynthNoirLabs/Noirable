@@ -1,12 +1,13 @@
 import { streamText, convertToModelMessages } from "ai";
 import type { UIMessage } from "ai";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
-import { getProvider } from "@/lib/ai/factory";
+import { getProviderWithOverrides, type ModelOverride } from "@/lib/ai/factory";
 import { tools } from "@/lib/ai/tools";
 
 type ChatRequestBody = {
   messages: UIMessage[];
   evidence?: unknown;
+  modelConfig?: ModelOverride;
 };
 
 type UIMessagePartType = UIMessage["parts"][number];
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
       console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
     }
 
-    const { messages, evidence } = json;
+    const { messages, evidence, modelConfig } = json;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Messages missing or invalid", { status: 400 });
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
 
     let auth;
     try {
-      auth = getProvider();
+      auth = getProviderWithOverrides(modelConfig);
     } catch (e) {
       console.error("Provider Factory Error:", e);
       return new Response("Configuration Error: No API Key found.", {

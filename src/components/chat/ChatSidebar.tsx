@@ -11,11 +11,12 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TypewriterText } from "@/components/noir/TypewriterText";
+import { ModelSelector } from "@/components/settings/ModelSelector";
 import Image from "next/image";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
+import type { ModelConfig } from "@/lib/store/useA2UIStore";
 
-// Define Message interface locally since 'ai' package exports are unstable/mismatched
 export interface Message {
   id: string;
   role: "system" | "user" | "assistant" | "data" | "tool" | string;
@@ -29,7 +30,9 @@ interface ChatSidebarProps {
   sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
   isLoading: boolean;
   typewriterSpeed?: number;
+  modelConfig?: ModelConfig;
   onUpdateSettings?: (settings: { typewriterSpeed: number }) => void;
+  onModelConfigChange?: (config: ModelConfig) => void;
   onToggleCollapse?: () => void;
 }
 
@@ -39,7 +42,9 @@ export function ChatSidebar({
   sendMessage,
   isLoading,
   typewriterSpeed = 30,
+  modelConfig,
   onUpdateSettings,
+  onModelConfigChange,
   onToggleCollapse,
 }: ChatSidebarProps) {
   const [localInput, setLocalInput] = useState("");
@@ -123,24 +128,33 @@ export function ChatSidebar({
       <AnimatePresence>
         {showSettings && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-b border-noir-gray/20 bg-noir-dark/50"
+            initial={{ height: 0, opacity: 0, overflow: "hidden" }}
+            animate={{ height: "auto", opacity: 1, overflow: "visible" }}
+            exit={{ height: 0, opacity: 0, overflow: "hidden" }}
+            transition={{ duration: 0.2 }}
+            className="border-b border-noir-gray/20 bg-noir-dark/50"
           >
-            <div className="p-4 text-xs font-mono flex items-center justify-between">
-              <span className="text-noir-paper/70">TYPEWRITER SPEED</span>
-              <button
-                onClick={toggleSpeed}
-                className={cn(
-                  "px-2 py-1 border rounded-sm transition-colors",
-                  typewriterSpeed === 0
-                    ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                    : "border-noir-gray/50 text-noir-gray hover:border-noir-paper",
-                )}
-              >
-                {typewriterSpeed === 0 ? "INSTANT" : "NORMAL"}
-              </button>
+            <div className="p-4 space-y-4">
+              <div className="text-xs font-mono flex items-center justify-between">
+                <span className="text-noir-paper/70">TYPEWRITER SPEED</span>
+                <button
+                  onClick={toggleSpeed}
+                  className={cn(
+                    "px-2 py-1 border rounded-sm transition-colors",
+                    typewriterSpeed === 0
+                      ? "border-noir-amber text-noir-amber bg-noir-amber/10"
+                      : "border-noir-gray/50 text-noir-gray hover:border-noir-paper",
+                  )}
+                >
+                  {typewriterSpeed === 0 ? "INSTANT" : "NORMAL"}
+                </button>
+              </div>
+              {modelConfig && onModelConfigChange && (
+                <ModelSelector
+                  modelConfig={modelConfig}
+                  onConfigChange={onModelConfigChange}
+                />
+              )}
             </div>
           </motion.div>
         )}

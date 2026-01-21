@@ -9,7 +9,11 @@ describe("Print page", () => {
       evidence: { type: "text", content: "Evidence #1", priority: "normal" },
       evidenceHistory: [],
       activeEvidenceId: null,
-      settings: { typewriterSpeed: 30, soundEnabled: true },
+      settings: {
+        typewriterSpeed: 30,
+        soundEnabled: true,
+        modelConfig: { provider: "auto", model: "" },
+      },
     });
   });
 

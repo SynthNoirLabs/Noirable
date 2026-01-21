@@ -1,15 +1,26 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { A2UIInput } from "@/lib/protocol/schema";
+import { AIProviderType, AVAILABLE_MODELS } from "@/lib/ai/models";
+
+export type { AIProviderType };
+export { AVAILABLE_MODELS };
+
+export interface ModelConfig {
+  provider: AIProviderType;
+  model: string;
+}
 
 interface Settings {
   typewriterSpeed: number;
   soundEnabled: boolean;
+  modelConfig: ModelConfig;
 }
 
 interface Layout {
   showEditor: boolean;
   showSidebar: boolean;
+  showEject: boolean;
   editorWidth: number;
   sidebarWidth: number;
 }
@@ -51,12 +62,14 @@ export const useA2UIStore = create<A2UIState>()(
       settings: {
         typewriterSpeed: 30,
         soundEnabled: true,
+        modelConfig: { provider: "auto", model: "" },
       },
       updateSettings: (newSettings) =>
         set((state) => ({ settings: { ...state.settings, ...newSettings } })),
       layout: {
         showEditor: true,
         showSidebar: true,
+        showEject: false,
         editorWidth: 300,
         sidebarWidth: 360,
       },

@@ -1,18 +1,26 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { PanelLeftClose, PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightOpen,
+  Code,
+} from "lucide-react";
 import { ResizeHandle } from "./ResizeHandle";
 
 interface DeskLayoutProps {
   editor: React.ReactNode;
   preview: React.ReactNode;
   sidebar?: React.ReactNode;
+  ejectPanel?: React.ReactNode;
   showEditor?: boolean;
   showSidebar?: boolean;
+  showEject?: boolean;
   editorWidth?: number;
   sidebarWidth?: number;
   onToggleEditor?: () => void;
   onToggleSidebar?: () => void;
+  onToggleEject?: () => void;
   onResizeEditor?: (nextWidth: number) => void;
   onResizeSidebar?: (nextWidth: number) => void;
   className?: string;
@@ -22,26 +30,33 @@ export function DeskLayout({
   editor,
   preview,
   sidebar,
+  ejectPanel,
   showEditor = true,
   showSidebar = true,
+  showEject = false,
   editorWidth = 300,
   sidebarWidth = 360,
   onToggleEditor,
   onToggleSidebar,
+  onToggleEject,
   onResizeEditor,
   onResizeSidebar,
   className,
 }: DeskLayoutProps) {
   const isEditorVisible = showEditor;
   const isSidebarVisible = Boolean(sidebar) && showSidebar;
+  const isEjectVisible = Boolean(ejectPanel) && showEject;
 
-  const gridColsClass = isEditorVisible
-    ? isSidebarVisible
-      ? "grid-cols-[var(--editor-w)_1fr_var(--sidebar-w)]"
-      : "grid-cols-[var(--editor-w)_1fr]"
-    : isSidebarVisible
-      ? "grid-cols-[1fr_var(--sidebar-w)]"
-      : "grid-cols-1";
+  const getGridColsClass = () => {
+    const cols: string[] = [];
+    if (isEditorVisible) cols.push("var(--editor-w)");
+    cols.push("1fr");
+    if (isEjectVisible) cols.push("400px");
+    if (isSidebarVisible) cols.push("var(--sidebar-w)");
+    return `grid-cols-[${cols.join("_")}]`;
+  };
+
+  const gridColsClass = getGridColsClass();
 
   return (
     <div
@@ -128,13 +143,35 @@ export function DeskLayout({
         </div>
       )}
 
-      {/* Preview Pane (Middle) */}
       <div className="p-8 overflow-auto bg-venetian relative flex flex-col items-center justify-center min-h-screen z-10">
-        <div className="absolute top-4 right-4 font-typewriter text-xs text-noir-amber/50">
-          EVIDENCE BOARD
+        <div className="absolute top-4 right-4 flex items-center gap-3">
+          {onToggleEject && (
+            <button
+              type="button"
+              onClick={onToggleEject}
+              aria-label={showEject ? "Hide code export" : "Show code export"}
+              title={showEject ? "Hide code export" : "Export to code"}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors",
+                showEject
+                  ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
+                  : "bg-noir-black/50 border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber hover:border-noir-amber/40",
+              )}
+            >
+              <Code className="w-3 h-3" />
+              Eject
+            </button>
+          )}
+          <span className="font-typewriter text-xs text-noir-amber/50">
+            EVIDENCE BOARD
+          </span>
         </div>
         {preview}
       </div>
+
+      {isEjectVisible && ejectPanel && (
+        <div className="h-full overflow-hidden relative z-10">{ejectPanel}</div>
+      )}
 
       {/* Sidebar (Right) */}
       {isSidebarVisible && (

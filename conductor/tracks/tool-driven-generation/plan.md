@@ -1,7 +1,7 @@
 # Implementation Plan: tool-driven-generation
 
 #### Phase 1: Tool Schema & Prompt Alignment
-- [ ] Task: Define tool input/output contract
+- [ ] Task: Define tool input/output contract [IN PROGRESS - Core exists in tools.ts]
     - [ ] Write tests for `generate_ui` input schema and output validation.
     - [ ] Update tool to accept root object payload and return validated A2UI component.
     - [ ] Update system prompt/tool instructions to mirror schema.

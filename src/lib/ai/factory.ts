@@ -9,11 +9,130 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AIProviderInstance = any; // Flexible for multiple SDK providers
 
-export function getProvider(): {
+export type ProviderType =
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "openai-compatible"
+  | "mock";
+
+export interface ProviderResult {
   provider: AIProviderInstance;
   model: string;
-  type: "openai" | "anthropic" | "google" | "openai-compatible" | "mock";
-} {
+  type: ProviderType;
+}
+
+export interface ModelOverride {
+  provider?: "openai" | "anthropic" | "google" | "openai-compatible" | "auto";
+  model?: string;
+}
+
+/**
+ * Get AI provider with optional client-specified overrides.
+ * Priority: override provider/model > env vars > auth.json > mock fallback
+ */
+export function getProviderWithOverrides(
+  override?: ModelOverride,
+): ProviderResult {
+  if (!override || override.provider === "auto" || !override.provider) {
+    const result = getProvider();
+    if (override?.model && result.type !== "mock") {
+      return { ...result, model: override.model };
+    }
+    return result;
+  }
+
+  const home = os.homedir();
+  const authPath = path.join(home, ".local/share/opencode/auth.json");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let config: any = {};
+
+  if (fs.existsSync(authPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(authPath, "utf-8"));
+    } catch {
+      console.warn("Failed to parse auth.json");
+    }
+  }
+
+  switch (override.provider) {
+    case "openai":
+    case "openai-compatible": {
+      const baseUrl = process.env.OPENAI_BASE_URL;
+      let apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey && config.openai) {
+        apiKey =
+          typeof config.openai === "string"
+            ? config.openai
+            : config.openai.access;
+      }
+
+      if (!apiKey && !baseUrl) {
+        throw new Error("OpenAI API key not found");
+      }
+
+      const providerOptions: { apiKey: string; baseURL?: string } = {
+        apiKey: apiKey || "dummy",
+      };
+      if (baseUrl) {
+        providerOptions.baseURL = baseUrl;
+      }
+
+      return {
+        provider: createOpenAI(providerOptions),
+        model: override.model || process.env.AI_MODEL || "gpt-4o",
+        type: baseUrl ? "openai-compatible" : "openai",
+      };
+    }
+
+    case "anthropic": {
+      let apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey && config.anthropic) {
+        apiKey =
+          typeof config.anthropic === "string"
+            ? config.anthropic
+            : config.anthropic.access;
+      }
+
+      if (!apiKey) {
+        throw new Error("Anthropic API key not found");
+      }
+
+      return {
+        provider: createAnthropic({ apiKey }),
+        model:
+          override.model || process.env.AI_MODEL || "claude-3-5-sonnet-latest",
+        type: "anthropic",
+      };
+    }
+
+    case "google": {
+      let apiKey =
+        process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+      if (!apiKey && config.google) {
+        apiKey =
+          typeof config.google === "string"
+            ? config.google
+            : config.google.access;
+      }
+
+      if (!apiKey) {
+        throw new Error("Google API key not found");
+      }
+
+      return {
+        provider: createGoogleGenerativeAI({ apiKey }),
+        model: override.model || process.env.AI_MODEL || "gemini-1.5-pro",
+        type: "google",
+      };
+    }
+
+    default:
+      return getProvider();
+  }
+}
+
+export function getProvider(): ProviderResult {
   const home = os.homedir();
   const authPath = path.join(home, ".local/share/opencode/auth.json");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -17,14 +17,14 @@ vi.mock("ai", () => ({
 
 // Mock Provider Factory
 vi.mock("@/lib/ai/factory", () => ({
-  getProvider: vi.fn().mockReturnValue({
+  getProviderWithOverrides: vi.fn().mockReturnValue({
     provider: vi.fn().mockReturnValue({}),
     model: "gpt-4o",
     type: "openai",
   }),
 }));
 
-import { getProvider } from "@/lib/ai/factory";
+import { getProviderWithOverrides } from "@/lib/ai/factory";
 
 // ... existing mocks ...
 
@@ -46,8 +46,7 @@ describe("/api/chat", () => {
   });
 
   it("returns local simulation message when provider is mock", async () => {
-    // Override mock for this test
-    vi.mocked(getProvider).mockReturnValueOnce({
+    vi.mocked(getProviderWithOverrides).mockReturnValueOnce({
       provider: null,
       model: "mock",
       type: "mock",

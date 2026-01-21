@@ -39,7 +39,11 @@ describe("DetectiveWorkspace", () => {
       evidence: null,
       evidenceHistory: [],
       activeEvidenceId: null,
-      settings: { typewriterSpeed: 30, soundEnabled: true },
+      settings: {
+        typewriterSpeed: 30,
+        soundEnabled: true,
+        modelConfig: { provider: "auto", model: "" },
+      },
     });
     useChatMock.mockImplementation(() => ({
       messages: mockMessages,

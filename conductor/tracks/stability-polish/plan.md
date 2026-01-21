@@ -6,7 +6,7 @@
     - [ ] Implement defensive parsing and error states.
 
 #### Phase 2: Diagnostics
-- [ ] Task: Sanity checks for `/api/chat`
+- [ ] Task: Sanity checks for `/api/chat` [IN PROGRESS - Script exists in sanity-chat.ts]
     - [ ] Ensure sanity script validates streaming format.
     - [ ] Add docs on running the check locally.
 

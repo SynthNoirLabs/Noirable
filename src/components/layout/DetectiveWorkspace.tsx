@@ -8,6 +8,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { a2uiInputSchema } from "@/lib/protocol/schema";
 import { EvidenceBoard } from "@/components/board/EvidenceBoard";
+import { EjectPanel } from "@/components/eject/EjectPanel";
 import {
   deriveEvidenceLabel,
   deriveEvidenceStatus,
@@ -51,12 +52,20 @@ export function DetectiveWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Once
 
+  const modelConfig = settings.modelConfig ?? { provider: "auto", model: "" };
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        body: { evidence },
+        body: {
+          evidence,
+          modelConfig:
+            modelConfig?.provider && modelConfig.provider !== "auto"
+              ? { provider: modelConfig.provider, model: modelConfig.model }
+              : undefined,
+        },
       }),
-    [evidence],
+    [evidence, modelConfig],
   );
 
   const chat = useChat({
@@ -88,23 +97,57 @@ export function DetectiveWorkspace() {
     [messages],
   );
 
-  // Sync Tool Results to Store
   useEffect(() => {
     if (!messages || messages.length === 0) return;
     const lastMessage = messages[messages.length - 1];
 
+    if (process.env.NODE_ENV !== "production") {
+      console.log("DEBUG: Last message role:", lastMessage.role);
+      console.log("DEBUG: Last message parts:", lastMessage.parts);
+    }
+
     if (lastMessage.role !== "assistant") return;
 
     const parts = Array.isArray(lastMessage.parts) ? lastMessage.parts : [];
+
     for (const part of parts) {
-      if (
-        part.type !== "tool-generate_ui" ||
-        part.state !== "output-available"
-      ) {
+      const toolPart = part as {
+        type: string;
+        state?: string;
+        output?: unknown;
+        errorText?: string;
+      };
+
+      if (toolPart.type !== "tool-generate_ui") {
         continue;
       }
 
-      const parsed = a2uiInputSchema.safeParse(part.output);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          "DEBUG: Tool part:",
+          toolPart.type,
+          "state:",
+          toolPart.state,
+        );
+        if (toolPart.errorText) {
+          console.error("DEBUG: Tool error:", toolPart.errorText);
+        }
+      }
+
+      if (toolPart.state === "output-error") {
+        setError(`Tool error: ${toolPart.errorText || "Unknown error"}`);
+        continue;
+      }
+
+      if (toolPart.state !== "output-available") {
+        continue;
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        console.log("DEBUG: Tool output found:", toolPart.output);
+      }
+
+      const parsed = a2uiInputSchema.safeParse(toolPart.output);
       if (!parsed.success) {
         setError("Invalid tool output");
         continue;
@@ -193,12 +236,20 @@ export function DetectiveWorkspace() {
     <DeskLayout
       showEditor={layout.showEditor}
       showSidebar={layout.showSidebar}
+      showEject={layout.showEject}
       editorWidth={layout.editorWidth}
       sidebarWidth={layout.sidebarWidth}
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
+      onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
       onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
       onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
+      ejectPanel={
+        <EjectPanel
+          evidence={evidence}
+          onClose={() => updateLayout({ showEject: false })}
+        />
+      }
       editor={
         <div className="h-full min-h-0 flex flex-col">
           <textarea
@@ -241,7 +292,11 @@ export function DetectiveWorkspace() {
           sendMessage={sendMessage}
           isLoading={isLoading}
           typewriterSpeed={settings.typewriterSpeed}
+          modelConfig={modelConfig}
           onUpdateSettings={updateSettings}
+          onModelConfigChange={(config) =>
+            updateSettings({ modelConfig: config })
+          }
           onToggleCollapse={() => updateLayout({ showSidebar: false })}
         />
       }
