@@ -16,15 +16,11 @@ type MockMessage = {
 };
 
 let mockMessages: MockMessage[] = [];
+const useChatMock = vi.fn();
 
 // Mock Vercel AI SDK
 vi.mock("@ai-sdk/react", () => ({
-  useChat: () => ({
-    messages: mockMessages,
-    status: "ready",
-    sendMessage: vi.fn(),
-    append: vi.fn(),
-  }),
+  useChat: (...args: unknown[]) => useChatMock(...args),
 }));
 
 vi.mock("@/components/chat/ChatSidebar", () => ({
@@ -43,6 +39,13 @@ describe("DetectiveWorkspace", () => {
       evidence: null,
       settings: { typewriterSpeed: 30, soundEnabled: true },
     });
+    useChatMock.mockImplementation(() => ({
+      messages: mockMessages,
+      status: "ready",
+      sendMessage: vi.fn(),
+      append: vi.fn(),
+    }));
+    useChatMock.mockClear();
   });
 
   it("updates preview when json changes", () => {
@@ -109,6 +112,19 @@ describe("DetectiveWorkspace", () => {
     expect(screen.getByTestId("chat-messages").textContent).toContain(
       "Legacy assistant response",
     );
+  });
+
+  it("passes evidence in useChat request body", () => {
+    useA2UIStore.setState({
+      evidence: { type: "text", content: "Evidence #1", priority: "normal" },
+    });
+    mockMessages = [];
+
+    render(<DetectiveWorkspace />);
+    const call = useChatMock.mock.calls[0]?.[0] as { body?: unknown };
+    expect(call?.body).toEqual({
+      evidence: { type: "text", content: "Evidence #1", priority: "normal" },
+    });
   });
 
   it("updates evidence when tool output arrives", () => {

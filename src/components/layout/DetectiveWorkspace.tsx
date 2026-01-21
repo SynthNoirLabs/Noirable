@@ -37,6 +37,7 @@ export function DetectiveWorkspace() {
   }, []); // Once
 
   const chat = useChat({
+    body: { evidence },
     onError: (err) => console.error("useChat error:", err),
   });
 
