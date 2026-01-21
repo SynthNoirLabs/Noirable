@@ -1,8 +1,9 @@
-import "server-only";
-import { generateText } from "ai";
+import { generateImage } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 
-const DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image";
+const DEFAULT_GATEWAY_IMAGE_MODEL = "google/gemini-2.5-flash-image";
+const DEFAULT_GOOGLE_IMAGE_MODEL = "imagen-4.0-fast-generate-001";
 
 function fallbackSvgDataUrl(message: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
@@ -18,15 +19,30 @@ function fallbackSvgDataUrl(message: string) {
 
 async function generateImageDataUrl(prompt: string) {
   try {
-    const result = await generateText({
-      model: process.env.AI_IMAGE_MODEL ?? DEFAULT_IMAGE_MODEL,
-      prompt,
-    });
+    const gatewayKey = process.env.AI_GATEWAY_API_KEY;
+    const googleKey =
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
-    const file = result.files?.find((item) =>
-      item.mediaType?.startsWith("image/"),
-    );
+    let result;
 
+    if (gatewayKey) {
+      result = await generateImage({
+        model: process.env.AI_IMAGE_MODEL ?? DEFAULT_GATEWAY_IMAGE_MODEL,
+        prompt,
+      });
+    } else if (googleKey) {
+      const google = createGoogleGenerativeAI({ apiKey: googleKey });
+      result = await generateImage({
+        model: google.image(
+          process.env.AI_IMAGE_MODEL ?? DEFAULT_GOOGLE_IMAGE_MODEL,
+        ),
+        prompt,
+      });
+    } else {
+      return null;
+    }
+
+    const file = result?.image;
     if (!file) return null;
     return `data:${file.mediaType};base64,${file.base64}`;
   } catch (error) {
