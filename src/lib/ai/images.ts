@@ -1,4 +1,4 @@
-import { generateImage } from "ai";
+import { generateImage, generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 
@@ -27,11 +27,14 @@ async function generateImageDataUrl(prompt: string) {
 
     if (googleKey) {
       const google = createGoogleGenerativeAI({ apiKey: googleKey });
-      result = await generateImage({
-        model: google.image(
-          process.env.AI_IMAGE_MODEL ?? DEFAULT_GOOGLE_IMAGE_MODEL,
-        ),
+      result = await generateText({
+        model: google(process.env.AI_IMAGE_MODEL ?? DEFAULT_GOOGLE_IMAGE_MODEL),
         prompt,
+        providerOptions: {
+          google: {
+            responseModalities: ["IMAGE"],
+          },
+        },
       });
     } else if (gatewayKey) {
       result = await generateImage({
@@ -42,7 +45,7 @@ async function generateImageDataUrl(prompt: string) {
       return null;
     }
 
-    const file = result?.image;
+    const file = "image" in result ? result.image : result.files?.[0];
     if (!file) return null;
     return `data:${file.mediaType};base64,${file.base64}`;
   } catch (error) {
