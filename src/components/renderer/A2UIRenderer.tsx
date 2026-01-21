@@ -276,7 +276,9 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
           >
             <span className="flex-1 border-t border-noir-gray/40" />
             {node.label && <span>{node.label}</span>}
-            {node.label && <span className="flex-1 border-t border-noir-gray/40" />}
+            {node.label && (
+              <span className="flex-1 border-t border-noir-gray/40" />
+            )}
           </div>
         );
       case "list": {
@@ -323,7 +325,10 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
                 {node.rows.map((row, rowIndex) => (
                   <tr key={rowIndex} className="border-b border-noir-gray/20">
                     {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="py-2 pr-3 text-noir-paper/80">
+                      <td
+                        key={cellIndex}
+                        className="py-2 pr-3 text-noir-paper/80"
+                      >
                         {cell}
                       </td>
                     ))}
@@ -355,9 +360,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
           </div>
         );
       case "tabs": {
-        return (
-          <TabsRenderer node={node} renderComponent={renderComponent} />
-        );
+        return <TabsRenderer node={node} renderComponent={renderComponent} />;
       }
       case "image":
         if (!node.src) {
