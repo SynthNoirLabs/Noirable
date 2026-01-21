@@ -46,6 +46,7 @@ export function TypewriterText({
         i++;
       } else {
         clearInterval(timer);
+        setDisplayedText(content);
       }
     }, effectiveSpeed);
 
