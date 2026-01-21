@@ -3,12 +3,18 @@
 ## Project Structure & Module Organization
 
 - `src/app/`: Next.js App Router pages and API routes (e.g., `src/app/api/chat/route.ts`).
+- `src/app/api/images/`: serves persisted generated images (`/api/images/[id]`).
+- `src/app/print/`: print‑friendly evidence view (`/print`).
 - `src/components/`: UI components (chat, layout, noir UI, renderer).
+- `src/components/board/`: Evidence Board (history + selection UI).
 - `src/lib/`: AI integration, protocol schema, state store, utilities.
+- `src/lib/evidence/`: helpers for evidence labels/status.
 - `src/__tests__/`: UI/layout tests.
 - `tests/e2e/`: Playwright end‑to‑end tests.
 - `scripts/`: Sanity scripts (e.g., `scripts/sanity-chat.ts`).
 - `conductor/` and `docs/`: product docs, architecture, tracks, and plans.
+- `.buildkite/`: Buildkite pipeline config.
+- `.data/images/`: local persisted generated images (gitignored; configurable via `A2UI_IMAGE_DIR`).
 
 ## Build, Test, and Development Commands
 
@@ -20,7 +26,13 @@
 - `pnpm check`: format check + lint + tests.
 - `pnpm sanity:chat`: live API sanity check for tool output.
 - `pnpm e2e` / `pnpm e2e:ui`: Playwright E2E (headless/UI).
-- `pnpm exec prettier --check .`: formatting check.
+- `pnpm prettier --write .`: auto-format.
+
+## HTTP Endpoints
+
+- `POST /api/chat`: chat + tool execution (A2UI generation).
+- `GET /api/images/[id]`: serve generated images saved under `.data/images/`.
+- `GET /print`: print-friendly view of current/active evidence.
 
 ## Coding Style & Naming Conventions
 
@@ -45,5 +57,6 @@
 
 ## Configuration & Secrets
 
-- Local AI credentials can come from env vars (e.g., `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `AI_MODEL`) or `~/.local/share/opencode/auth.json`.
+- Local AI credentials can come from env vars (e.g., `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `AI_MODEL`, `GEMINI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `AI_GATEWAY_API_KEY`, `AI_IMAGE_MODEL`) or `~/.local/share/opencode/auth.json`.
+- Image persistence directory: `A2UI_IMAGE_DIR` (defaults to `.data/images/`).
 - Use `.env.local` for local environment overrides.
