@@ -7,11 +7,18 @@ interface Settings {
   soundEnabled: boolean;
 }
 
+interface Layout {
+  showEditor: boolean;
+  showSidebar: boolean;
+}
+
 interface A2UIState {
   evidence: A2UIComponent | null;
   setEvidence: (evidence: A2UIComponent) => void;
   settings: Settings;
   updateSettings: (settings: Partial<Settings>) => void;
+  layout: Layout;
+  updateLayout: (layout: Partial<Layout>) => void;
 }
 
 export const useA2UIStore = create<A2UIState>()(
@@ -25,10 +32,19 @@ export const useA2UIStore = create<A2UIState>()(
       },
       updateSettings: (newSettings) =>
         set((state) => ({ settings: { ...state.settings, ...newSettings } })),
+      layout: {
+        showEditor: true,
+        showSidebar: true,
+      },
+      updateLayout: (newLayout) =>
+        set((state) => ({ layout: { ...state.layout, ...newLayout } })),
     }),
     {
       name: "a2ui-storage", // unique name
-      partialize: (state) => ({ settings: state.settings }), // persist only settings
+      partialize: (state) => ({
+        settings: state.settings,
+        layout: state.layout,
+      }),
     },
   ),
 );

@@ -105,4 +105,22 @@ describe("ChatSidebar", () => {
 
     expect(onUpdateSettings).toHaveBeenCalledWith({ typewriterSpeed: 0 });
   });
+
+  it("renders a collapse button when onToggleCollapse is provided and calls it", () => {
+    const onToggleCollapse = vi.fn();
+    render(
+      <ChatSidebar
+        messages={mockMessages}
+        sendMessage={mockSendMessage}
+        isLoading={false}
+        onToggleCollapse={onToggleCollapse}
+      />,
+    );
+
+    const collapseBtn = screen.getByRole("button", {
+      name: /collapse sidebar/i,
+    });
+    fireEvent.click(collapseBtn);
+    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
+  });
 });

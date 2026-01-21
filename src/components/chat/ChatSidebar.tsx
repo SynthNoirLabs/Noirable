@@ -2,7 +2,13 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Send, User, Bot, Settings as SettingsIcon } from "lucide-react";
+import {
+  Send,
+  User,
+  Bot,
+  Settings as SettingsIcon,
+  PanelRightClose,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import Image from "next/image";
@@ -25,6 +31,7 @@ interface ChatSidebarProps {
   isLoading: boolean;
   typewriterSpeed?: number;
   onUpdateSettings?: (settings: { typewriterSpeed: number }) => void;
+  onToggleCollapse?: () => void;
 }
 
 export function ChatSidebar({
@@ -34,6 +41,7 @@ export function ChatSidebar({
   isLoading,
   typewriterSpeed = 30,
   onUpdateSettings,
+  onToggleCollapse,
 }: ChatSidebarProps) {
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
@@ -88,15 +96,29 @@ export function ChatSidebar({
           <Bot className="w-4 h-4 text-noir-amber/70" />
           INTERROGATION LOG
         </h2>
-        {onUpdateSettings && (
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="text-noir-gray hover:text-noir-amber transition-colors p-1"
-            title="Configuration"
-          >
-            <SettingsIcon className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="text-noir-gray hover:text-noir-amber transition-colors p-1"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <PanelRightClose className="w-4 h-4" />
+            </button>
+          )}
+          {onUpdateSettings && (
+            <button
+              type="button"
+              onClick={() => setShowSettings(!showSettings)}
+              className="text-noir-gray hover:text-noir-amber transition-colors p-1"
+              title="Configuration"
+            >
+              <SettingsIcon className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <AnimatePresence>

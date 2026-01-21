@@ -22,7 +22,14 @@ const DEFAULT_JSON = JSON.stringify(
 export function DetectiveWorkspace() {
   const [json, setJson] = useState(DEFAULT_JSON);
   const [error, setError] = useState<string | null>(null);
-  const { evidence, setEvidence, settings, updateSettings } = useA2UIStore();
+  const {
+    evidence,
+    setEvidence,
+    settings,
+    updateSettings,
+    layout,
+    updateLayout,
+  } = useA2UIStore();
 
   // Initialize store
   useEffect(() => {
@@ -136,6 +143,10 @@ export function DetectiveWorkspace() {
 
   return (
     <DeskLayout
+      showEditor={layout.showEditor}
+      showSidebar={layout.showSidebar}
+      onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
+      onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
       editor={
         <div className="h-full min-h-0 flex flex-col">
           <textarea
@@ -174,6 +185,7 @@ export function DetectiveWorkspace() {
           isLoading={isLoading}
           typewriterSpeed={settings.typewriterSpeed}
           onUpdateSettings={updateSettings}
+          onToggleCollapse={() => updateLayout({ showSidebar: false })}
         />
       }
     />

@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { DeskLayout } from "./DeskLayout";
 
 describe("DeskLayout", () => {
@@ -21,7 +21,7 @@ describe("DeskLayout", () => {
     // Check for grid or flex
     const layout = container.firstChild;
     expect(layout).toHaveClass("grid");
-    expect(layout).toHaveClass("grid-cols-2");
+    expect(layout).toHaveClass("grid-cols-[clamp(280px,28vw,360px)_1fr]");
   });
 
   it("uses widened sidebar width when present", () => {
@@ -29,7 +29,24 @@ describe("DeskLayout", () => {
       <DeskLayout editor={<div />} preview={<div />} sidebar={<div />} />,
     );
     const layout = container.firstChild;
-    expect(layout).toHaveClass("grid-cols-[1fr_1fr_420px]");
+    expect(layout).toHaveClass(
+      "grid-cols-[clamp(280px,28vw,360px)_1fr_clamp(320px,24vw,420px)]",
+    );
+  });
+
+  it("hides editor when showEditor is false and shows reopen control", () => {
+    render(
+      <DeskLayout
+        editor={<div>Editor Content</div>}
+        preview={<div>Preview Content</div>}
+        showEditor={false}
+        onToggleEditor={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText("Editor Content")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /show editor/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders noir background layers", () => {
