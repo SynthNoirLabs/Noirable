@@ -48,12 +48,10 @@ export async function POST(req: Request) {
       if (Array.isArray(sanitized.parts)) {
         sanitized.parts = sanitized.parts.map((part) => {
           if (typeof part !== "object" || part === null) return part;
-          const { providerMetadata, callProviderMetadata, ...rest } = part as {
-            providerMetadata?: unknown;
-            callProviderMetadata?: unknown;
-            [key: string]: unknown;
-          };
-          return rest;
+          const cleaned = { ...(part as Record<string, unknown>) };
+          delete cleaned.providerMetadata;
+          delete cleaned.callProviderMetadata;
+          return cleaned;
         });
       }
 
