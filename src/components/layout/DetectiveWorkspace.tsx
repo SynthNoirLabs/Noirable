@@ -140,6 +140,8 @@ export function DetectiveWorkspace() {
         <div className="h-full min-h-0 flex flex-col">
           <textarea
             className="w-full flex-1 min-h-0 bg-noir-black/30 text-noir-paper/95 font-mono text-sm leading-relaxed resize-none focus:outline-none p-3 border border-noir-gray/30 rounded-sm shadow-inner"
+            id="json-editor"
+            name="json-editor"
             value={json}
             onChange={handleEditorChange}
             spellCheck={false}

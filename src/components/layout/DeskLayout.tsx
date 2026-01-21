@@ -32,17 +32,17 @@ export function DeskLayout({
         aria-hidden="true"
       />
       {/* Editor Pane (Left) */}
-      <div className="border-r border-noir-gray/30 p-4 overflow-auto bg-noir-black/50 relative z-10">
+      <div className="border-r border-noir-gray/30 p-4 overflow-hidden bg-noir-black/50 relative z-10 flex flex-col min-h-0">
         <div
           data-testid="noir-case-file"
           className="absolute inset-0 bg-[url('/assets/noir/case-file.jpg')] bg-[length:75%] bg-left-bottom bg-no-repeat opacity-[0.07] pointer-events-none"
           aria-hidden="true"
         />
-        <div className="relative z-10">
+        <div className="relative z-10 flex flex-col flex-1 min-h-0">
           <h2 className="font-typewriter text-sm text-noir-paper/70 mb-4 border-b border-noir-gray/20 pb-2">
             CASE FILE // JSON DATA
           </h2>
-          {editor}
+          <div className="flex-1 min-h-0">{editor}</div>
         </div>
       </div>
 
