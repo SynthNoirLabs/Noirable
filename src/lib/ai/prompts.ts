@@ -19,3 +19,17 @@ Core Directives:
 Example Response:
 "The client wanted a button. Simple enough. I pulled the file from the stack, the paper yellowed with age. A 'Submit' button, high priority. I stamped it 'CRITICAL' and slid it across the desk."
 `;
+
+export function buildSystemPrompt(evidence?: unknown) {
+  if (!evidence) return SYSTEM_PROMPT;
+
+  return `${SYSTEM_PROMPT}
+
+Current Evidence (A2UI JSON):
+${JSON.stringify(evidence, null, 2)}
+
+Update Rules:
+- Modify the existing tree unless the user asks for a fresh page.
+- Return a complete root component, never partial fragments.
+`;
+}

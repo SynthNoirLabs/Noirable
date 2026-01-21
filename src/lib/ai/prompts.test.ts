@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SYSTEM_PROMPT } from "./prompts";
+import { SYSTEM_PROMPT, buildSystemPrompt } from "./prompts";
 
 describe("System Prompt", () => {
   it("exports a prompt string", () => {
@@ -19,5 +19,12 @@ describe("System Prompt", () => {
     expect(SYSTEM_PROMPT).toMatch(/row/i);
     expect(SYSTEM_PROMPT).toMatch(/column/i);
     expect(SYSTEM_PROMPT).toMatch(/grid/i);
+  });
+
+  it("adds current evidence when provided", () => {
+    const evidence = { type: "text", content: "Evidence #1" };
+    const prompt = buildSystemPrompt(evidence);
+    expect(prompt).toMatch(/Current Evidence/i);
+    expect(prompt).toMatch(/Evidence #1/);
   });
 });
