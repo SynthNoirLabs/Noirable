@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { PanelLeftClose, PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import { ResizeHandle } from "./ResizeHandle";
 
 interface DeskLayoutProps {
   editor: React.ReactNode;
@@ -8,8 +9,12 @@ interface DeskLayoutProps {
   sidebar?: React.ReactNode;
   showEditor?: boolean;
   showSidebar?: boolean;
+  editorWidth?: number;
+  sidebarWidth?: number;
   onToggleEditor?: () => void;
   onToggleSidebar?: () => void;
+  onResizeEditor?: (nextWidth: number) => void;
+  onResizeSidebar?: (nextWidth: number) => void;
   className?: string;
 }
 
@@ -19,8 +24,12 @@ export function DeskLayout({
   sidebar,
   showEditor = true,
   showSidebar = true,
+  editorWidth = 300,
+  sidebarWidth = 360,
   onToggleEditor,
   onToggleSidebar,
+  onResizeEditor,
+  onResizeSidebar,
   className,
 }: DeskLayoutProps) {
   const isEditorVisible = showEditor;
@@ -28,10 +37,10 @@ export function DeskLayout({
 
   const gridColsClass = isEditorVisible
     ? isSidebarVisible
-      ? "grid-cols-[clamp(280px,28vw,360px)_1fr_clamp(320px,24vw,420px)]"
-      : "grid-cols-[clamp(280px,28vw,360px)_1fr]"
+      ? "grid-cols-[var(--editor-w)_1fr_var(--sidebar-w)]"
+      : "grid-cols-[var(--editor-w)_1fr]"
     : isSidebarVisible
-      ? "grid-cols-[1fr_clamp(320px,24vw,420px)]"
+      ? "grid-cols-[1fr_var(--sidebar-w)]"
       : "grid-cols-1";
 
   return (
@@ -41,6 +50,12 @@ export function DeskLayout({
         gridColsClass,
         className,
       )}
+      style={
+        {
+          "--editor-w": `${editorWidth}px`,
+          "--sidebar-w": `${sidebarWidth}px`,
+        } as React.CSSProperties
+      }
     >
       <div
         data-testid="noir-rain-bg"
@@ -76,6 +91,16 @@ export function DeskLayout({
       {/* Editor Pane (Left) */}
       {isEditorVisible && (
         <div className="border-r border-noir-gray/30 p-4 overflow-hidden bg-noir-black/50 relative z-10 flex flex-col min-h-0">
+          {onResizeEditor && (
+            <ResizeHandle
+              position="right"
+              size={editorWidth}
+              min={200}
+              max={360}
+              defaultSize={300}
+              onChange={onResizeEditor}
+            />
+          )}
           <div
             data-testid="noir-case-file"
             className="absolute inset-0 bg-[url('/assets/noir/Gemini_Generated_Image_hgsjjdhgsjjdhgsj.jpeg')] bg-[length:75%] bg-left-bottom bg-no-repeat opacity-[0.07] pointer-events-none"
@@ -114,6 +139,16 @@ export function DeskLayout({
       {/* Sidebar (Right) */}
       {isSidebarVisible && (
         <div className="h-full overflow-hidden border-l border-noir-gray/20 bg-noir-black/80 relative z-10">
+          {onResizeSidebar && (
+            <ResizeHandle
+              position="left"
+              size={sidebarWidth}
+              min={260}
+              max={520}
+              defaultSize={360}
+              onChange={onResizeSidebar}
+            />
+          )}
           {sidebar}
         </div>
       )}

@@ -10,6 +10,8 @@ interface Settings {
 interface Layout {
   showEditor: boolean;
   showSidebar: boolean;
+  editorWidth: number;
+  sidebarWidth: number;
 }
 
 interface A2UIState {
@@ -35,6 +37,8 @@ export const useA2UIStore = create<A2UIState>()(
       layout: {
         showEditor: true,
         showSidebar: true,
+        editorWidth: 300,
+        sidebarWidth: 360,
       },
       updateLayout: (newLayout) =>
         set((state) => ({ layout: { ...state.layout, ...newLayout } })),

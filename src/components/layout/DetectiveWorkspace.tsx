@@ -145,8 +145,12 @@ export function DetectiveWorkspace() {
     <DeskLayout
       showEditor={layout.showEditor}
       showSidebar={layout.showSidebar}
+      editorWidth={layout.editorWidth}
+      sidebarWidth={layout.sidebarWidth}
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
+      onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
+      onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
       editor={
         <div className="h-full min-h-0 flex flex-col">
           <textarea

@@ -21,7 +21,7 @@ describe("DeskLayout", () => {
     // Check for grid or flex
     const layout = container.firstChild;
     expect(layout).toHaveClass("grid");
-    expect(layout).toHaveClass("grid-cols-[clamp(280px,28vw,360px)_1fr]");
+    expect(layout).toHaveClass("grid-cols-[var(--editor-w)_1fr]");
   });
 
   it("uses widened sidebar width when present", () => {
@@ -30,8 +30,23 @@ describe("DeskLayout", () => {
     );
     const layout = container.firstChild;
     expect(layout).toHaveClass(
-      "grid-cols-[clamp(280px,28vw,360px)_1fr_clamp(320px,24vw,420px)]",
+      "grid-cols-[var(--editor-w)_1fr_var(--sidebar-w)]",
     );
+  });
+
+  it("applies CSS variables for resizable widths", () => {
+    const { container } = render(
+      <DeskLayout
+        editor={<div />}
+        preview={<div />}
+        sidebar={<div />}
+        editorWidth={280}
+        sidebarWidth={360}
+      />,
+    );
+    const layout = container.firstChild as HTMLElement;
+    expect(layout).toHaveStyle("--editor-w: 280px");
+    expect(layout).toHaveStyle("--sidebar-w: 360px");
   });
 
   it("hides editor when showEditor is false and shows reopen control", () => {
