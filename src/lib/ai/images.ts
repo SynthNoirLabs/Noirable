@@ -1,6 +1,7 @@
 import { generateImage, generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
+import { saveImageBase64 } from "@/lib/ai/imageStore";
 
 const DEFAULT_GATEWAY_IMAGE_MODEL = "google/gemini-3-pro-image";
 const DEFAULT_GOOGLE_IMAGE_MODEL = "gemini-3-pro-image-preview";
@@ -63,6 +64,19 @@ async function generateImageDataUrl(prompt: string) {
   }
 }
 
+function parseDataUrl(dataUrl: string) {
+  const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  return { mediaType: match[1], base64: match[2] };
+}
+
+async function persistDataUrl(dataUrl: string) {
+  const parsed = parseDataUrl(dataUrl);
+  if (!parsed) return null;
+  const saved = await saveImageBase64(parsed);
+  return saved?.url ?? null;
+}
+
 export async function resolveA2UIImagePrompts(
   input: A2UIInput,
 ): Promise<A2UIComponent> {
@@ -94,8 +108,12 @@ export async function resolveA2UIImagePrompts(
     case "image": {
       const { prompt, alt, src, ...rest } = node;
       let resolvedSrc = src;
+      if (resolvedSrc?.startsWith("data:")) {
+        resolvedSrc = await persistDataUrl(resolvedSrc);
+      }
       if (!resolvedSrc && prompt) {
-        resolvedSrc = await generateImageDataUrl(prompt);
+        const generated = await generateImageDataUrl(prompt);
+        resolvedSrc = generated ? await persistDataUrl(generated) : null;
       }
       if (!resolvedSrc) {
         resolvedSrc = fallbackSvgDataUrl("IMAGE UNAVAILABLE");
