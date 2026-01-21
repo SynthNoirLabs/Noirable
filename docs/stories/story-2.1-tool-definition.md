@@ -6,7 +6,7 @@ As a system, I want a structured tool definition for the LLM, so it knows the A2
 ## Acceptance Criteria
 - [x] Create `src/lib/ai/tools.ts`.
 - [x] Define `generate_ui` tool using Zod (input must be a root object).
-- [x] The tool accepts a `component` object (A2UIComponent).
+- [x] The tool accepts a `component` object (A2UIInput).
 - [x] Update `/api/chat` to register this tool in the `streamText` call.
 
 ## Technical Notes

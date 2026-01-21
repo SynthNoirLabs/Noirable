@@ -12,6 +12,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import Image from "next/image";
+import type { UseChatHelpers } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
 
 // Define Message interface locally since 'ai' package exports are unstable/mismatched
 export interface Message {
@@ -24,10 +26,7 @@ export interface Message {
 interface ChatSidebarProps {
   className?: string;
   messages: Message[];
-  sendMessage: (message: {
-    role: "user";
-    content: string;
-  }) => Promise<string | null | undefined>;
+  sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
   isLoading: boolean;
   typewriterSpeed?: number;
   onUpdateSettings?: (settings: { typewriterSpeed: number }) => void;
@@ -60,7 +59,7 @@ export function ChatSidebar({
     setLocalInput("");
 
     try {
-      await sendMessage({ role: "user", content });
+      await sendMessage({ text: content });
     } catch (err) {
       console.error("Failed to send message:", err);
     }

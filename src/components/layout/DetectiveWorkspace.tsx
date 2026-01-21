@@ -5,8 +5,8 @@ import { DeskLayout } from "./DeskLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { a2uiInputSchema } from "@/lib/protocol/schema";
-import type { UIMessage } from "ai";
 import { EvidenceBoard } from "@/components/board/EvidenceBoard";
 import {
   deriveEvidenceLabel,
@@ -51,8 +51,16 @@ export function DetectiveWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Once
 
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        body: { evidence },
+      }),
+    [evidence],
+  );
+
   const chat = useChat({
-    body: { evidence },
+    transport,
     onError: (err) => console.error("useChat error:", err),
   });
 

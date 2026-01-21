@@ -1,13 +1,15 @@
-import type { A2UIComponent } from "@/lib/protocol/schema";
+import type { A2UIInput } from "@/lib/protocol/schema";
 
-function firstNonEmpty(...values: Array<string | undefined>): string | null {
+function firstNonEmpty(
+  ...values: Array<string | null | undefined>
+): string | null {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
 }
 
-function findLabel(node: A2UIComponent): string | null {
+function findLabel(node: A2UIInput): string | null {
   switch (node.type) {
     case "card":
       return firstNonEmpty(node.title, node.description);
@@ -53,11 +55,11 @@ function findLabel(node: A2UIComponent): string | null {
   }
 }
 
-export function deriveEvidenceLabel(node: A2UIComponent): string {
+export function deriveEvidenceLabel(node: A2UIInput): string {
   return findLabel(node) ?? "Evidence Item";
 }
 
-export function deriveEvidenceStatus(node: A2UIComponent): string | undefined {
+export function deriveEvidenceStatus(node: A2UIInput): string | undefined {
   if (node.type === "card") return node.status;
   if (
     (node.type === "container" ||

@@ -1,12 +1,29 @@
 import { streamText, convertToModelMessages } from "ai";
+import type { UIMessage } from "ai";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { getProvider } from "@/lib/ai/factory";
 import { tools } from "@/lib/ai/tools";
 
+type ChatRequestBody = {
+  messages: UIMessage[];
+  evidence?: unknown;
+};
+
+type UIMessagePartType = UIMessage["parts"][number];
+
+type SanitizedMessage = UIMessage & {
+  content?: string;
+  parts?: UIMessagePartType[];
+  providerMetadata?: unknown;
+  callProviderMetadata?: unknown;
+};
+
 export async function POST(req: Request) {
   try {
-    const json = await req.json();
-    console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
+    const json = (await req.json()) as ChatRequestBody;
+    if (process.env.NODE_ENV !== "production") {
+      console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
+    }
 
     const { messages, evidence } = json;
 
@@ -33,8 +50,8 @@ export async function POST(req: Request) {
     }
 
     // Normalize messages to ensure they have 'parts' if coming from older client
-    const normalizedMessages = messages.map((m) => {
-      const sanitized = { ...m };
+    const normalizedMessages = messages.map((m): UIMessage => {
+      const sanitized: SanitizedMessage = { ...m };
 
       if (sanitized.providerMetadata) {
         delete sanitized.providerMetadata;
@@ -46,12 +63,12 @@ export async function POST(req: Request) {
       }
 
       if (Array.isArray(sanitized.parts)) {
-        sanitized.parts = sanitized.parts.map((part) => {
-          if (typeof part !== "object" || part === null) return part;
+        const parts = sanitized.parts as UIMessagePartType[];
+        sanitized.parts = parts.map((part) => {
           const cleaned = { ...(part as Record<string, unknown>) };
           delete cleaned.providerMetadata;
           delete cleaned.callProviderMetadata;
-          return cleaned;
+          return cleaned as UIMessagePartType;
         });
       }
 

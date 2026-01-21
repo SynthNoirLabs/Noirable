@@ -116,15 +116,18 @@ describe("DetectiveWorkspace", () => {
     );
   });
 
-  it("passes evidence in useChat request body", () => {
+  it("passes evidence through the chat transport", () => {
     useA2UIStore.setState({
       evidence: { type: "text", content: "Evidence #1", priority: "normal" },
     });
     mockMessages = [];
 
     render(<DetectiveWorkspace />);
-    const call = useChatMock.mock.calls[0]?.[0] as { body?: unknown };
-    expect(call?.body).toEqual({
+    const call = useChatMock.mock.calls[0]?.[0] as {
+      transport?: { body?: unknown };
+    };
+    expect(call?.transport).toBeTruthy();
+    expect(call?.transport?.body).toEqual({
       evidence: { type: "text", content: "Evidence #1", priority: "normal" },
     });
   });

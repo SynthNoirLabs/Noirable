@@ -23,7 +23,7 @@
 - `pnpm start`: run production server.
 - `pnpm test`: unit/integration tests (Vitest).
 - `pnpm lint`: ESLint.
-- `pnpm check`: format check + lint + tests.
+- `pnpm check`: format check + lint + tests + build.
 - `pnpm sanity:chat`: live API sanity check for tool output.
 - `pnpm e2e` / `pnpm e2e:ui`: Playwright E2E (headless/UI).
 - `pnpm prettier --write .`: auto-format.

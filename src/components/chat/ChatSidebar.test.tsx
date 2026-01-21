@@ -50,8 +50,7 @@ describe("ChatSidebar", () => {
     fireEvent.submit(input);
     expect(mockSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        role: "user",
-        content: "Hello",
+        text: "Hello",
       }),
     );
   });

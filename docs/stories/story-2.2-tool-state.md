@@ -5,7 +5,7 @@ As a user, when the AI generates a UI, I want the "Evidence Board" to update ins
 
 ## Acceptance Criteria
 - [x] Create `src/lib/store/useA2UIStore.ts` (Zustand).
-- [x] Store should hold `currentEvidence` (A2UIComponent | null).
+- [x] Store should hold `currentEvidence` (A2UIInput | null).
 - [x] Update `DetectiveWorkspace` (or `ChatSidebar`) to handle tool calls.
 - [x] **Crucial:** Vercel AI SDK v6 executes tools on the server (`execute: async ...`), then streams UI messages back.
     - *Decision:* The client updates the store when a tool output arrives.

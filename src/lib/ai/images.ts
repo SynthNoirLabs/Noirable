@@ -107,7 +107,7 @@ export async function resolveA2UIImagePrompts(
     }
     case "image": {
       const { prompt, alt, src, ...rest } = node;
-      let resolvedSrc = src;
+      let resolvedSrc: string | null | undefined = src;
       if (resolvedSrc?.startsWith("data:")) {
         resolvedSrc = await persistDataUrl(resolvedSrc);
       }

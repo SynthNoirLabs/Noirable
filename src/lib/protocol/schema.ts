@@ -30,31 +30,6 @@ export const cardComponentSchema = z.object({
     .default("active"),
 });
 
-const containerSchema = z.object({
-  type: z.literal("container"),
-  style: styleSchema.optional(),
-  children: z.array(z.lazy(() => a2uiSchema)),
-});
-
-const rowSchema = z.object({
-  type: z.literal("row"),
-  style: styleSchema.optional(),
-  children: z.array(z.lazy(() => a2uiSchema)),
-});
-
-const columnSchema = z.object({
-  type: z.literal("column"),
-  style: styleSchema.optional(),
-  children: z.array(z.lazy(() => a2uiSchema)),
-});
-
-const gridSchema = z.object({
-  type: z.literal("grid"),
-  columns: z.enum(["2", "3", "4"]).optional(),
-  style: styleSchema.optional(),
-  children: z.array(z.lazy(() => a2uiSchema)),
-});
-
 const headingSchema = z.object({
   type: z.literal("heading"),
   text: z.string(),
@@ -107,20 +82,6 @@ const statSchema = z.object({
   label: z.string(),
   value: z.string(),
   helper: z.string().optional(),
-  style: styleSchema.optional(),
-});
-
-const tabsSchema = z.object({
-  type: z.literal("tabs"),
-  tabs: z
-    .array(
-      z.object({
-        label: z.string(),
-        content: z.lazy(() => a2uiSchema),
-      }),
-    )
-    .min(1),
-  activeIndex: z.number().int().min(0).optional(),
   style: styleSchema.optional(),
 });
 
@@ -185,6 +146,120 @@ const buttonSchema = z.object({
   style: styleSchema.optional(),
 });
 
+type Style = z.infer<typeof styleSchema>;
+
+export type TextComponent = z.infer<typeof textComponentSchema>;
+export type CardComponent = z.infer<typeof cardComponentSchema>;
+type HeadingComponent = z.infer<typeof headingSchema>;
+type ParagraphComponent = z.infer<typeof paragraphSchema>;
+type CalloutComponent = z.infer<typeof calloutSchema>;
+type BadgeComponent = z.infer<typeof badgeSchema>;
+type DividerComponent = z.infer<typeof dividerSchema>;
+type ListComponent = z.infer<typeof listSchema>;
+type TableComponent = z.infer<typeof tableSchema>;
+type StatComponent = z.infer<typeof statSchema>;
+type ImageComponent = z.infer<typeof imageSchema>;
+type ImageInputComponent = z.infer<typeof imageInputSchema>;
+type InputComponent = z.infer<typeof inputSchema>;
+type TextareaComponent = z.infer<typeof textareaSchema>;
+type SelectComponent = z.infer<typeof selectSchema>;
+type CheckboxComponent = z.infer<typeof checkboxSchema>;
+type ButtonComponent = z.infer<typeof buttonSchema>;
+
+type ContainerComponent = {
+  type: "container";
+  style?: Style;
+  children: A2UIComponent[];
+};
+
+type RowComponent = {
+  type: "row";
+  style?: Style;
+  children: A2UIComponent[];
+};
+
+type ColumnComponent = {
+  type: "column";
+  style?: Style;
+  children: A2UIComponent[];
+};
+
+type GridComponent = {
+  type: "grid";
+  columns?: "2" | "3" | "4";
+  style?: Style;
+  children: A2UIComponent[];
+};
+
+type TabsComponent = {
+  type: "tabs";
+  tabs: { label: string; content: A2UIComponent }[];
+  activeIndex?: number;
+  style?: Style;
+};
+
+export type A2UIComponent =
+  | TextComponent
+  | CardComponent
+  | ContainerComponent
+  | RowComponent
+  | ColumnComponent
+  | GridComponent
+  | HeadingComponent
+  | ParagraphComponent
+  | CalloutComponent
+  | BadgeComponent
+  | DividerComponent
+  | ListComponent
+  | TableComponent
+  | StatComponent
+  | TabsComponent
+  | ImageComponent
+  | InputComponent
+  | TextareaComponent
+  | SelectComponent
+  | CheckboxComponent
+  | ButtonComponent;
+
+const containerSchema = z.object({
+  type: z.literal("container"),
+  style: styleSchema.optional(),
+  children: z.array(z.lazy(() => a2uiSchema)),
+}) satisfies z.ZodType<ContainerComponent>;
+
+const rowSchema = z.object({
+  type: z.literal("row"),
+  style: styleSchema.optional(),
+  children: z.array(z.lazy(() => a2uiSchema)),
+}) satisfies z.ZodType<RowComponent>;
+
+const columnSchema = z.object({
+  type: z.literal("column"),
+  style: styleSchema.optional(),
+  children: z.array(z.lazy(() => a2uiSchema)),
+}) satisfies z.ZodType<ColumnComponent>;
+
+const gridSchema = z.object({
+  type: z.literal("grid"),
+  columns: z.enum(["2", "3", "4"]).optional(),
+  style: styleSchema.optional(),
+  children: z.array(z.lazy(() => a2uiSchema)),
+}) satisfies z.ZodType<GridComponent>;
+
+const tabsSchema = z.object({
+  type: z.literal("tabs"),
+  tabs: z
+    .array(
+      z.object({
+        label: z.string(),
+        content: z.lazy(() => a2uiSchema),
+      }),
+    )
+    .min(1),
+  activeIndex: z.number().int().min(0).optional(),
+  style: styleSchema.optional(),
+}) satisfies z.ZodType<TabsComponent>;
+
 export const a2uiSchema = z.discriminatedUnion("type", [
   textComponentSchema,
   cardComponentSchema,
@@ -207,11 +282,7 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   selectSchema,
   checkboxSchema,
   buttonSchema,
-]);
-
-export type TextComponent = z.infer<typeof textComponentSchema>;
-export type CardComponent = z.infer<typeof cardComponentSchema>;
-export type A2UIComponent = z.infer<typeof a2uiSchema>;
+]) as z.ZodType<A2UIComponent>;
 
 export function normalizeA2UI(input: unknown): unknown {
   if (Array.isArray(input)) {
@@ -282,21 +353,64 @@ export function normalizeA2UI(input: unknown): unknown {
   return normalized;
 }
 
+type ContainerInputComponent = Omit<ContainerComponent, "children"> & {
+  children: A2UIInput[];
+};
+
+type RowInputComponent = Omit<RowComponent, "children"> & {
+  children: A2UIInput[];
+};
+
+type ColumnInputComponent = Omit<ColumnComponent, "children"> & {
+  children: A2UIInput[];
+};
+
+type GridInputComponent = Omit<GridComponent, "children"> & {
+  children: A2UIInput[];
+};
+
+type TabsInputComponent = Omit<TabsComponent, "tabs"> & {
+  tabs: { label: string; content: A2UIInput }[];
+};
+
+export type A2UIInput =
+  | TextComponent
+  | CardComponent
+  | ContainerInputComponent
+  | RowInputComponent
+  | ColumnInputComponent
+  | GridInputComponent
+  | HeadingComponent
+  | ParagraphComponent
+  | CalloutComponent
+  | BadgeComponent
+  | DividerComponent
+  | ListComponent
+  | TableComponent
+  | StatComponent
+  | TabsInputComponent
+  | ImageInputComponent
+  | InputComponent
+  | TextareaComponent
+  | SelectComponent
+  | CheckboxComponent
+  | ButtonComponent;
+
 const containerInputSchema = containerSchema.extend({
   children: z.array(z.lazy(() => a2uiInputSchema)),
-});
+}) satisfies z.ZodType<ContainerInputComponent>;
 
 const rowInputSchema = rowSchema.extend({
   children: z.array(z.lazy(() => a2uiInputSchema)),
-});
+}) satisfies z.ZodType<RowInputComponent>;
 
 const columnInputSchema = columnSchema.extend({
   children: z.array(z.lazy(() => a2uiInputSchema)),
-});
+}) satisfies z.ZodType<ColumnInputComponent>;
 
 const gridInputSchema = gridSchema.extend({
   children: z.array(z.lazy(() => a2uiInputSchema)),
-});
+}) satisfies z.ZodType<GridInputComponent>;
 
 const tabsInputSchema = tabsSchema.extend({
   tabs: z
@@ -307,7 +421,7 @@ const tabsInputSchema = tabsSchema.extend({
       }),
     )
     .min(1),
-});
+}) satisfies z.ZodType<TabsInputComponent>;
 
 export const a2uiInputSchema = z.preprocess(
   normalizeA2UI,
@@ -334,6 +448,4 @@ export const a2uiInputSchema = z.preprocess(
     checkboxSchema,
     buttonSchema,
   ]),
-);
-
-export type A2UIInput = z.infer<typeof a2uiInputSchema>;
+) as z.ZodType<A2UIInput>;

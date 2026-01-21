@@ -1,5 +1,5 @@
 import React from "react";
-import { a2uiInputSchema, type A2UIComponent } from "@/lib/protocol/schema";
+import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { DossierCard } from "@/components/noir/DossierCard";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,12 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
     "2/3": "w-2/3",
   };
 
+  const gridColsMap: Record<"2" | "3" | "4", string> = {
+    "2": "grid-cols-2",
+    "3": "grid-cols-3",
+    "4": "grid-cols-4",
+  };
+
   const variantMap: Record<string, string> = {
     primary: "bg-noir-amber text-noir-ink border-noir-amber/60",
     secondary: "bg-noir-dark text-noir-paper border-noir-gray/50",
@@ -68,14 +74,14 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
     danger: "bg-noir-red text-noir-paper border-noir-red/60",
   };
 
-  type TabsNode = Extract<A2UIComponent, { type: "tabs" }>;
+  type TabsNode = Extract<A2UIInput, { type: "tabs" }>;
 
   const TabsRenderer = ({
     node,
     renderComponent,
   }: {
     node: TabsNode;
-    renderComponent: (node: A2UIComponent) => React.ReactNode;
+    renderComponent: (node: A2UIInput) => React.ReactNode;
   }) => {
     const [activeIndex, setActiveIndex] = React.useState(() => {
       if (typeof node.activeIndex === "number") {
@@ -118,7 +124,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
     );
   };
 
-  const renderComponent = (node: A2UIComponent): React.ReactNode => {
+  const renderComponent = (node: A2UIInput): React.ReactNode => {
     switch (node.type) {
       case "text":
         return (
@@ -198,7 +204,7 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
           <div
             className={cn(
               "grid",
-              node.columns ? `grid-cols-${node.columns}` : "grid-cols-2",
+              node.columns ? gridColsMap[node.columns] : "grid-cols-2",
               node.style?.gap ? spacingMap[node.style.gap] : null,
               node.style?.padding ? paddingMap[node.style.padding] : null,
               node.style?.width ? widthMap[node.style.width] : null,

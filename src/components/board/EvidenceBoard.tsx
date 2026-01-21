@@ -2,13 +2,13 @@ import React, { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { A2UIRenderer } from "@/components/renderer/A2UIRenderer";
 import type { EvidenceEntry } from "@/lib/store/useA2UIStore";
-import type { A2UIComponent } from "@/lib/protocol/schema";
+import type { A2UIInput } from "@/lib/protocol/schema";
 
 interface EvidenceBoardProps {
   entries: EvidenceEntry[];
   activeId: string | null;
   onSelect: (id: string) => void;
-  fallbackEvidence?: A2UIComponent | null;
+  fallbackEvidence?: A2UIInput | null;
 }
 
 export function EvidenceBoard({

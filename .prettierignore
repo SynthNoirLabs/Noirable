@@ -7,5 +7,8 @@ docs/**
 coverage/**
 test-results/**
 
+# Local skill bundles
+.codex/**
+
 # Lockfile is managed by pnpm
 pnpm-lock.yaml

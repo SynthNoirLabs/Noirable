@@ -8,7 +8,7 @@ This design builds on the established Next.js + Tailwind v4 + Zod foundation. It
 
 ## 2. High Level Architecture
 ### Technical Summary
-The system uses a streaming serverless architecture. The frontend (Next.js) requests a stream from the backend (`/api/chat`), which orchestrates an LLM call with tool-calling enabled. Results are streamed back as UI messages and used to update a client-side Zustand store.
+The system uses a streaming serverless architecture. The frontend (Next.js) requests a stream from the backend (`/api/chat`) via `useChat` + `DefaultChatTransport`, including the current evidence in the request body. The API orchestrates an LLM call with tool-calling enabled. Results are streamed back as UI messages and used to update a client-side Zustand store.
 
 ### High Level Diagram
 ```mermaid
@@ -43,14 +43,14 @@ graph TD
 
 ### ChatSidebar (Client)
 - **Role:** UI for conversation.
-- **Pattern:** Reactive to the Zustand store.
+- **Pattern:** `useChat` from `@ai-sdk/react`, backed by `DefaultChatTransport`.
 
 ## 5. Core Workflows
 ### AI UI Generation
 1. User sends a chat message.
 2. `/api/chat` normalizes messages and calls `convertToModelMessages`.
-3. AI calls `generate_ui` (tool inputs must be root objects).
-4. Server validates tool output via Zod.
+3. AI calls `generate_ui` with `{ component }`, where `component` is validated as `A2UIInput`.
+4. Server resolves image prompts, validates output as `A2UIComponent`, and returns it.
 5. Server streams UI messages via `toUIMessageStreamResponse`.
 6. Client inspects `message.parts` (with legacy `toolInvocations` fallback) and updates Zustand.
 7. Renderer displays the new component.

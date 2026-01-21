@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { A2UIComponent } from "@/lib/protocol/schema";
+import { A2UIInput } from "@/lib/protocol/schema";
 
 interface Settings {
   typewriterSpeed: number;
@@ -19,12 +19,12 @@ export interface EvidenceEntry {
   createdAt: number;
   label: string;
   status?: string;
-  data: A2UIComponent;
+  data: A2UIInput;
 }
 
 interface A2UIState {
-  evidence: A2UIComponent | null;
-  setEvidence: (evidence: A2UIComponent) => void;
+  evidence: A2UIInput | null;
+  setEvidence: (evidence: A2UIInput) => void;
   evidenceHistory: EvidenceEntry[];
   activeEvidenceId: string | null;
   addEvidence: (entry: EvidenceEntry) => void;
