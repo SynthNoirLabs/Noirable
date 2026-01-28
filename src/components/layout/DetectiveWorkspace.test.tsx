@@ -9,6 +9,13 @@ type MockMessage = {
   parts?: Array<{
     type: string;
     text?: string;
+    // Standard AI SDK structure
+    toolInvocation?: {
+      toolName: string;
+      state: string;
+      result: unknown;
+    };
+    // Legacy support (optional)
     state?: string;
     output?: unknown;
   }>;
@@ -143,13 +150,16 @@ describe("DetectiveWorkspace", () => {
         role: "assistant",
         parts: [
           {
-            type: "tool-generate_ui",
-            state: "output-available",
-            output: {
-              type: "card",
-              title: "Missing: Jane Doe",
-              description: "Last seen near the docks",
-              status: "missing",
+            type: "tool-invocation",
+            toolInvocation: {
+              toolName: "generate_ui",
+              state: "result",
+              result: {
+                type: "card",
+                title: "Missing: Jane Doe",
+                description: "Last seen near the docks",
+                status: "missing",
+              },
             },
           },
         ],
@@ -170,13 +180,16 @@ describe("DetectiveWorkspace", () => {
         role: "assistant",
         parts: [
           {
-            type: "tool-generate_ui",
-            state: "output-available",
-            output: {
-              type: "card",
-              title: "Suspect Profile",
-              description: "Classified",
-              status: "active",
+            type: "tool-invocation",
+            toolInvocation: {
+              toolName: "generate_ui",
+              state: "result",
+              result: {
+                type: "card",
+                title: "Suspect Profile",
+                description: "Classified",
+                status: "active",
+              },
             },
           },
         ],
@@ -200,22 +213,25 @@ describe("DetectiveWorkspace", () => {
         role: "assistant",
         parts: [
           {
-            type: "tool-generate_ui",
-            state: "output-available",
-            output: {
-              type: "container",
-              style: { padding: "md", gap: "sm" },
-              children: [
-                { type: "heading", level: 2, text: "Case Intake" },
-                {
-                  type: "row",
-                  style: { gap: "sm" },
-                  children: [
-                    { type: "input", label: "Name", placeholder: "Jane Doe" },
-                    { type: "button", label: "Submit", variant: "primary" },
-                  ],
-                },
-              ],
+            type: "tool-invocation",
+            toolInvocation: {
+              toolName: "generate_ui",
+              state: "result",
+              result: {
+                type: "container",
+                style: { padding: "md", gap: "sm" },
+                children: [
+                  { type: "heading", level: 2, text: "Case Intake" },
+                  {
+                    type: "row",
+                    style: { gap: "sm" },
+                    children: [
+                      { type: "input", label: "Name", placeholder: "Jane Doe" },
+                      { type: "button", label: "Submit", variant: "primary" },
+                    ],
+                  },
+                ],
+              },
             },
           },
         ],
