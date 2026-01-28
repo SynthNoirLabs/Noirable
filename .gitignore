@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -19,6 +20,7 @@
 
 # production
 /build
+**/dist/
 
 # misc
 .DS_Store
@@ -42,3 +44,24 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI agent logs and artifacts
+*.log
+.gemini/
+.shared/
+.claude/
+.cursor/
+.aider*
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Temporary files
+*.tmp
+*.temp
+*_ANALYSIS.md
+*_SUMMARY.txt
+hello_*.txt

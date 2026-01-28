@@ -111,6 +111,38 @@ export function DetectiveWorkspace() {
     const parts = Array.isArray(lastMessage.parts) ? lastMessage.parts : [];
 
     for (const part of parts) {
+      // Standard AI SDK Tool Invocation
+      if (part.type === "tool-invocation") {
+        const invocation = (part as any).toolInvocation;
+        if (
+          invocation?.toolName === "generate_ui" &&
+          invocation?.state === "result"
+        ) {
+          const parsed = a2uiInputSchema.safeParse(invocation.result);
+          if (parsed.success) {
+            if (process.env.NODE_ENV !== "production") {
+              console.log("Tool Result received (standard):", parsed.data);
+            }
+            const entry = {
+              id:
+                typeof globalThis.crypto?.randomUUID === "function"
+                  ? globalThis.crypto.randomUUID()
+                  : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              createdAt: Date.now(),
+              label: deriveEvidenceLabel(parsed.data),
+              status: deriveEvidenceStatus(parsed.data),
+              data: parsed.data,
+            };
+            addEvidence(entry);
+            setEvidence(parsed.data);
+            setActiveEvidenceId(entry.id);
+            setJson(JSON.stringify(parsed.data, null, 2));
+            setError(null);
+            return;
+          }
+        }
+      }
+
       const toolPart = part as {
         type: string;
         state?: string;
