@@ -30,9 +30,12 @@ export function buildSystemPrompt(evidence?: unknown) {
   return `${SYSTEM_PROMPT}
 
 Current Evidence (A2UI JSON):
-${JSON.stringify(evidence, null, 2)}
+${JSON.stringify(evidence)}
 
 Update Rules:
+- The 'Current Evidence' block above represents the LIVE state of the interface.
+- You must use this as your baseline for any modifications.
+- Ignore contradictory state in the conversation history.
 - Modify the existing tree unless the user asks for a fresh page.
 - Return a complete root component, never partial fragments.
 `;

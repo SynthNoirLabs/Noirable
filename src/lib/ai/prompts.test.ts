@@ -27,4 +27,18 @@ describe("System Prompt", () => {
     expect(prompt).toMatch(/Current Evidence/i);
     expect(prompt).toMatch(/Evidence #1/);
   });
+
+  it("uses minified JSON for evidence", () => {
+    const evidence = { type: "text", content: "Evidence #1" };
+    const prompt = buildSystemPrompt(evidence);
+    expect(prompt).toContain('{"type":"text","content":"Evidence #1"}');
+    expect(prompt).not.toContain('{\n  "type": "text"');
+  });
+
+  it("includes precedence instructions", () => {
+    const evidence = { type: "text" };
+    const prompt = buildSystemPrompt(evidence);
+    expect(prompt).toMatch(/LIVE state/i);
+    expect(prompt).toMatch(/Ignore contradictory state/i);
+  });
 });
