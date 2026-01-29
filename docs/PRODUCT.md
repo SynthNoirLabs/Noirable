@@ -39,14 +39,14 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 | **Model Selector** | Switch between 28 registered models | Done |
 | **Print View** | Print-friendly evidence export | Done |
 | **Resizable Layout** | Drag-to-resize panes | Done |
+| **Form Handlers** | Input/button components with actions | Done |
+| **Persistent Storage** | Evidence saved to localStorage | Done |
+| **Multi-File Export** | Generate component directories | Done |
 
 ### Roadmap
 
 | Feature | Priority | Status |
 |---------|----------|--------|
-| Form submission handlers | Medium | Planned |
-| Multi-file export scaffolding | Medium | Planned |
-| Persistent evidence storage | Medium | Planned |
 | Live sandbox (Sandpack) | Low | Future |
 | Collaborative editing | Low | Future |
 

@@ -3,12 +3,17 @@ import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { DossierCard } from "@/components/noir/DossierCard";
 import { cn } from "@/lib/utils";
+import { useFormContext, FormProvider, type FormValues } from "./FormContext";
 
 interface A2UIRendererProps {
   data: unknown;
+  onFormSubmit?: (values: FormValues) => void;
 }
 
-export function A2UIRenderer({ data }: A2UIRendererProps) {
+export type { FormValues };
+
+function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
+  const formContext = useFormContext();
   const result = a2uiInputSchema.safeParse(data);
 
   if (!result.success) {
@@ -393,7 +398,9 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
             )}
           />
         );
-      case "input":
+      case "input": {
+        const inputName =
+          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
           <label
             className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
@@ -402,8 +409,10 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
               {node.label}
             </span>
             <input
+              name={inputName}
               placeholder={node.placeholder}
               defaultValue={node.value ?? ""}
+              onChange={(e) => formContext?.setValue(inputName, e.target.value)}
               className={cn(
                 "bg-transparent border-b border-noir-gray/30 py-2 text-sm text-noir-paper focus:outline-none",
                 node.variant ? variantMap[node.variant] : "",
@@ -411,7 +420,10 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
             />
           </label>
         );
-      case "textarea":
+      }
+      case "textarea": {
+        const textareaName =
+          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
           <label
             className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
@@ -420,8 +432,12 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
               {node.label}
             </span>
             <textarea
+              name={textareaName}
               placeholder={node.placeholder}
               defaultValue={node.value ?? ""}
+              onChange={(e) =>
+                formContext?.setValue(textareaName, e.target.value)
+              }
               rows={node.rows ?? 3}
               className={cn(
                 "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
@@ -430,7 +446,10 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
             />
           </label>
         );
-      case "select":
+      }
+      case "select": {
+        const selectName =
+          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
           <label
             className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
@@ -439,7 +458,11 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
               {node.label}
             </span>
             <select
+              name={selectName}
               defaultValue={node.value ?? node.options[0]}
+              onChange={(e) =>
+                formContext?.setValue(selectName, e.target.value)
+              }
               className={cn(
                 "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
                 node.variant ? variantMap[node.variant] : "",
@@ -453,7 +476,10 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
             </select>
           </label>
         );
-      case "checkbox":
+      }
+      case "checkbox": {
+        const checkboxName =
+          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
           <label
             className={cn(
@@ -461,16 +487,42 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
               node.style?.className,
             )}
           >
-            <input type="checkbox" defaultChecked={node.checked ?? false} />
+            <input
+              type="checkbox"
+              name={checkboxName}
+              defaultChecked={node.checked ?? false}
+              onChange={(e) =>
+                formContext?.setValue(checkboxName, e.target.checked)
+              }
+            />
             <span className="font-typewriter text-noir-paper/70">
               {node.label}
             </span>
           </label>
         );
-      case "button":
+      }
+      case "button": {
+        const handleClick = () => {
+          if (!formContext) return;
+          switch (node.action) {
+            case "submit":
+              formContext.onSubmit?.(formContext.getValues());
+              break;
+            case "reset":
+              formContext.reset();
+              break;
+            case "log":
+              console.log("Form values:", formContext.getValues());
+              break;
+            default:
+              // No action - just a display button
+              break;
+          }
+        };
         return (
           <button
             type="button"
+            onClick={handleClick}
             className={cn(
               "px-3 py-2 text-xs uppercase tracking-widest border rounded-sm",
               node.variant ? variantMap[node.variant] : "",
@@ -480,10 +532,19 @@ export function A2UIRenderer({ data }: A2UIRendererProps) {
             {node.label}
           </button>
         );
+      }
       default:
         return null;
     }
   };
 
   return <>{renderComponent(component)}</>;
+}
+
+export function A2UIRenderer({ data, onFormSubmit }: A2UIRendererProps) {
+  return (
+    <FormProvider onSubmit={onFormSubmit}>
+      <A2UIRendererInner data={data} />
+    </FormProvider>
+  );
 }

@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { A2UIRenderer } from "./A2UIRenderer";
 
 describe("A2UIRenderer", () => {
@@ -135,5 +135,82 @@ describe("A2UIRenderer", () => {
     };
     render(<A2UIRenderer data={data} />);
     expect(screen.getByText(/REDACTED/)).toBeInTheDocument();
+  });
+
+  describe("form interactions", () => {
+    it("calls onFormSubmit when submit button is clicked", () => {
+      const onSubmit = vi.fn();
+      const data = {
+        type: "container",
+        children: [
+          {
+            type: "input",
+            name: "username",
+            label: "Username",
+            placeholder: "Enter name",
+          },
+          {
+            type: "button",
+            label: "Submit",
+            action: "submit",
+            variant: "primary",
+          },
+        ],
+      };
+      render(<A2UIRenderer data={data} onFormSubmit={onSubmit} />);
+
+      const input = screen.getByLabelText("Username");
+      fireEvent.change(input, { target: { value: "detective" } });
+
+      const button = screen.getByText("Submit");
+      fireEvent.click(button);
+
+      expect(onSubmit).toHaveBeenCalledWith({ username: "detective" });
+    });
+
+    it("tracks checkbox state", () => {
+      const onSubmit = vi.fn();
+      const data = {
+        type: "container",
+        children: [
+          { type: "checkbox", name: "urgent", label: "Mark as urgent" },
+          { type: "button", label: "Submit", action: "submit" },
+        ],
+      };
+      render(<A2UIRenderer data={data} onFormSubmit={onSubmit} />);
+
+      const checkbox = screen.getByLabelText("Mark as urgent");
+      fireEvent.click(checkbox);
+
+      const button = screen.getByText("Submit");
+      fireEvent.click(button);
+
+      expect(onSubmit).toHaveBeenCalledWith({ urgent: true });
+    });
+
+    it("tracks select state", () => {
+      const onSubmit = vi.fn();
+      const data = {
+        type: "container",
+        children: [
+          {
+            type: "select",
+            name: "status",
+            label: "Status",
+            options: ["Open", "Closed", "Pending"],
+          },
+          { type: "button", label: "Submit", action: "submit" },
+        ],
+      };
+      render(<A2UIRenderer data={data} onFormSubmit={onSubmit} />);
+
+      const select = screen.getByLabelText("Status");
+      fireEvent.change(select, { target: { value: "Closed" } });
+
+      const button = screen.getByText("Submit");
+      fireEvent.click(button);
+
+      expect(onSubmit).toHaveBeenCalledWith({ status: "Closed" });
+    });
   });
 });

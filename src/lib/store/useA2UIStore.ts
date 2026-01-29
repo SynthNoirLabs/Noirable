@@ -40,6 +40,8 @@ interface A2UIState {
   activeEvidenceId: string | null;
   addEvidence: (entry: EvidenceEntry) => void;
   setActiveEvidenceId: (id: string | null) => void;
+  clearHistory: () => void;
+  removeEvidence: (id: string) => void;
   settings: Settings;
   updateSettings: (settings: Partial<Settings>) => void;
   layout: Layout;
@@ -59,6 +61,25 @@ export const useA2UIStore = create<A2UIState>()(
           activeEvidenceId: entry.id,
         })),
       setActiveEvidenceId: (id) => set({ activeEvidenceId: id }),
+      clearHistory: () =>
+        set({ evidenceHistory: [], activeEvidenceId: null, evidence: null }),
+      removeEvidence: (id) =>
+        set((state) => {
+          const newHistory = state.evidenceHistory.filter((e) => e.id !== id);
+          const newActiveId =
+            state.activeEvidenceId === id
+              ? (newHistory[newHistory.length - 1]?.id ?? null)
+              : state.activeEvidenceId;
+          const newEvidence =
+            state.activeEvidenceId === id
+              ? (newHistory[newHistory.length - 1]?.data ?? null)
+              : state.evidence;
+          return {
+            evidenceHistory: newHistory,
+            activeEvidenceId: newActiveId,
+            evidence: newEvidence,
+          };
+        }),
       settings: {
         typewriterSpeed: 30,
         soundEnabled: true,
@@ -81,6 +102,9 @@ export const useA2UIStore = create<A2UIState>()(
       partialize: (state) => ({
         settings: state.settings,
         layout: state.layout,
+        evidence: state.evidence,
+        evidenceHistory: state.evidenceHistory,
+        activeEvidenceId: state.activeEvidenceId,
       }),
     },
   ),

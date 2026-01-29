@@ -38,11 +38,19 @@ A2UI (AI-to-UI) is a schema-validated JSON protocol that allows AI models to gen
 
 | Type | Description | Key Props |
 |------|-------------|-----------|
-| `input` | Text input field | `label`, `placeholder`, `value` |
-| `textarea` | Multi-line input | `label`, `placeholder`, `rows` |
-| `select` | Dropdown select | `label`, `options`, `value` |
-| `checkbox` | Checkbox toggle | `label`, `checked` |
-| `button` | Action button | `label`, `variant` |
+| `input` | Text input field | `name`, `label`, `placeholder`, `value` |
+| `textarea` | Multi-line input | `name`, `label`, `placeholder`, `rows` |
+| `select` | Dropdown select | `name`, `label`, `options`, `value` |
+| `checkbox` | Checkbox toggle | `name`, `label`, `checked` |
+| `button` | Action button | `label`, `action`, `variant` |
+
+### Button Actions
+
+| Action | Description |
+|--------|-------------|
+| `submit` | Triggers `onFormSubmit` callback with all form values |
+| `reset` | Resets all form fields to initial values |
+| `log` | Logs form values to console (debugging) |
 
 ---
 

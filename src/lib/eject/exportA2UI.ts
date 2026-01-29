@@ -355,9 +355,12 @@ ${ind}</div>`;
         "bg-transparent border-b border-zinc-700/30 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500",
         variantClass,
       ]);
+      const inputName =
+        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
       return `${ind}<label className="flex flex-col gap-2 text-xs ${node.style?.className || ""}">
 ${indChild}<span className="font-medium text-zinc-400">${escapeJsx(node.label)}</span>
 ${indChild}<input
+${indChild}  name="${escapeJsx(inputName)}"
 ${indChild}  placeholder="${escapeJsx(node.placeholder)}"
 ${indChild}  ${node.value ? `defaultValue="${escapeJsx(node.value)}"` : ""}
 ${indChild}  className="${inputClasses}"
@@ -371,9 +374,12 @@ ${ind}</label>`;
         "bg-transparent border border-zinc-700/30 p-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500",
         variantClass,
       ]);
+      const textareaName =
+        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
       return `${ind}<label className="flex flex-col gap-2 text-xs ${node.style?.className || ""}">
 ${indChild}<span className="font-medium text-zinc-400">${escapeJsx(node.label)}</span>
 ${indChild}<textarea
+${indChild}  name="${escapeJsx(textareaName)}"
 ${indChild}  placeholder="${escapeJsx(node.placeholder)}"
 ${indChild}  ${node.value ? `defaultValue="${escapeJsx(node.value)}"` : ""}
 ${indChild}  rows={${node.rows ?? 3}}
@@ -388,6 +394,8 @@ ${ind}</label>`;
         "bg-zinc-900 border border-zinc-700/30 p-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500",
         variantClass,
       ]);
+      const selectName =
+        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
       const options = node.options
         .map(
           (opt) =>
@@ -397,6 +405,7 @@ ${ind}</label>`;
       return `${ind}<label className="flex flex-col gap-2 text-xs ${node.style?.className || ""}">
 ${indChild}<span className="font-medium text-zinc-400">${escapeJsx(node.label)}</span>
 ${indChild}<select
+${indChild}  name="${escapeJsx(selectName)}"
 ${indChild}  defaultValue="${escapeJsx(node.value ?? node.options[0])}"
 ${indChild}  className="${selectClasses}"
 ${indChild}>
@@ -406,8 +415,10 @@ ${ind}</label>`;
     }
 
     case "checkbox": {
+      const checkboxName =
+        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
       return `${ind}<label className="flex items-center gap-2 text-xs ${node.style?.className || ""}">
-${indChild}<input type="checkbox" ${node.checked ? "defaultChecked" : ""} className="accent-amber-500" />
+${indChild}<input type="checkbox" name="${escapeJsx(checkboxName)}" ${node.checked ? "defaultChecked" : ""} className="accent-amber-500" />
 ${indChild}<span className="text-zinc-400">${escapeJsx(node.label)}</span>
 ${ind}</label>`;
     }
@@ -475,4 +486,63 @@ ${rendered}
 
 export function exportA2UIAsJSON(component: A2UIInput): string {
   return JSON.stringify(component, null, 2);
+}
+
+export interface ExportFile {
+  path: string;
+  content: string;
+}
+
+export function exportA2UIMultiFile(
+  component: A2UIInput,
+  componentName: string = "Evidence",
+): ExportFile[] {
+  const files: ExportFile[] = [];
+  const hooks = detectHooks(component);
+  const hasState = hooks.includes("useState");
+
+  // Main component file
+  const imports = ['import React from "react";'];
+  if (hasState) {
+    imports[0] = 'import React, { useState } from "react";';
+  }
+
+  const stateDeclarations = hasState
+    ? "\n  const [activeTab, setActiveTab] = useState(0);\n"
+    : "";
+
+  const rendered = renderNode(component, 2);
+
+  const mainComponent = `${imports.join("\n")}
+
+export function ${componentName}() {${stateDeclarations}
+  return (
+${rendered}
+  );
+}
+`;
+
+  files.push({
+    path: `${componentName}/${componentName}.tsx`,
+    content: mainComponent,
+  });
+
+  // Index file
+  const indexContent = `export { ${componentName} } from "./${componentName}";
+`;
+  files.push({
+    path: `${componentName}/index.ts`,
+    content: indexContent,
+  });
+
+  // Data file with the JSON
+  const dataContent = `// A2UI JSON data for ${componentName}
+export const ${componentName.toLowerCase()}Data = ${JSON.stringify(component, null, 2)} as const;
+`;
+  files.push({
+    path: `${componentName}/${componentName}.data.ts`,
+    content: dataContent,
+  });
+
+  return files;
 }

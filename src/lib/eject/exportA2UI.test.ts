@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { exportA2UI, exportA2UIAsJSON } from "./exportA2UI";
+import {
+  exportA2UI,
+  exportA2UIAsJSON,
+  exportA2UIMultiFile,
+} from "./exportA2UI";
 import type { A2UIInput } from "@/lib/protocol/schema";
 
 describe("exportA2UI", () => {
@@ -231,5 +235,54 @@ describe("exportA2UIAsJSON", () => {
     const parsed = JSON.parse(output);
     expect(parsed.type).toBe("text");
     expect(parsed.content).toBe("Test");
+  });
+});
+
+describe("exportA2UIMultiFile", () => {
+  it("exports multiple files for a component", () => {
+    const data: A2UIInput = {
+      type: "container",
+      children: [
+        { type: "heading", level: 1, text: "Dashboard" },
+        { type: "stat", label: "Cases", value: "42" },
+      ],
+    };
+
+    const files = exportA2UIMultiFile(data, "Dashboard");
+
+    expect(files).toHaveLength(3);
+
+    // Main component file
+    const mainFile = files.find((f) => f.path === "Dashboard/Dashboard.tsx");
+    expect(mainFile).toBeDefined();
+    expect(mainFile?.content).toContain("export function Dashboard");
+    expect(mainFile?.content).toContain("Cases");
+
+    // Index file
+    const indexFile = files.find((f) => f.path === "Dashboard/index.ts");
+    expect(indexFile).toBeDefined();
+    expect(indexFile?.content).toContain(
+      'export { Dashboard } from "./Dashboard"',
+    );
+
+    // Data file
+    const dataFile = files.find(
+      (f) => f.path === "Dashboard/Dashboard.data.ts",
+    );
+    expect(dataFile).toBeDefined();
+    expect(dataFile?.content).toContain("dashboardData");
+    expect(dataFile?.content).toContain('"type": "container"');
+  });
+
+  it("uses default component name if not provided", () => {
+    const data: A2UIInput = {
+      type: "text",
+      content: "Test",
+      priority: "normal",
+    };
+
+    const files = exportA2UIMultiFile(data);
+
+    expect(files[0].path).toBe("Evidence/Evidence.tsx");
   });
 });

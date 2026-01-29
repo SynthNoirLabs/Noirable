@@ -106,6 +106,7 @@ const imageInputSchema = z
 
 const inputSchema = z.object({
   type: z.literal("input"),
+  name: z.string().optional(),
   label: z.string(),
   placeholder: z.string(),
   value: z.string().optional(),
@@ -115,6 +116,7 @@ const inputSchema = z.object({
 
 const textareaSchema = z.object({
   type: z.literal("textarea"),
+  name: z.string().optional(),
   label: z.string(),
   placeholder: z.string(),
   value: z.string().optional(),
@@ -125,6 +127,7 @@ const textareaSchema = z.object({
 
 const selectSchema = z.object({
   type: z.literal("select"),
+  name: z.string().optional(),
   label: z.string(),
   options: z.array(z.string()).min(1),
   value: z.string().optional(),
@@ -134,14 +137,18 @@ const selectSchema = z.object({
 
 const checkboxSchema = z.object({
   type: z.literal("checkbox"),
+  name: z.string().optional(),
   label: z.string(),
   checked: z.boolean().optional(),
   style: styleSchema.optional(),
 });
 
+const buttonActionToken = z.enum(["submit", "reset", "log"]);
+
 const buttonSchema = z.object({
   type: z.literal("button"),
   label: z.string(),
+  action: buttonActionToken.optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
 });

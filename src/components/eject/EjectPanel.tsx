@@ -2,9 +2,14 @@
 
 import React, { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { exportA2UI, exportA2UIAsJSON } from "@/lib/eject/exportA2UI";
+import {
+  exportA2UI,
+  exportA2UIAsJSON,
+  exportA2UIMultiFile,
+  type ExportFile,
+} from "@/lib/eject/exportA2UI";
 import type { A2UIInput } from "@/lib/protocol/schema";
-import { Copy, Check, Code, FileJson, X } from "lucide-react";
+import { Copy, Check, Code, FileJson, X, FolderOpen } from "lucide-react";
 
 interface EjectPanelProps {
   evidence: A2UIInput | null;
@@ -12,7 +17,7 @@ interface EjectPanelProps {
   className?: string;
 }
 
-type TabType = "react" | "json";
+type TabType = "react" | "json" | "multifile";
 
 export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("react");
@@ -20,8 +25,18 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
 
   const reactCode = evidence ? exportA2UI(evidence) : "";
   const jsonCode = evidence ? exportA2UIAsJSON(evidence) : "";
+  const multiFiles = evidence ? exportA2UIMultiFile(evidence, "Evidence") : [];
 
-  const currentCode = activeTab === "react" ? reactCode : jsonCode;
+  const getMultiFileContent = (files: ExportFile[]): string => {
+    return files.map((f) => `// === ${f.path} ===\n${f.content}`).join("\n\n");
+  };
+
+  const currentCode =
+    activeTab === "react"
+      ? reactCode
+      : activeTab === "json"
+        ? jsonCode
+        : getMultiFileContent(multiFiles);
 
   const handleCopy = useCallback(async () => {
     if (!currentCode) return;
@@ -125,6 +140,19 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             <FileJson className="w-3 h-3" />
             JSON
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("multifile")}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
+              activeTab === "multifile"
+                ? "bg-noir-dark border-noir-gray/40 text-noir-amber"
+                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper",
+            )}
+          >
+            <FolderOpen className="w-3 h-3" />
+            Multi-File
+          </button>
         </div>
       </div>
 
@@ -172,7 +200,11 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
       <div className="p-3 border-t border-noir-gray/30 bg-noir-black/50">
         <div className="flex items-center justify-between text-xs font-mono text-noir-paper/40">
           <span>
-            {activeTab === "react" ? "React + Tailwind" : "A2UI JSON"}
+            {activeTab === "react"
+              ? "React + Tailwind"
+              : activeTab === "json"
+                ? "A2UI JSON"
+                : `Multi-File (${multiFiles.length} files)`}
           </span>
           <span>{currentCode.length} chars</span>
         </div>
