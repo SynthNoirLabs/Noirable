@@ -3,7 +3,7 @@
 > A noir-themed AI evidence board where natural language becomes visual UI.
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-116%20passing-brightgreen)]()
 
 ## What is this?
 
@@ -106,6 +106,9 @@ src/
 | Eject to Code            | Done   |
 | Multi-Provider Support   | Done   |
 | Image Generation         | Done   |
+| Form Handlers            | Done   |
+| Persistent Storage       | Done   |
+| Multi-File Export        | Done   |
 
 See [PRODUCT.md](docs/PRODUCT.md) for full roadmap.
 
