@@ -187,3 +187,12 @@ Fallback auth: `~/.local/share/opencode/auth.json`
 - **Image Pipeline**: `prompt` in image component triggers generation, saved to `.data/images/`
 - **Commits**: Conventional style — `feat(ui):`, `fix(api):`, `chore(deps):`
 - **Noir Persona**: Maintain detective theme in AI responses unless debugging
+
+## Documentation
+
+| Doc                                                                | Purpose                                   |
+| ------------------------------------------------------------------ | ----------------------------------------- |
+| [docs/PRODUCT.md](docs/PRODUCT.md)                                 | Product spec, features, design guidelines |
+| [docs/architecture.md](docs/architecture.md)                       | Technical architecture, data flows        |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)                         | Dev workflow, code style, testing         |
+| [docs/reference/a2ui-protocol.md](docs/reference/a2ui-protocol.md) | A2UI component schema reference           |

@@ -88,14 +88,6 @@ function escapeJsx(str: string): string {
   return str.replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
-function indent(code: string, level: number): string {
-  const spaces = "  ".repeat(level);
-  return code
-    .split("\n")
-    .map((line) => (line.trim() ? spaces + line : line))
-    .join("\n");
-}
-
 function renderNode(node: A2UIInput, depth: number = 0): string {
   const ind = "  ".repeat(depth);
   const indChild = "  ".repeat(depth + 1);

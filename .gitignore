@@ -59,6 +59,9 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 
+# Stress tests output
+tests/stress/output/
+
 # Temporary files
 *.tmp
 *.temp

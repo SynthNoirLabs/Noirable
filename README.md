@@ -1,39 +1,126 @@
-# bmad
+# synthNoirUI (bmad)
 
-Noir-themed evidence board driven by AI chat. The client streams UI updates from `/api/chat` and renders validated A2UI JSON into the Evidence Board.
+> A noir-themed AI evidence board where natural language becomes visual UI.
 
-## Quickstart
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)]()
+
+## What is this?
+
+**synthNoirUI** is an experimental AI-driven UI generation platform. Describe what you want in natural language, and watch it materialize as visual "evidence" on a noir detective's desk.
+
+```
+You: "Create a suspect profile card with name, photo, and last known location"
+
+Detective: "The file's on your desk. Rain-soaked, like everything else in this town."
+
+→ [Renders: A noir-styled card with generated image and data fields]
+```
+
+### Key Features
+
+- **AI Chat Interface** - Talk to a hard-boiled detective AI persona
+- **A2UI Protocol** - 20 validated component types via Zod
+- **Live Evidence Board** - See UI generate in real-time
+- **Eject to Code** - Export to React + Tailwind with one click
+- **Multi-Provider** - OpenAI, Anthropic, Google, or any OpenAI-compatible API
+
+## Quick Start
 
 ```bash
+# Clone and install
+git clone https://github.com/youruser/bmad.git
+cd bmad
 pnpm install
+
+# Set up API key (any of these)
+echo "OPENAI_API_KEY=sk-..." > .env.local
+# OR: ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY
+
+# Run
 pnpm dev
 ```
 
-Open `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000)
 
-## Scripts
+## Documentation
 
-- `pnpm dev`: start Next.js dev server.
-- `pnpm build`: production build.
-- `pnpm start`: start production server.
-- `pnpm test`: Vitest unit/integration tests.
-- `pnpm lint`: ESLint.
-- `pnpm check`: prettier + lint + tests + build.
-- `pnpm sanity:chat`: live API sanity check for tool output.
-- `pnpm e2e` / `pnpm e2e:ui`: Playwright E2E.
+| Document                                         | Description                         |
+| ------------------------------------------------ | ----------------------------------- |
+| [Product Spec](docs/PRODUCT.md)                  | Vision, features, design guidelines |
+| [Architecture](docs/architecture.md)             | Technical design and data flows     |
+| [Development Guide](docs/DEVELOPMENT.md)         | Setup, workflow, code style         |
+| [A2UI Protocol](docs/reference/a2ui-protocol.md) | Component schema reference          |
 
-## Environment
+## Commands
 
-Set any of the following in `.env.local`:
+```bash
+pnpm dev          # Start dev server (port 3000)
+pnpm build        # Production build
+pnpm check        # CI gate: prettier + eslint + vitest + build
+pnpm test         # Run tests
+pnpm e2e          # Playwright E2E tests
+pnpm sanity:chat  # Live API validation
+```
 
-- `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `AI_MODEL`
-- `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY`
-- `AI_GATEWAY_API_KEY`
-- `AI_IMAGE_MODEL`
-- `A2UI_IMAGE_DIR` (defaults to `.data/images/`)
+## Environment Variables
 
-## Endpoints
+```bash
+# AI Provider (uses first available)
+OPENAI_BASE_URL=         # OpenAI-compatible proxy
+OPENAI_API_KEY=          # OpenAI direct
+ANTHROPIC_API_KEY=       # Anthropic
+GOOGLE_GENERATIVE_AI_API_KEY=  # Gemini
 
-- `POST /api/chat`: chat + tool execution (A2UI generation).
-- `GET /api/images/[id]`: serve generated images saved under `.data/images/`.
-- `GET /print`: print-friendly view of current evidence.
+# Optional
+AI_MODEL=                # Override default model
+AI_IMAGE_MODEL=          # Override image model
+```
+
+Fallback: `~/.local/share/opencode/auth.json`
+
+## Project Structure
+
+```
+src/
+├── app/api/chat/     # AI streaming endpoint
+├── components/       # React components
+│   ├── board/        # Evidence history
+│   ├── chat/         # Chat sidebar
+│   ├── eject/        # Code export
+│   ├── layout/       # Main workspace
+│   └── renderer/     # A2UI renderer
+└── lib/
+    ├── ai/           # Provider factory, tools
+    ├── protocol/     # A2UI Zod schema
+    └── store/        # Zustand state
+```
+
+## Status
+
+| Component                | Status |
+| ------------------------ | ------ |
+| Core AI Chat             | Done   |
+| A2UI Protocol (20 types) | Done   |
+| Evidence Board           | Done   |
+| Eject to Code            | Done   |
+| Multi-Provider Support   | Done   |
+| Image Generation         | Done   |
+
+See [PRODUCT.md](docs/PRODUCT.md) for full roadmap.
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **AI:** Vercel AI SDK 6
+- **State:** Zustand
+- **Schema:** Zod 4
+- **Styling:** Tailwind CSS 4
+
+## License
+
+MIT
+
+---
+
+_"The rain never stops in this town. Neither does the code."_

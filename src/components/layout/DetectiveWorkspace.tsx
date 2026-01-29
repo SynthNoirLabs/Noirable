@@ -52,7 +52,10 @@ export function DetectiveWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Once
 
-  const modelConfig = settings.modelConfig ?? { provider: "auto", model: "" };
+  const modelConfig = useMemo(
+    () => settings.modelConfig ?? { provider: "auto", model: "" },
+    [settings.modelConfig],
+  );
 
   const transport = useMemo(
     () =>
@@ -113,7 +116,15 @@ export function DetectiveWorkspace() {
     for (const part of parts) {
       // Standard AI SDK Tool Invocation
       if (part.type === "tool-invocation") {
-        const invocation = (part as any).toolInvocation;
+        const invocation = (
+          part as {
+            toolInvocation?: {
+              toolName?: string;
+              state?: string;
+              result?: unknown;
+            };
+          }
+        ).toolInvocation;
         if (
           invocation?.toolName === "generate_ui" &&
           invocation?.state === "result"

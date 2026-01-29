@@ -1,61 +1,248 @@
-# synthNoirUI: AI Chat Integration Architecture (v1.0)
+# Architecture
 
-## 1. Introduction
-This document establishes the architectural blueprint for the AI Chat Integration in synthNoirUI. It bridges the gap between the "Detective Desk" UI and the "Detective Brain" AI logic.
+> Technical blueprint for synthNoirUI's AI-driven UI generation system.
 
-### Relationship to Existing Code
-This design builds on the established Next.js + Tailwind v4 + Zod foundation. It introduces server-side AI orchestration and client-side state synchronization.
+## System Overview
 
-## 2. High Level Architecture
-### Technical Summary
-The system uses a streaming serverless architecture. The frontend (Next.js) requests a stream from the backend (`/api/chat`) via `useChat` + `DefaultChatTransport`, including the current evidence in the request body. The API orchestrates an LLM call with tool-calling enabled. Results are streamed back as UI messages and used to update a client-side Zustand store.
-
-### High Level Diagram
-```mermaid
-graph TD
-    User[User] -->|Chat Message| UI[Chat Interface]
-    UI -->|Stream Request| API[Next.js API Route /api/chat]
-    API -->|Prompt + History| LLM[LLM Provider]
-    LLM -->|Tool Call: generate_ui| API
-    API -->|Stream Tool Result| UI
-    UI -->|Update State| Store[Zustand Store]
-    Store -->|Render| Renderer[A2UI Renderer]
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Client (Next.js)                        │
+├─────────────┬─────────────┬─────────────┬──────────────────────┤
+│ JSON Editor │ Evidence    │ Eject Panel │ Chat Sidebar         │
+│             │ Board       │ (React/JSON)│ (useChat)            │
+└──────┬──────┴──────┬──────┴──────┬──────┴──────────┬───────────┘
+       │             │             │                  │
+       └─────────────┴─────────────┴──────────────────┘
+                              │
+                    ┌─────────▼─────────┐
+                    │   Zustand Store   │
+                    │ (evidence, history)│
+                    └─────────┬─────────┘
+                              │
+                    ┌─────────▼─────────┐
+                    │  POST /api/chat   │
+                    │  (streamText)     │
+                    └─────────┬─────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+         ┌────────┐     ┌────────┐     ┌────────┐
+         │ OpenAI │     │Anthropic│    │ Google │
+         └────────┘     └────────┘     └────────┘
 ```
 
-## 3. Tech Stack
+## Tech Stack
+
 | Category | Technology | Version | Purpose |
-| :--- | :--- | :--- | :--- |
-| Framework | Next.js | 16.x | Application Core |
-| AI SDK | Vercel AI SDK | 6.x | Streaming & Tools |
-| State | Zustand | 5.x | Evidence State |
-| Schema | Zod | 4.x | Protocol Validation |
-| Auth | Multi-Tier | N/A | CLI/Env Key Discovery |
+|----------|------------|---------|---------|
+| Framework | Next.js (App Router) | 16.x | Application core |
+| AI SDK | Vercel AI SDK | 6.x | Streaming & tools |
+| State | Zustand | 5.x | Evidence state |
+| Schema | Zod | 4.x | Protocol validation |
+| Styling | Tailwind CSS | 4.x | UI styling |
+| Testing | Vitest + Playwright | - | Unit + E2E tests |
+| Animation | Framer Motion | - | Noir effects |
 
-## 4. Components
-### DetectiveBrain (API)
-- **Role:** Handles the LLM interaction.
-- **Pattern:** Uses Vercel AI SDK `streamText` with tools.
-- **Persona:** Injects the "Hard-boiled Detective" system prompt.
+---
 
-### ProviderFactory (Server-only)
-- **Role:** Resolves API keys.
-- **Hierarchy:** process.env -> local config (`~/.local/share/opencode/auth.json`) -> request headers.
+## Core Components
 
-### ChatSidebar (Client)
-- **Role:** UI for conversation.
-- **Pattern:** `useChat` from `@ai-sdk/react`, backed by `DefaultChatTransport`.
+### 1. API Layer (`/api/chat`)
 
-## 5. Core Workflows
-### AI UI Generation
-1. User sends a chat message.
-2. `/api/chat` normalizes messages and calls `convertToModelMessages`.
-3. AI calls `generate_ui` with `{ component }`, where `component` is validated as `A2UIInput`.
-4. Server resolves image prompts, validates output as `A2UIComponent`, and returns it.
-5. Server streams UI messages via `toUIMessageStreamResponse`.
-6. Client inspects `message.parts` (with legacy `toolInvocations` fallback) and updates Zustand.
-7. Renderer displays the new component.
+**Role:** Orchestrate LLM interaction with tool calling.
 
-## 6. Coding Standards
-- **Server-Only:** Auth logic must never be imported in client components.
-- **Protocol First:** All UI updates must originate from a valid A2UI JSON artifact.
-- **Test-Driven:** Test the `/api/chat` logic with mock LLM responses.
+```typescript
+// Simplified flow
+POST /api/chat
+  → Parse messages + evidence from request
+  → Build system prompt with noir persona
+  → Call streamText() with generate_ui tool
+  → Stream UI messages back to client
+```
+
+**Key file:** `src/app/api/chat/route.ts`
+
+### 2. Provider Factory (Server-only)
+
+**Role:** Resolve API keys and create AI provider instances.
+
+**Priority order:**
+1. `OPENAI_BASE_URL` (OpenAI-compatible proxy)
+2. `OPENAI_API_KEY` (OpenAI direct)
+3. `ANTHROPIC_API_KEY` (Anthropic)
+4. `GOOGLE_GENERATIVE_AI_API_KEY` (Google)
+5. `~/.local/share/opencode/auth.json` (fallback)
+
+**Key file:** `src/lib/ai/factory.ts`
+
+### 3. Tool System
+
+**The `generate_ui` tool:**
+- Input: A2UI component JSON (validated by Zod)
+- Output: Validated A2UI component with resolved images
+- Execution: Server-side via AI SDK `tool()` helper
+
+```typescript
+// Tool schema (simplified)
+{
+  name: "generate_ui",
+  description: "Generate UI evidence",
+  inputSchema: a2uiInputSchema, // Zod schema
+  execute: async ({ component }) => {
+    const validated = a2uiComponentSchema.parse(component);
+    const resolved = await resolveImages(validated);
+    return resolved;
+  }
+}
+```
+
+**Key file:** `src/lib/ai/tools.ts`
+
+### 4. State Management (Zustand)
+
+**Store structure:**
+```typescript
+{
+  evidence: A2UIComponent | null,      // Current UI
+  evidenceHistory: A2UIComponent[],    // History
+  activeEvidenceId: string | null,     // Selected history item
+  settings: { model, imageModel },     // User preferences
+  layout: { sizes, collapsed },        // UI layout state
+}
+```
+
+**Key file:** `src/lib/store/useA2UIStore.ts`
+
+### 5. Client Synchronization
+
+**Pattern:** Observer on `messages` stream.
+
+```typescript
+// DetectiveWorkspace.tsx (simplified)
+useEffect(() => {
+  const lastMessage = messages[messages.length - 1];
+  
+  // Check for tool result in message parts
+  for (const part of lastMessage.parts) {
+    if (part.type === "tool-invocation" && 
+        part.toolInvocation.state === "result") {
+      const result = part.toolInvocation.result;
+      setEvidence(result);
+      addEvidence(result);
+    }
+  }
+}, [messages]);
+```
+
+**Key file:** `src/components/layout/DetectiveWorkspace.tsx`
+
+---
+
+## Data Flow
+
+### UI Generation Flow
+
+```
+1. User types "Create a suspect card"
+   ↓
+2. ChatSidebar sends POST /api/chat
+   Body: { messages, evidence: currentEvidence }
+   ↓
+3. API builds system prompt with:
+   - Noir persona instructions
+   - A2UI protocol reference
+   - Current evidence (for updates)
+   ↓
+4. LLM calls generate_ui tool
+   ↓
+5. Server validates output against Zod schema
+   ↓
+6. If images have prompts, generate them
+   ↓
+7. Stream response via toUIMessageStreamResponse
+   ↓
+8. Client parses message.parts for tool-invocation
+   ↓
+9. Update Zustand store with new evidence
+   ↓
+10. A2UIRenderer displays the component
+```
+
+### Image Generation Flow
+
+```
+1. Tool output contains: { type: "image", prompt: "..." }
+   ↓
+2. resolveImages() detects prompt field
+   ↓
+3. Generate image via AI provider (DALL-E, Imagen, etc.)
+   ↓
+4. Save to .data/images/{uuid}.png
+   ↓
+5. Replace prompt with src: "/api/images/{uuid}"
+   ↓
+6. Return modified component
+```
+
+---
+
+## API Reference
+
+### `POST /api/chat`
+
+**Request:**
+```typescript
+{
+  messages: UIMessage[],
+  evidence?: A2UIComponent  // Current state for updates
+}
+```
+
+**Response:** Server-Sent Events stream with UI messages.
+
+### `GET /api/images/[id]`
+
+**Response:** Image file from `.data/images/` directory.
+
+### `GET /print`
+
+**Response:** Print-friendly HTML view of current evidence.
+
+---
+
+## Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| API key exposure | Server-only imports, never in client |
+| Code injection | A2UI is declarative JSON, no execution |
+| Image storage | Local filesystem only, served via API |
+| Input validation | All tool inputs validated by Zod |
+
+---
+
+## Extension Points
+
+### Adding a New A2UI Component
+
+1. Add type to `src/lib/protocol/schema.ts`
+2. Add renderer in `src/components/renderer/A2UIRenderer.tsx`
+3. Add exporter in `src/lib/eject/exportA2UI.ts`
+4. Add tests
+
+### Adding a New AI Provider
+
+1. Add detection logic in `src/lib/ai/factory.ts`
+2. Add models to `src/lib/ai/model-registry.ts`
+3. Add tests
+
+### Adding a New Tool
+
+1. Define tool in `src/lib/ai/tools.ts`
+2. Register in `/api/chat` route
+3. Handle client-side in DetectiveWorkspace
+4. Add tests
+
+---
+
+*Last updated: 2026-01-28*
