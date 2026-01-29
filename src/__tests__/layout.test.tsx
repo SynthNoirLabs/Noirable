@@ -10,12 +10,21 @@ vi.mock("next/font/google", () => ({
   Geist_Mono: vi.fn().mockReturnValue({ variable: "geist-mono" }),
 }));
 
+// Mock Sandpack styles component (uses stitches which fails in test env)
+vi.mock("@/components/eject/SandpackStyles", () => ({
+  SandpackStyles: () => null,
+}));
+
 describe("RootLayout", () => {
   it("uses the correct Noir fonts", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = RootLayout({ children: <div /> }) as any;
-    // Result is <html ...><body className="...">...</body></html>
-    const body = result.props.children;
+    // Result is <html ...><head>...</head><body className="...">...</body></html>
+    // With head added, children is now an array
+    const children = result.props.children;
+    const body = Array.isArray(children)
+      ? children.find((c: { type?: string }) => c && c.type === "body")
+      : children;
 
     // Expect Noir fonts
     expect(body.props.className).toContain("font-sans-mock");

@@ -43,11 +43,25 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 | **Persistent Storage** | Evidence saved to localStorage | Done |
 | **Multi-File Export** | Generate component directories | Done |
 
+### Implemented (v1.1)
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Undo/Redo** | State history with Cmd+Z/Cmd+Shift+Z | Done |
+| **Keyboard Shortcuts** | Cmd+Enter (send), Cmd+E (eject), Cmd+Z (undo) | Done |
+| **Evidence Search** | Filter evidence history by label/status | Done |
+| **Template Library** | 8 pre-built A2UI templates (forms, dashboards, cards) | Done |
+| **Live Sandbox** | Sandpack integration for live code preview | Done |
+| **Prompt History** | Save and recall previous prompts | Done |
+| **Export to File** | Download .tsx files or .zip archives | Done |
+| **Loading States** | Skeleton UI during AI generation | Done |
+| **Error Recovery** | "Retry" button with last failed prompt context | Done |
+
 ### Roadmap
 
 | Feature | Priority | Status |
 |---------|----------|--------|
-| Live sandbox (Sandpack) | Low | Future |
+| AI Fine-Tuning | Medium | Proposed (see docs/proposals/ai-fine-tuning.md) |
 | Collaborative editing | Low | Future |
 
 ---
@@ -152,4 +166,4 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 
 ---
 
-*Last updated: 2026-01-28*
+*Last updated: 2026-01-29*

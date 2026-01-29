@@ -3,7 +3,7 @@
 > A noir-themed AI evidence board where natural language becomes visual UI.
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-116%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-131%20passing-brightgreen)]()
 
 ## What is this?
 
@@ -21,8 +21,11 @@ Detective: "The file's on your desk. Rain-soaked, like everything else in this t
 
 - **AI Chat Interface** - Talk to a hard-boiled detective AI persona
 - **A2UI Protocol** - 20 validated component types via Zod
-- **Live Evidence Board** - See UI generate in real-time
+- **Live Evidence Board** - See UI generate in real-time with search/filter
 - **Eject to Code** - Export to React + Tailwind with one click
+- **Live Sandbox** - Sandpack integration for interactive code preview
+- **Template Library** - 8 pre-built templates for quick starts
+- **Undo/Redo** - Full state history with keyboard shortcuts
 - **Multi-Provider** - OpenAI, Anthropic, Google, or any OpenAI-compatible API
 
 ## Quick Start
@@ -102,13 +105,21 @@ src/
 | ------------------------ | ------ |
 | Core AI Chat             | Done   |
 | A2UI Protocol (20 types) | Done   |
-| Evidence Board           | Done   |
+| Evidence Board + Search  | Done   |
 | Eject to Code            | Done   |
 | Multi-Provider Support   | Done   |
 | Image Generation         | Done   |
 | Form Handlers            | Done   |
 | Persistent Storage       | Done   |
 | Multi-File Export        | Done   |
+| Undo/Redo                | Done   |
+| Keyboard Shortcuts       | Done   |
+| Template Library         | Done   |
+| Live Sandbox (Sandpack)  | Done   |
+| Prompt History           | Done   |
+| Export to File (.zip)    | Done   |
+| Loading States           | Done   |
+| Error Recovery UI        | Done   |
 
 See [PRODUCT.md](docs/PRODUCT.md) for full roadmap.
 

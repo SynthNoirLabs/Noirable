@@ -103,7 +103,8 @@ describe("DetectiveWorkspace", () => {
 
     fireEvent.change(textarea, { target: { value: "{ bad json " } });
 
-    expect(screen.getByText(/Invalid JSON/)).toBeInTheDocument();
+    // Error shows in editor area
+    expect(screen.getAllByText(/Invalid JSON/).length).toBeGreaterThan(0);
   });
 
   it("renders chat sidebar", () => {

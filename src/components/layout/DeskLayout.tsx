@@ -5,6 +5,7 @@ import {
   PanelLeftOpen,
   PanelRightOpen,
   Code,
+  LayoutTemplate,
 } from "lucide-react";
 import { ResizeHandle } from "./ResizeHandle";
 
@@ -13,14 +14,17 @@ interface DeskLayoutProps {
   preview: React.ReactNode;
   sidebar?: React.ReactNode;
   ejectPanel?: React.ReactNode;
+  templatePanel?: React.ReactNode;
   showEditor?: boolean;
   showSidebar?: boolean;
   showEject?: boolean;
+  showTemplates?: boolean;
   editorWidth?: number;
   sidebarWidth?: number;
   onToggleEditor?: () => void;
   onToggleSidebar?: () => void;
   onToggleEject?: () => void;
+  onToggleTemplates?: () => void;
   onResizeEditor?: (nextWidth: number) => void;
   onResizeSidebar?: (nextWidth: number) => void;
   className?: string;
@@ -31,14 +35,17 @@ export function DeskLayout({
   preview,
   sidebar,
   ejectPanel,
+  templatePanel,
   showEditor = true,
   showSidebar = true,
   showEject = false,
+  showTemplates = false,
   editorWidth = 300,
   sidebarWidth = 360,
   onToggleEditor,
   onToggleSidebar,
   onToggleEject,
+  onToggleTemplates,
   onResizeEditor,
   onResizeSidebar,
   className,
@@ -46,10 +53,12 @@ export function DeskLayout({
   const isEditorVisible = showEditor;
   const isSidebarVisible = Boolean(sidebar) && showSidebar;
   const isEjectVisible = Boolean(ejectPanel) && showEject;
+  const isTemplatesVisible = Boolean(templatePanel) && showTemplates;
 
   const getGridColsClass = () => {
     const cols: string[] = [];
     if (isEditorVisible) cols.push("var(--editor-w)");
+    if (isTemplatesVisible) cols.push("280px");
     cols.push("1fr");
     if (isEjectVisible) cols.push("400px");
     if (isSidebarVisible) cols.push("var(--sidebar-w)");
@@ -143,14 +152,38 @@ export function DeskLayout({
         </div>
       )}
 
+      {/* Template Panel */}
+      {isTemplatesVisible && templatePanel && (
+        <div className="h-full overflow-hidden border-r border-noir-gray/20 relative z-10">
+          {templatePanel}
+        </div>
+      )}
+
       <div className="p-8 overflow-auto bg-venetian relative flex flex-col items-center justify-center min-h-screen z-10">
         <div className="absolute top-4 right-4 flex items-center gap-3">
+          {onToggleTemplates && (
+            <button
+              type="button"
+              onClick={onToggleTemplates}
+              aria-label={showTemplates ? "Hide templates" : "Show templates"}
+              title={showTemplates ? "Hide templates" : "Browse templates"}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors",
+                showTemplates
+                  ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
+                  : "bg-noir-black/50 border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber hover:border-noir-amber/40",
+              )}
+            >
+              <LayoutTemplate className="w-3 h-3" />
+              Templates
+            </button>
+          )}
           {onToggleEject && (
             <button
               type="button"
               onClick={onToggleEject}
               aria-label={showEject ? "Hide code export" : "Show code export"}
-              title={showEject ? "Hide code export" : "Export to code"}
+              title={showEject ? "Hide code export" : "Export to code (⌘E)"}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors",
                 showEject

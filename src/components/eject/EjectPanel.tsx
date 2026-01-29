@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import {
   exportA2UI,
@@ -9,7 +9,23 @@ import {
   type ExportFile,
 } from "@/lib/eject/exportA2UI";
 import type { A2UIInput } from "@/lib/protocol/schema";
-import { Copy, Check, Code, FileJson, X, FolderOpen } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Code,
+  FileJson,
+  X,
+  FolderOpen,
+  Play,
+  Download,
+} from "lucide-react";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+
+// Lazy load Sandpack for performance
+const SandpackPreview = lazy(() =>
+  import("./SandpackPreview").then((m) => ({ default: m.SandpackPreview })),
+);
 
 interface EjectPanelProps {
   evidence: A2UIInput | null;
@@ -17,7 +33,7 @@ interface EjectPanelProps {
   className?: string;
 }
 
-type TabType = "react" | "json" | "multifile";
+type TabType = "react" | "json" | "multifile" | "sandbox";
 
 export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("react");
@@ -48,6 +64,27 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
       console.error("Failed to copy to clipboard");
     }
   }, [currentCode]);
+
+  const handleDownloadSingle = useCallback(() => {
+    if (!reactCode) return;
+    const blob = new Blob([reactCode], { type: "text/typescript" });
+    saveAs(blob, "EvidenceComponent.tsx");
+  }, [reactCode]);
+
+  const handleDownloadZip = useCallback(async () => {
+    if (multiFiles.length === 0) return;
+    const zip = new JSZip();
+    const folder = zip.folder("Evidence");
+    if (folder) {
+      for (const file of multiFiles) {
+        // Remove the folder prefix from path
+        const fileName = file.path.replace(/^Evidence\//, "");
+        folder.file(fileName, file.content);
+      }
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    saveAs(blob, "Evidence.zip");
+  }, [multiFiles]);
 
   if (!evidence) {
     return (
@@ -153,48 +190,94 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             <FolderOpen className="w-3 h-3" />
             Multi-File
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("sandbox")}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
+              activeTab === "sandbox"
+                ? "bg-noir-dark border-noir-gray/40 text-noir-amber"
+                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper",
+            )}
+          >
+            <Play className="w-3 h-3" />
+            Sandbox
+          </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden relative">
-        <button
-          type="button"
-          onClick={handleCopy}
-          className={cn(
-            "absolute top-3 right-3 z-10 flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all",
-            copied
-              ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
-              : "bg-noir-dark/80 border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/40",
-          )}
-          aria-label={copied ? "Copied!" : "Copy to clipboard"}
-        >
-          {copied ? (
-            <>
-              <Check className="w-3 h-3" />
-              Copied
-            </>
-          ) : (
-            <>
-              <Copy className="w-3 h-3" />
-              Copy
-            </>
-          )}
-        </button>
+        {activeTab === "sandbox" ? (
+          <Suspense
+            fallback={
+              <div className="h-full flex items-center justify-center text-noir-paper/50 font-typewriter text-xs uppercase tracking-wider">
+                Loading sandbox...
+              </div>
+            }
+          >
+            <SandpackPreview evidence={evidence} />
+          </Suspense>
+        ) : (
+          <>
+            <div className="absolute top-3 right-3 z-10 flex gap-2">
+              {(activeTab === "react" || activeTab === "multifile") && (
+                <button
+                  type="button"
+                  onClick={
+                    activeTab === "multifile"
+                      ? handleDownloadZip
+                      : handleDownloadSingle
+                  }
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all bg-noir-dark/80 border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/40"
+                  aria-label={
+                    activeTab === "multifile" ? "Download ZIP" : "Download file"
+                  }
+                >
+                  <Download className="w-3 h-3" />
+                  {activeTab === "multifile" ? "ZIP" : "File"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCopy}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all",
+                  copied
+                    ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
+                    : "bg-noir-dark/80 border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/40",
+                )}
+                aria-label={copied ? "Copied!" : "Copy to clipboard"}
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
 
-        <div className="h-full overflow-auto p-4 pt-12">
-          <pre className="font-mono text-xs leading-relaxed text-noir-paper/85 whitespace-pre-wrap break-words">
-            <code>{currentCode}</code>
-          </pre>
-        </div>
+            <div className="h-full overflow-auto p-4 pt-12">
+              <pre className="font-mono text-xs leading-relaxed text-noir-paper/85 whitespace-pre-wrap break-words">
+                <code>{currentCode}</code>
+              </pre>
+            </div>
 
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{
-            background:
-              "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)",
-          }}
-          aria-hidden="true"
-        />
+            <div
+              className="absolute inset-0 pointer-events-none opacity-[0.03]"
+              style={{
+                background:
+                  "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)",
+              }}
+              aria-hidden="true"
+            />
+          </>
+        )}
       </div>
 
       <div className="p-3 border-t border-noir-gray/30 bg-noir-black/50">
@@ -204,9 +287,15 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               ? "React + Tailwind"
               : activeTab === "json"
                 ? "A2UI JSON"
-                : `Multi-File (${multiFiles.length} files)`}
+                : activeTab === "multifile"
+                  ? `Multi-File (${multiFiles.length} files)`
+                  : "Live Preview"}
           </span>
-          <span>{currentCode.length} chars</span>
+          <span>
+            {activeTab === "sandbox"
+              ? "Sandpack"
+              : `${currentCode.length} chars`}
+          </span>
         </div>
       </div>
     </div>

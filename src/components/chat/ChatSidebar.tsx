@@ -34,6 +34,7 @@ interface ChatSidebarProps {
   onUpdateSettings?: (settings: { typewriterSpeed: number }) => void;
   onModelConfigChange?: (config: ModelConfig) => void;
   onToggleCollapse?: () => void;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function ChatSidebar({
@@ -46,6 +47,7 @@ export function ChatSidebar({
   onUpdateSettings,
   onModelConfigChange,
   onToggleCollapse,
+  inputRef,
 }: ChatSidebarProps) {
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
@@ -256,13 +258,14 @@ export function ChatSidebar({
       <div className="p-4 bg-noir-dark/95 border-t border-noir-gray/20">
         <form onSubmit={onSubmit} className="relative">
           <input
+            ref={inputRef}
             name="chat-input"
             autoFocus
             className="w-full bg-transparent border-b border-noir-gray/30 rounded-none py-3 pl-2 pr-10 text-sm text-noir-paper focus:outline-none focus:border-noir-amber/50 font-mono placeholder:text-noir-paper/45 transition-colors"
             value={localInput}
             onChange={(e) => setLocalInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your command..."
+            placeholder="Type your command... (⌘+Enter to send)"
           />
           <button
             type="submit"

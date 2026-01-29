@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { DeskLayout } from "./DeskLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
@@ -13,6 +19,10 @@ import {
   deriveEvidenceLabel,
   deriveEvidenceStatus,
 } from "@/lib/evidence/utils";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { TemplatePanel } from "@/components/templates/TemplatePanel";
+import { EvidenceSkeleton } from "@/components/board/EvidenceSkeleton";
+import type { A2UIInput } from "@/lib/protocol/schema";
 
 const DEFAULT_JSON = JSON.stringify(
   {
@@ -27,6 +37,9 @@ const DEFAULT_JSON = JSON.stringify(
 export function DetectiveWorkspace() {
   const [json, setJson] = useState(DEFAULT_JSON);
   const [error, setError] = useState<string | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
   const {
     evidence,
     setEvidence,
@@ -38,6 +51,10 @@ export function DetectiveWorkspace() {
     updateSettings,
     layout,
     updateLayout,
+    pushUndoState,
+    undo,
+    redo,
+    addPrompt,
   } = useA2UIStore();
 
   // Initialize store
@@ -149,6 +166,7 @@ export function DetectiveWorkspace() {
             setActiveEvidenceId(entry.id);
             setJson(JSON.stringify(parsed.data, null, 2));
             setError(null);
+            setLastFailedPrompt(null); // Clear on success
             return;
           }
         }
@@ -270,23 +288,91 @@ export function DetectiveWorkspace() {
   const handleSelectEvidence = (id: string) => {
     const entry = evidenceHistory.find((item) => item.id === id);
     if (!entry) return;
+    pushUndoState(); // Save state before changing
     setActiveEvidenceId(id);
     setEvidence(entry.data);
     setJson(JSON.stringify(entry.data, null, 2));
   };
+
+  const handleSelectTemplate = (data: A2UIInput) => {
+    pushUndoState(); // Save state before loading template
+    setEvidence(data);
+    setJson(JSON.stringify(data, null, 2));
+    setShowTemplates(false); // Close template panel after selection
+    setError(null);
+  };
+
+  // Track prompt before sending
+  const trackAndSend = useCallback(
+    (text: string) => {
+      addPrompt(text, activeEvidenceId ?? undefined);
+      pushUndoState();
+      setLastFailedPrompt(text);
+      setError(null);
+    },
+    [addPrompt, activeEvidenceId, pushUndoState],
+  );
+
+  // Wrap sendMessage to track prompt history
+  const handleSendMessage: typeof sendMessage = useCallback(
+    async (message, options) => {
+      // Extract text from message if it has a text property
+      const text =
+        message && typeof message === "object" && "text" in message
+          ? (message as { text: string }).text
+          : "";
+      if (text) {
+        trackAndSend(text);
+      }
+      return sendMessage(message, options);
+    },
+    [sendMessage, trackAndSend],
+  );
+
+  // Retry last failed prompt
+  const handleRetry = useCallback(() => {
+    if (lastFailedPrompt) {
+      trackAndSend(lastFailedPrompt);
+      sendMessage({ text: lastFailedPrompt });
+    }
+  }, [lastFailedPrompt, trackAndSend, sendMessage]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onUndo: undo,
+    onRedo: redo,
+    onToggleEject: () => updateLayout({ showEject: !layout.showEject }),
+    onSend: () => {
+      // Focus chat input and trigger form submit
+      chatInputRef.current?.form?.requestSubmit();
+    },
+    onEscape: () => {
+      if (layout.showEject) {
+        updateLayout({ showEject: false });
+      }
+    },
+  });
 
   return (
     <DeskLayout
       showEditor={layout.showEditor}
       showSidebar={layout.showSidebar}
       showEject={layout.showEject}
+      showTemplates={showTemplates}
       editorWidth={layout.editorWidth}
       sidebarWidth={layout.sidebarWidth}
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
       onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
+      onToggleTemplates={() => setShowTemplates(!showTemplates)}
       onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
       onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
+      templatePanel={
+        <TemplatePanel
+          onSelect={handleSelectTemplate}
+          onClose={() => setShowTemplates(false)}
+        />
+      }
       ejectPanel={
         <EjectPanel
           evidence={evidence}
@@ -311,7 +397,32 @@ export function DetectiveWorkspace() {
         </div>
       }
       preview={
-        evidence ? (
+        isLoading ? (
+          <EvidenceSkeleton />
+        ) : error ? (
+          <div className="max-w-md space-y-4">
+            <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm">
+              <h3 className="text-noir-red font-typewriter font-bold mb-2">
+                CASE FILE ERROR
+              </h3>
+              <p className="text-noir-red/80 font-mono text-xs">{error}</p>
+            </div>
+            {lastFailedPrompt && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="px-4 py-2 bg-noir-amber/20 border border-noir-amber/50 text-noir-amber font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-noir-amber/30 transition-colors"
+                >
+                  Retry Last Command
+                </button>
+                <span className="text-noir-paper/50 font-mono text-xs truncate max-w-[200px]">
+                  &ldquo;{lastFailedPrompt}&rdquo;
+                </span>
+              </div>
+            )}
+          </div>
+        ) : evidence ? (
           <EvidenceBoard
             entries={evidenceHistory}
             activeId={activeEvidenceId}
@@ -332,7 +443,7 @@ export function DetectiveWorkspace() {
       sidebar={
         <ChatSidebar
           messages={uiMessages}
-          sendMessage={sendMessage}
+          sendMessage={handleSendMessage}
           isLoading={isLoading}
           typewriterSpeed={settings.typewriterSpeed}
           modelConfig={modelConfig}
@@ -341,6 +452,7 @@ export function DetectiveWorkspace() {
             updateSettings({ modelConfig: config })
           }
           onToggleCollapse={() => updateLayout({ showSidebar: false })}
+          inputRef={chatInputRef}
         />
       }
     />

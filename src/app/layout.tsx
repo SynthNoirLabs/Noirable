@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Special_Elite } from "next/font/google";
 import "./globals.css";
+import { SandpackStyles } from "@/components/eject/SandpackStyles";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -28,6 +29,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <SandpackStyles />
+      </head>
       <body
         className={`${inter.variable} ${specialElite.variable} antialiased`}
       >

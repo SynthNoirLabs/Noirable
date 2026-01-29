@@ -8,6 +8,9 @@ describe("useA2UIStore", () => {
       evidence: null,
       evidenceHistory: [],
       activeEvidenceId: null,
+      undoStack: [],
+      redoStack: [],
+      promptHistory: [],
       settings: {
         typewriterSpeed: 30,
         soundEnabled: true,
@@ -148,6 +151,141 @@ describe("useA2UIStore", () => {
     it("updates editor width", () => {
       useA2UIStore.getState().updateLayout({ editorWidth: 400 });
       expect(useA2UIStore.getState().layout.editorWidth).toBe(400);
+    });
+  });
+
+  describe("undo/redo", () => {
+    it("initially has empty undo/redo stacks", () => {
+      expect(useA2UIStore.getState().canUndo()).toBe(false);
+      expect(useA2UIStore.getState().canRedo()).toBe(false);
+    });
+
+    it("pushes state to undo stack", () => {
+      const evidence = {
+        type: "text" as const,
+        content: "Test",
+        priority: "normal" as const,
+      };
+      useA2UIStore.getState().setEvidence(evidence);
+      useA2UIStore.getState().pushUndoState();
+
+      expect(useA2UIStore.getState().canUndo()).toBe(true);
+      expect(useA2UIStore.getState().undoStack).toHaveLength(1);
+    });
+
+    it("undoes to previous state", () => {
+      const evidence1 = {
+        type: "text" as const,
+        content: "First",
+        priority: "normal" as const,
+      };
+      const evidence2 = {
+        type: "text" as const,
+        content: "Second",
+        priority: "normal" as const,
+      };
+
+      useA2UIStore.getState().setEvidence(evidence1);
+      useA2UIStore.getState().pushUndoState();
+      useA2UIStore.getState().setEvidence(evidence2);
+
+      expect(useA2UIStore.getState().evidence).toEqual(evidence2);
+
+      useA2UIStore.getState().undo();
+
+      expect(useA2UIStore.getState().evidence).toEqual(evidence1);
+      expect(useA2UIStore.getState().canRedo()).toBe(true);
+    });
+
+    it("redoes to next state", () => {
+      const evidence1 = {
+        type: "text" as const,
+        content: "First",
+        priority: "normal" as const,
+      };
+      const evidence2 = {
+        type: "text" as const,
+        content: "Second",
+        priority: "normal" as const,
+      };
+
+      useA2UIStore.getState().setEvidence(evidence1);
+      useA2UIStore.getState().pushUndoState();
+      useA2UIStore.getState().setEvidence(evidence2);
+      useA2UIStore.getState().undo();
+      useA2UIStore.getState().redo();
+
+      expect(useA2UIStore.getState().evidence).toEqual(evidence2);
+    });
+
+    it("clears redo stack on new push", () => {
+      const evidence1 = {
+        type: "text" as const,
+        content: "First",
+        priority: "normal" as const,
+      };
+      const evidence2 = {
+        type: "text" as const,
+        content: "Second",
+        priority: "normal" as const,
+      };
+      const evidence3 = {
+        type: "text" as const,
+        content: "Third",
+        priority: "normal" as const,
+      };
+
+      useA2UIStore.getState().setEvidence(evidence1);
+      useA2UIStore.getState().pushUndoState();
+      useA2UIStore.getState().setEvidence(evidence2);
+      useA2UIStore.getState().undo();
+
+      expect(useA2UIStore.getState().canRedo()).toBe(true);
+
+      // New action should clear redo
+      useA2UIStore.getState().pushUndoState();
+      useA2UIStore.getState().setEvidence(evidence3);
+
+      expect(useA2UIStore.getState().canRedo()).toBe(false);
+    });
+  });
+
+  describe("prompt history", () => {
+    it("adds prompts to history", () => {
+      useA2UIStore.getState().addPrompt("Create a card");
+
+      const history = useA2UIStore.getState().promptHistory;
+      expect(history).toHaveLength(1);
+      expect(history[0].text).toBe("Create a card");
+      expect(history[0].id).toBeDefined();
+      expect(history[0].createdAt).toBeDefined();
+    });
+
+    it("adds prompt with evidence id", () => {
+      useA2UIStore.getState().addPrompt("Create a card", "evidence-123");
+
+      const history = useA2UIStore.getState().promptHistory;
+      expect(history[0].evidenceId).toBe("evidence-123");
+    });
+
+    it("clears prompt history", () => {
+      useA2UIStore.getState().addPrompt("First prompt");
+      useA2UIStore.getState().addPrompt("Second prompt");
+      useA2UIStore.getState().clearPromptHistory();
+
+      expect(useA2UIStore.getState().promptHistory).toHaveLength(0);
+    });
+
+    it("preserves multiple prompts in order", () => {
+      useA2UIStore.getState().addPrompt("First");
+      useA2UIStore.getState().addPrompt("Second");
+      useA2UIStore.getState().addPrompt("Third");
+
+      const history = useA2UIStore.getState().promptHistory;
+      expect(history).toHaveLength(3);
+      expect(history[0].text).toBe("First");
+      expect(history[1].text).toBe("Second");
+      expect(history[2].text).toBe("Third");
     });
   });
 });
