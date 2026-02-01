@@ -110,6 +110,7 @@ export const actionMessageSchema = z.object({
       dataBindings: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
+  timestamp: z.number(),
 });
 export type ActionMessage = z.infer<typeof actionMessageSchema>;
 

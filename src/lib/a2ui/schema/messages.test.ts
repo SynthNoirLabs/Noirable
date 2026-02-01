@@ -276,6 +276,7 @@ describe("A2UI Message Schemas", () => {
           surfaceId: "main-surface",
           sourceComponentId: "btn-submit",
           actionName: "click",
+          timestamp: 1738411200000,
         };
         const result = actionMessageSchema.safeParse(data);
         expect(result.success).toBe(true);
@@ -284,6 +285,7 @@ describe("A2UI Message Schemas", () => {
           expect(result.data.surfaceId).toBe("main-surface");
           expect(result.data.sourceComponentId).toBe("btn-submit");
           expect(result.data.actionName).toBe("click");
+          expect(result.data.timestamp).toBe(1738411200000);
         }
       });
 
@@ -293,6 +295,7 @@ describe("A2UI Message Schemas", () => {
           surfaceId: "main-surface",
           sourceComponentId: "form-1",
           actionName: "submit",
+          timestamp: Date.now(),
           context: {
             formValues: {
               name: "John Doe",
@@ -332,6 +335,7 @@ describe("A2UI Message Schemas", () => {
           surfaceId: "main",
           sourceComponentId: "btn-1",
           actionName: "click",
+          timestamp: Date.now(),
         };
         const result = clientMessageSchema.safeParse(data);
         expect(result.success).toBe(true);
