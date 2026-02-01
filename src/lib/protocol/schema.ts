@@ -19,6 +19,7 @@ export const textComponentSchema = z.object({
   type: z.literal("text"),
   content: z.string(),
   priority: priorityToken.default("normal"),
+  style: styleSchema.optional(),
 });
 
 export const cardComponentSchema = z.object({
@@ -26,6 +27,7 @@ export const cardComponentSchema = z.object({
   title: z.string(),
   description: z.string().optional(),
   status: z.enum(["active", "archived", "missing", "redacted"]).default("active"),
+  style: styleSchema.optional(),
 });
 
 const headingSchema = z.object({
@@ -58,6 +60,14 @@ const badgeSchema = z.object({
 const dividerSchema = z.object({
   type: z.literal("divider"),
   label: z.string().optional(),
+  style: styleSchema.optional(),
+});
+
+const modalSchema = z.object({
+  type: z.literal("modal"),
+  trigger: z.lazy(() => a2uiSchema),
+  content: z.lazy(() => a2uiSchema),
+  open: z.boolean().optional(),
   style: styleSchema.optional(),
 });
 
@@ -160,6 +170,7 @@ type ParagraphComponent = z.infer<typeof paragraphSchema>;
 type CalloutComponent = z.infer<typeof calloutSchema>;
 type BadgeComponent = z.infer<typeof badgeSchema>;
 type DividerComponent = z.infer<typeof dividerSchema>;
+export type ModalComponent = z.infer<typeof modalSchema>;
 type ListComponent = z.infer<typeof listSchema>;
 type TableComponent = z.infer<typeof tableSchema>;
 type StatComponent = z.infer<typeof statSchema>;
@@ -277,6 +288,7 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   calloutSchema,
   badgeSchema,
   dividerSchema,
+  modalSchema,
   listSchema,
   tableSchema,
   statSchema,
@@ -392,6 +404,14 @@ type TabsInputComponent = Omit<TabsComponent, "tabs"> & {
   tabs: { label: string; content: A2UIInput }[];
 };
 
+type ModalInputComponent = {
+  type: "modal";
+  trigger: A2UIInput;
+  content: A2UIInput;
+  open?: boolean;
+  style?: Style;
+};
+
 export type A2UIInput =
   | TextComponent
   | CardComponent
@@ -404,6 +424,7 @@ export type A2UIInput =
   | CalloutComponent
   | BadgeComponent
   | DividerComponent
+  | ModalInputComponent
   | ListComponent
   | TableComponent
   | StatComponent
@@ -442,6 +463,11 @@ const tabsInputSchema = tabsSchema.extend({
     .min(1),
 }) satisfies z.ZodType<TabsInputComponent>;
 
+const modalInputSchema = modalSchema.extend({
+  trigger: z.lazy(() => a2uiInputSchema),
+  content: z.lazy(() => a2uiInputSchema),
+}) satisfies z.ZodType<ModalInputComponent>;
+
 export const a2uiInputSchema = z.preprocess(
   normalizeA2UI,
   z.discriminatedUnion("type", [
@@ -456,6 +482,7 @@ export const a2uiInputSchema = z.preprocess(
     calloutSchema,
     badgeSchema,
     dividerSchema,
+    modalInputSchema,
     listSchema,
     tableSchema,
     statSchema,
