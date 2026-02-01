@@ -1,6 +1,7 @@
 import React from "react";
 import type { A2UIInput } from "@/lib/protocol/schema";
 import { Text, Image, Icon, Video, AudioPlayer } from "./content";
+import { Button, CheckBox, TextField, DateTimeInput, ChoicePicker, Slider } from "./input";
 
 export const A2UI_TYPES = [
   "text",
@@ -31,6 +32,13 @@ export const A2UI_TYPES = [
   "Icon",
   "Video",
   "AudioPlayer",
+  // v0.9 Input additions
+  "Button",
+  "CheckBox",
+  "TextField",
+  "DateTimeInput",
+  "ChoicePicker",
+  "Slider",
 ] as const;
 
 export type A2UIType = (typeof A2UI_TYPES)[number];
@@ -74,12 +82,22 @@ A2UI_TYPES.forEach((type) => {
 });
 
 // Register implemented components
-// v0.9
+// v0.9 Content
 registerComponent("Text", Text);
 registerComponent("Image", Image);
 registerComponent("Icon", Icon);
 registerComponent("Video", Video);
 registerComponent("AudioPlayer", AudioPlayer);
+
+// v0.9 Input
+// Cast to ComponentRenderer because input components use types from catalog/components
+// which are not yet in A2UIInput union in schema.ts
+registerComponent("Button", Button as unknown as ComponentRenderer);
+registerComponent("CheckBox", CheckBox as unknown as ComponentRenderer);
+registerComponent("TextField", TextField as unknown as ComponentRenderer);
+registerComponent("DateTimeInput", DateTimeInput as unknown as ComponentRenderer);
+registerComponent("ChoicePicker", ChoicePicker as unknown as ComponentRenderer);
+registerComponent("Slider", Slider as unknown as ComponentRenderer);
 
 // v0.8 / Legacy fallbacks
 registerComponent("text", Text);
