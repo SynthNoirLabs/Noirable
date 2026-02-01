@@ -52,6 +52,8 @@ next-env.d.ts
 .claude/
 .cursor/
 .aider*
+.opencode/
+.sisyphus/
 
 # Playwright
 /test-results/

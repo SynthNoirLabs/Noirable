@@ -294,7 +294,7 @@ export function getModelInfo(modelId: string): ModelInfo | undefined {
 
 export function getModelsWithCapability(
   capability: keyof ModelCapabilities,
-  value: boolean | string = true,
+  value: boolean | string = true
 ): ModelInfo[] {
   return Object.values(MODEL_REGISTRY).filter((model) => {
     const cap = model.capabilities[capability];
@@ -319,17 +319,11 @@ export function canGenerateImages(modelId: string): boolean {
   return model?.capabilities.imageGen ?? false;
 }
 
-export function getImageGenMethod(
-  modelId: string,
-): "generateImage" | "generateText" | undefined {
+export function getImageGenMethod(modelId: string): "generateImage" | "generateText" | undefined {
   const model = getModelInfo(modelId);
   return model?.capabilities.imageGenMethod;
 }
 
-export function getModelsByProvider(
-  provider: "openai" | "anthropic" | "google",
-): ModelInfo[] {
-  return Object.values(MODEL_REGISTRY).filter(
-    (model) => model.provider === provider,
-  );
+export function getModelsByProvider(provider: "openai" | "anthropic" | "google"): ModelInfo[] {
+  return Object.values(MODEL_REGISTRY).filter((model) => model.provider === provider);
 }

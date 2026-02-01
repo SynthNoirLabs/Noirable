@@ -3,11 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 import { saveImageBase64 } from "@/lib/ai/imageStore";
-import {
-  getImageGenerationModels,
-  getModelInfo,
-  type ModelInfo,
-} from "@/lib/ai/model-registry";
+import { getImageGenerationModels, getModelInfo, type ModelInfo } from "@/lib/ai/model-registry";
 
 const NOIR_STYLE_PROMPT =
   "noir cinematic, rain-slicked streets, moody low-key lighting, high contrast, film grain, 35mm photography, neon glow, deep shadows, light fog, desaturated palette";
@@ -17,8 +13,7 @@ function selectImageModel(): {
   provider: "google" | "openai";
 } | null {
   const explicitModel = process.env.AI_IMAGE_MODEL;
-  const googleKey =
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const gatewayKey = process.env.AI_GATEWAY_API_KEY;
 
@@ -88,8 +83,7 @@ async function generateImageDataUrl(prompt: string) {
     let result;
 
     if (provider === "google" && method === "generateText") {
-      const googleKey =
-        process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+      const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
       const google = createGoogleGenerativeAI({ apiKey: googleKey! });
       result = await generateText({
         model: google(model.id),
@@ -138,9 +132,7 @@ async function persistDataUrl(dataUrl: string) {
   return saved?.url ?? null;
 }
 
-export async function resolveA2UIImagePrompts(
-  input: A2UIInput,
-): Promise<A2UIComponent> {
+export async function resolveA2UIImagePrompts(input: A2UIInput): Promise<A2UIComponent> {
   if (!input || typeof input !== "object") {
     return input as A2UIComponent;
   }
@@ -153,7 +145,7 @@ export async function resolveA2UIImagePrompts(
     case "column":
     case "grid": {
       const children = await Promise.all(
-        node.children.map((child) => resolveA2UIImagePrompts(child)),
+        node.children.map((child) => resolveA2UIImagePrompts(child))
       );
       return { ...node, children } as A2UIComponent;
     }
@@ -162,7 +154,7 @@ export async function resolveA2UIImagePrompts(
         node.tabs.map(async (tab) => ({
           ...tab,
           content: await resolveA2UIImagePrompts(tab.content),
-        })),
+        }))
       );
       return { ...node, tabs } as A2UIComponent;
     }

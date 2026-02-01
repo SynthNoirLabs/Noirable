@@ -7,11 +7,7 @@ const indexCodebaseSchema = z.object({
 
 const searchCodeSchema = z.object({
   query: z.string().describe("Natural language search query"),
-  limit: z
-    .number()
-    .optional()
-    .default(10)
-    .describe("Maximum number of results"),
+  limit: z.number().optional().default(10).describe("Maximum number of results"),
   language: z.string().optional().describe("Filter by programming language"),
 });
 
@@ -48,8 +44,7 @@ export const tools = [
         },
         language: {
           type: "string",
-          description:
-            "Filter by programming language (e.g., typescript, python)",
+          description: "Filter by programming language (e.g., typescript, python)",
         },
       },
       required: ["query"],
@@ -77,7 +72,7 @@ export const tools = [
 export async function handleToolCall(
   name: string,
   args: Record<string, unknown> | undefined,
-  indexer: CodeIndexer,
+  indexer: CodeIndexer
 ): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   switch (name) {
     case "index_codebase": {

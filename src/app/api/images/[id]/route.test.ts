@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { NextRequest } from "next/server";
 import { GET } from "./route";
 
 describe("/api/images/[id]", () => {
@@ -25,8 +26,9 @@ describe("/api/images/[id]", () => {
   });
 
   it("serves stored images", async () => {
-    const res = await GET(new Request("http://localhost/api/images/sample"), {
-      params: { id: fileName },
+    const req = new NextRequest("http://localhost/api/images/sample");
+    const res = await GET(req, {
+      params: Promise.resolve({ id: fileName }),
     });
 
     expect(res.status).toBe(200);
@@ -36,8 +38,9 @@ describe("/api/images/[id]", () => {
   });
 
   it("returns 404 for invalid ids", async () => {
-    const res = await GET(new Request("http://localhost/api/images/bad"), {
-      params: { id: "../secrets.txt" },
+    const req = new NextRequest("http://localhost/api/images/bad");
+    const res = await GET(req, {
+      params: Promise.resolve({ id: "../secrets.txt" }),
     });
 
     expect(res.status).toBe(404);

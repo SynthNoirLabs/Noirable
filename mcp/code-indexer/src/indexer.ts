@@ -71,18 +71,12 @@ export class CodeIndexer {
       let apiKey = process.env.OPENAI_API_KEY;
 
       if (!apiKey) {
-        const authPath = path.join(
-          os.homedir(),
-          ".local/share/opencode/auth.json",
-        );
+        const authPath = path.join(os.homedir(), ".local/share/opencode/auth.json");
         if (fssync.existsSync(authPath)) {
           try {
             const config = JSON.parse(fssync.readFileSync(authPath, "utf-8"));
             if (config.openai) {
-              apiKey =
-                typeof config.openai === "string"
-                  ? config.openai
-                  : config.openai.access;
+              apiKey = typeof config.openai === "string" ? config.openai : config.openai.access;
             }
           } catch {}
         }
@@ -98,7 +92,7 @@ export class CodeIndexer {
   }
 
   async indexCodebase(
-    basePath: string,
+    basePath: string
   ): Promise<{ success: boolean; message: string; chunkCount: number }> {
     const resolvedPath = path.resolve(basePath);
     const dbPath = path.join(resolvedPath, ".code-index");
@@ -153,7 +147,7 @@ export class CodeIndexer {
 
   async search(
     query: string,
-    options: { limit?: number; language?: string } = {},
+    options: { limit?: number; language?: string } = {}
   ): Promise<{
     results: Array<{
       filePath: string;
@@ -214,9 +208,7 @@ export class CodeIndexer {
   }
 
   private async discoverFiles(basePath: string): Promise<string[]> {
-    const patterns = Object.keys(SUPPORTED_EXTENSIONS).map(
-      (ext) => `**/*${ext}`,
-    );
+    const patterns = Object.keys(SUPPORTED_EXTENSIONS).map((ext) => `**/*${ext}`);
 
     const files = await glob(patterns, {
       cwd: basePath,
@@ -227,10 +219,7 @@ export class CodeIndexer {
     return files;
   }
 
-  private async chunkFiles(
-    files: string[],
-    basePath: string,
-  ): Promise<CodeChunk[]> {
+  private async chunkFiles(files: string[], basePath: string): Promise<CodeChunk[]> {
     const chunks: CodeChunk[] = [];
 
     for (const file of files) {

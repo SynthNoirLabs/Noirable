@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  exportA2UI,
-  exportA2UIAsJSON,
-  exportA2UIMultiFile,
-} from "./exportA2UI";
+import { exportA2UI, exportA2UIAsJSON, exportA2UIMultiFile } from "./exportA2UI";
 import type { A2UIInput } from "@/lib/protocol/schema";
 
 describe("exportA2UI", () => {
@@ -28,7 +24,7 @@ describe("exportA2UI", () => {
     expect(output).toMatch(/function EvidenceComponent/);
     expect(output).toMatch(/Case Intake/);
     expect(output).toMatch(/<input/);
-    expect(output).toMatch(/placeholder="Jane Doe"/);
+    expect(output).toMatch(/placeholder=\{"Jane Doe"\}/);
     expect(output).toMatch(/<button/);
     expect(output).toMatch(/Submit/);
   });
@@ -162,8 +158,8 @@ describe("exportA2UI", () => {
 
     const output = exportA2UI(data);
     expect(output).toContain("<img");
-    expect(output).toContain('src="/evidence/photo-001.jpg"');
-    expect(output).toContain('alt="Crime scene photograph"');
+    expect(output).toContain('src={"/evidence/photo-001.jpg"}');
+    expect(output).toContain('alt={"Crime scene photograph"}');
   });
 
   it("exports form elements", () => {
@@ -261,14 +257,10 @@ describe("exportA2UIMultiFile", () => {
     // Index file
     const indexFile = files.find((f) => f.path === "Dashboard/index.ts");
     expect(indexFile).toBeDefined();
-    expect(indexFile?.content).toContain(
-      'export { Dashboard } from "./Dashboard"',
-    );
+    expect(indexFile?.content).toContain('export { Dashboard } from "./Dashboard"');
 
     // Data file
-    const dataFile = files.find(
-      (f) => f.path === "Dashboard/Dashboard.data.ts",
-    );
+    const dataFile = files.find((f) => f.path === "Dashboard/Dashboard.data.ts");
     expect(dataFile).toBeDefined();
     expect(dataFile?.content).toContain("dashboardData");
     expect(dataFile?.content).toContain('"type": "container"');

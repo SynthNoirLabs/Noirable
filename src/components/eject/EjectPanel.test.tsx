@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { EjectPanel } from "./EjectPanel";
 import type { A2UIInput } from "@/lib/protocol/schema";
 
@@ -29,17 +29,13 @@ describe("EjectPanel", () => {
     render(<EjectPanel evidence={null} />);
 
     expect(screen.getByText("NO EVIDENCE LOADED")).toBeInTheDocument();
-    expect(
-      screen.getByText("Generate UI via chat to enable code export"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Generate UI via chat to enable code export")).toBeInTheDocument();
   });
 
   it("renders React code tab by default", () => {
     render(<EjectPanel evidence={mockEvidence} />);
 
-    expect(screen.getByRole("button", { name: /react/i })).toHaveClass(
-      "text-noir-amber",
-    );
+    expect(screen.getByRole("button", { name: /react/i })).toHaveClass("text-noir-amber");
     expect(screen.getByText(/function EvidenceComponent/)).toBeInTheDocument();
   });
 
@@ -56,9 +52,7 @@ describe("EjectPanel", () => {
   it("shows copy button", () => {
     render(<EjectPanel evidence={mockEvidence} />);
 
-    expect(
-      screen.getByRole("button", { name: /copy to clipboard/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copy to clipboard/i })).toBeInTheDocument();
   });
 
   it("copies code to clipboard on copy button click", async () => {
@@ -67,11 +61,15 @@ describe("EjectPanel", () => {
     const copyButton = screen.getByRole("button", {
       name: /copy to clipboard/i,
     });
-    fireEvent.click(copyButton);
+    await act(async () => {
+      fireEvent.click(copyButton);
+    });
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining("function EvidenceComponent"),
-    );
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining("function EvidenceComponent")
+      );
+    });
   });
 
   it("shows copied state after copying", async () => {

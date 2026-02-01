@@ -20,11 +20,7 @@ interface FormProviderProps {
   onSubmit?: (values: FormValues) => void;
 }
 
-export function FormProvider({
-  children,
-  initialValues = {},
-  onSubmit,
-}: FormProviderProps) {
+export function FormProvider({ children, initialValues = {}, onSubmit }: FormProviderProps) {
   const [values, setValues] = useState<FormValues>(initialValues);
 
   const setValue = useCallback((name: string, value: string | boolean) => {
@@ -38,9 +34,7 @@ export function FormProvider({
   }, [initialValues]);
 
   return (
-    <FormContext.Provider
-      value={{ values, setValue, getValues, reset, onSubmit }}
-    >
+    <FormContext.Provider value={{ values, setValue, getValues, reset, onSubmit }}>
       {children}
     </FormContext.Provider>
   );

@@ -2,11 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Check, Server, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  ModelConfig,
-  AIProviderType,
-  AVAILABLE_MODELS,
-} from "@/lib/store/useA2UIStore";
+import { ModelConfig, AIProviderType, AVAILABLE_MODELS } from "@/lib/store/useA2UIStore";
 
 interface ModelSelectorProps {
   modelConfig: ModelConfig;
@@ -21,21 +17,13 @@ const PROVIDERS: { id: AIProviderType; label: string }[] = [
   { id: "openai-compatible", label: "Custom (OpenAI Compatible)" },
 ];
 
-export function ModelSelector({
-  modelConfig,
-  onConfigChange,
-}: ModelSelectorProps) {
-  const [activeDropdown, setActiveDropdown] = useState<
-    "provider" | "model" | null
-  >(null);
+export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProps) {
+  const [activeDropdown, setActiveDropdown] = useState<"provider" | "model" | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setActiveDropdown(null);
       }
     }
@@ -69,13 +57,10 @@ export function ModelSelector({
   const isCustomProvider = modelConfig.provider === "openai-compatible";
   const isAutoProvider = modelConfig.provider === "auto";
   const currentProviderLabel =
-    PROVIDERS.find((p) => p.id === modelConfig.provider)?.label ||
-    modelConfig.provider;
+    PROVIDERS.find((p) => p.id === modelConfig.provider)?.label || modelConfig.provider;
 
   const availableModels =
-    !isCustomProvider && !isAutoProvider
-      ? AVAILABLE_MODELS[modelConfig.provider] || []
-      : [];
+    !isCustomProvider && !isAutoProvider ? AVAILABLE_MODELS[modelConfig.provider] || [] : [];
 
   return (
     <div className="space-y-4 py-2" ref={containerRef}>
@@ -95,24 +80,20 @@ export function ModelSelector({
 
         <div className="relative">
           <button
-            onClick={() =>
-              setActiveDropdown(
-                activeDropdown === "provider" ? null : "provider",
-              )
-            }
+            onClick={() => setActiveDropdown(activeDropdown === "provider" ? null : "provider")}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
               "bg-noir-dark/50 border rounded-sm outline-none focus:ring-1 focus:ring-noir-amber/30",
               activeDropdown === "provider"
                 ? "border-noir-amber text-noir-amber bg-noir-amber/5"
-                : "border-noir-gray/30 text-noir-paper hover:border-noir-gray/60 hover:bg-noir-paper/5",
+                : "border-noir-gray/30 text-noir-paper hover:border-noir-gray/60 hover:bg-noir-paper/5"
             )}
           >
             <span className="truncate">{currentProviderLabel}</span>
             <ChevronDown
               className={cn(
                 "w-3 h-3 transition-transform duration-200 opacity-70",
-                activeDropdown === "provider" && "rotate-180 text-noir-amber",
+                activeDropdown === "provider" && "rotate-180 text-noir-amber"
               )}
             />
           </button>
@@ -135,7 +116,7 @@ export function ModelSelector({
                         "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
                         modelConfig.provider === provider.id
                           ? "bg-noir-amber/10 text-noir-amber border-l-2 border-l-noir-amber pl-[10px]"
-                          : "text-noir-paper/80 hover:bg-noir-paper/5 hover:text-noir-paper border-l-2 border-l-transparent",
+                          : "text-noir-paper/80 hover:bg-noir-paper/5 hover:text-noir-paper border-l-2 border-l-transparent"
                       )}
                     >
                       <span>{provider.label}</span>
@@ -179,24 +160,20 @@ export function ModelSelector({
         ) : (
           <div className="relative">
             <button
-              onClick={() =>
-                setActiveDropdown(activeDropdown === "model" ? null : "model")
-              }
+              onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
                 "bg-noir-dark/50 border rounded-sm outline-none focus:ring-1 focus:ring-noir-amber/30",
                 activeDropdown === "model"
                   ? "border-noir-amber text-noir-amber bg-noir-amber/5"
-                  : "border-noir-gray/30 text-noir-paper hover:border-noir-gray/60 hover:bg-noir-paper/5",
+                  : "border-noir-gray/30 text-noir-paper hover:border-noir-gray/60 hover:bg-noir-paper/5"
               )}
             >
-              <span className="truncate">
-                {modelConfig.model || "Select Model..."}
-              </span>
+              <span className="truncate">{modelConfig.model || "Select Model..."}</span>
               <ChevronDown
                 className={cn(
                   "w-3 h-3 transition-transform duration-200 opacity-70",
-                  activeDropdown === "model" && "rotate-180 text-noir-amber",
+                  activeDropdown === "model" && "rotate-180 text-noir-amber"
                 )}
               />
             </button>
@@ -220,7 +197,7 @@ export function ModelSelector({
                             "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
                             modelConfig.model === model
                               ? "bg-noir-amber/10 text-noir-amber border-l-2 border-l-noir-amber pl-[10px]"
-                              : "text-noir-paper/80 hover:bg-noir-paper/5 hover:text-noir-paper border-l-2 border-l-transparent",
+                              : "text-noir-paper/80 hover:bg-noir-paper/5 hover:text-noir-paper border-l-2 border-l-transparent"
                           )}
                         >
                           <span className="truncate">{model}</span>

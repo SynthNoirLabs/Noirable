@@ -11,10 +11,121 @@
   --color-noir-ink: #111111;
   --color-noir-amber: #ffbf00;
   --color-noir-red: #8a0000;
+
+  /* Extended Palette */
+  --color-noir-sepia: #704214;
+  --color-noir-smoke: #1c1c1e;
+  --color-noir-shadow: #0a0a0a;
+  --color-noir-brass: #b5a642;
+  --color-noir-whiskey: #d4915d;
 }
 
 body {
   @apply bg-noir-dark text-noir-paper font-sans;
+}
+
+/* --- ATMOSPHERIC EFFECTS --- */
+
+/* Film Grain Overlay */
+.film-grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 9998;
+  mix-blend-mode: overlay;
+}
+
+/* Dramatic Vignette */
+.vignette::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.2) 80%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* CRT Scanlines */
+.crt-scanlines {
+  position: relative;
+}
+
+.crt-scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(0, 0, 0, 0.1) 1px,
+    rgba(0, 0, 0, 0.1) 2px
+  );
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.5;
+}
+
+/* CRT Phosphor Glow */
+.crt-glow {
+  text-shadow:
+    0 0 2px rgba(255, 191, 0, 0.3),
+    0 0 4px rgba(255, 191, 0, 0.1);
+  animation: crt-flicker 0.15s infinite alternate;
+}
+
+@keyframes crt-flicker {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.95;
+  }
+}
+
+/* Fog Animation */
+@keyframes fog-drift {
+  0%,
+  100% {
+    transform: translateX(-2%) translateY(0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateX(2%) translateY(-1%);
+    opacity: 0.5;
+  }
+}
+
+/* Rain Animation */
+@keyframes rain-fall {
+  0% {
+    transform: translateY(-100px);
+  }
+  100% {
+    transform: translateY(calc(100vh + 100px));
+  }
+}
+
+/* Vinyl Crackle Flicker */
+@keyframes crackle-flicker {
+  0% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.5;
+  }
 }
 
 /* Venetian Blinds Effect */

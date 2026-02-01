@@ -4,34 +4,27 @@ import { DeskLayout } from "./DeskLayout";
 
 describe("DeskLayout", () => {
   it("renders editor and preview slots", () => {
-    render(
-      <DeskLayout
-        editor={<div>Editor Content</div>}
-        preview={<div>Preview Content</div>}
-      />,
-    );
+    render(<DeskLayout editor={<div>Editor Content</div>} preview={<div>Preview Content</div>} />);
     expect(screen.getByText("Editor Content")).toBeInTheDocument();
     expect(screen.getByText("Preview Content")).toBeInTheDocument();
   });
 
   it("has split pane structure", () => {
-    const { container } = render(
-      <DeskLayout editor={<div />} preview={<div />} />,
-    );
+    const { container } = render(<DeskLayout editor={<div />} preview={<div />} />);
     // Check for grid or flex
     const layout = container.firstChild;
     expect(layout).toHaveClass("grid");
     expect(layout).toHaveClass("grid-cols-[var(--editor-w)_1fr]");
   });
 
-  it("uses widened sidebar width when present", () => {
+  it("uses fixed sidebar with margin when present", () => {
     const { container } = render(
-      <DeskLayout editor={<div />} preview={<div />} sidebar={<div />} />,
+      <DeskLayout editor={<div />} preview={<div />} sidebar={<div />} sidebarWidth={360} />
     );
-    const layout = container.firstChild;
-    expect(layout).toHaveClass(
-      "grid-cols-[var(--editor-w)_1fr_var(--sidebar-w)]",
-    );
+    const layout = container.firstChild as HTMLElement;
+    // Sidebar is now fixed position, grid stays 2-column but reserves space with margin
+    expect(layout).toHaveClass("grid-cols-[var(--editor-w)_1fr]");
+    expect(layout).toHaveStyle("margin-right: 360px");
   });
 
   it("applies CSS variables for resizable widths", () => {
@@ -42,7 +35,7 @@ describe("DeskLayout", () => {
         sidebar={<div />}
         editorWidth={280}
         sidebarWidth={360}
-      />,
+      />
     );
     const layout = container.firstChild as HTMLElement;
     expect(layout).toHaveStyle("--editor-w: 280px");
@@ -56,12 +49,10 @@ describe("DeskLayout", () => {
         preview={<div>Preview Content</div>}
         showEditor={false}
         onToggleEditor={vi.fn()}
-      />,
+      />
     );
     expect(screen.queryByText("Editor Content")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /show editor/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /show editor/i })).toBeInTheDocument();
   });
 
   it("renders noir background layers", () => {

@@ -15,5 +15,8 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: true,
     timeout: 120_000,
+    env: {
+      E2E: "1",
+    },
   },
 });

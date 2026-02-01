@@ -19,9 +19,7 @@ const EXT_TO_MEDIA_TYPE: Record<string, string> = {
 const FILENAME_PATTERN = /^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp)$/;
 
 export function getImageStoreDir() {
-  return (
-    process.env.A2UI_IMAGE_DIR ?? path.join(process.cwd(), ".data", "images")
-  );
+  return process.env.A2UI_IMAGE_DIR ?? path.join(process.cwd(), ".data", "images");
 }
 
 export function isValidImageFilename(fileName: string) {

@@ -20,10 +20,7 @@ function parseSseEvents(sseText: string): SseEvent[] {
     });
 }
 
-export function getToolOutputFromSse(
-  sseText: string,
-  toolName: string,
-): unknown | null {
+export function getToolOutputFromSse(sseText: string, toolName: string): unknown | null {
   const events = parseSseEvents(sseText);
   const toolCallIds = new Set(
     events
@@ -31,9 +28,9 @@ export function getToolOutputFromSse(
         (event) =>
           event.type === "tool-input-available" &&
           event.toolName === toolName &&
-          typeof event.toolCallId === "string",
+          typeof event.toolCallId === "string"
       )
-      .map((event) => event.toolCallId as string),
+      .map((event) => event.toolCallId as string)
   );
 
   for (const event of events) {

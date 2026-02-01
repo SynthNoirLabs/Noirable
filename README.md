@@ -3,7 +3,7 @@
 > A noir-themed AI evidence board where natural language becomes visual UI.
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-131%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-182%20passing-brightgreen)]()
 
 ## What is this?
 

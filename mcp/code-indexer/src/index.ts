@@ -22,7 +22,7 @@ const server = new Server(
       tools: {},
       resources: {},
     },
-  },
+  }
 );
 
 const indexer = new CodeIndexer();

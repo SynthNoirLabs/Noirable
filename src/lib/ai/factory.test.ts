@@ -46,7 +46,7 @@ describe("ProviderFactory", () => {
     vi.spyOn(fs, "readFileSync").mockReturnValue(
       JSON.stringify({
         openai: { access: "file-key-nested" },
-      }),
+      })
     );
 
     const result = getProvider();
@@ -59,7 +59,7 @@ describe("ProviderFactory", () => {
     vi.spyOn(fs, "readFileSync").mockReturnValue(
       JSON.stringify({
         openai: "file-key", // Root level key per new logic
-      }),
+      })
     );
 
     const result = getProvider();

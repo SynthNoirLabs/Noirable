@@ -57,11 +57,21 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 | **Loading States** | Skeleton UI during AI generation | Done |
 | **Error Recovery** | "Retry" button with last failed prompt context | Done |
 
+### Implemented (v1.2)
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Training Data Collection** | Auto-capture prompt/output pairs from generations | Done |
+| **Training Data Export** | Export to JSONL (OpenAI) or JSON (backup) | Done |
+| **Training Data Stats** | Category/complexity distribution, quality ratings | Done |
+| **Training Data Panel** | UI for viewing, rating, and managing examples | Done |
+
 ### Roadmap
 
 | Feature | Priority | Status |
 |---------|----------|--------|
-| AI Fine-Tuning | Medium | Proposed (see docs/proposals/ai-fine-tuning.md) |
+| AI Fine-Tuning Phase 2 | Medium | Data Quality Pipeline (see docs/proposals/ai-fine-tuning.md) |
+| AI Fine-Tuning Phase 3 | Medium | Model Training |
 | Collaborative editing | Low | Future |
 
 ---

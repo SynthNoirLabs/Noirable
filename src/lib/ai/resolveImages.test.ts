@@ -26,7 +26,7 @@ describe("resolveA2UIImagePrompts", () => {
 
   it("replaces data urls with api urls", async () => {
     const input = {
-      type: "image",
+      type: "image" as const,
       src: `data:image/png;base64,${BASE64_PNG}`,
       alt: "Evidence photo",
     };
@@ -34,10 +34,10 @@ describe("resolveA2UIImagePrompts", () => {
     const result = await resolveA2UIImagePrompts(input);
 
     expect(result.type).toBe("image");
-    expect(result.src).toMatch(/^\/api\/images\/.+\.png$/);
-    expect(result.src).not.toMatch(/^data:/);
+    expect((result as { src: string }).src).toMatch(/^\/api\/images\/.+\.png$/);
+    expect((result as { src: string }).src).not.toMatch(/^data:/);
 
-    const fileName = result.src.split("/").pop();
+    const fileName = (result as { src: string }).src.split("/").pop();
     expect(fileName).toBeTruthy();
     const filePath = path.join(tempDir, fileName ?? "");
     const stat = await fs.stat(filePath);

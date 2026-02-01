@@ -23,50 +23,75 @@ export interface KeyboardShortcutHandlers {
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
+      if (event.isComposing) {
+        return;
+      }
+
       const isMod = event.metaKey || event.ctrlKey;
+      // Guard against undefined event.key (can happen with some IME/dead key events)
+      if (!event.key) return;
+      const key = event.key.toLowerCase();
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tagName = target.tagName;
+        const isEditableTarget =
+          target.isContentEditable ||
+          tagName === "INPUT" ||
+          tagName === "TEXTAREA" ||
+          tagName === "SELECT" ||
+          Boolean(target.closest("[contenteditable='true']"));
+
+        if (isEditableTarget) {
+          if (isMod && key === "enter") {
+            event.preventDefault();
+            handlers.onSend?.();
+          }
+          return;
+        }
+      }
 
       // Cmd/Ctrl+Z - Undo
-      if (isMod && event.key === "z" && !event.shiftKey) {
+      if (isMod && key === "z" && !event.shiftKey) {
         event.preventDefault();
         handlers.onUndo?.();
         return;
       }
 
       // Cmd/Ctrl+Shift+Z - Redo
-      if (isMod && event.key === "z" && event.shiftKey) {
+      if (isMod && key === "z" && event.shiftKey) {
         event.preventDefault();
         handlers.onRedo?.();
         return;
       }
 
       // Cmd/Ctrl+Y - Redo (alternative)
-      if (isMod && event.key === "y") {
+      if (isMod && key === "y") {
         event.preventDefault();
         handlers.onRedo?.();
         return;
       }
 
       // Cmd/Ctrl+E - Toggle Eject
-      if (isMod && event.key === "e") {
+      if (isMod && key === "e") {
         event.preventDefault();
         handlers.onToggleEject?.();
         return;
       }
 
       // Cmd/Ctrl+Enter - Send message
-      if (isMod && event.key === "Enter") {
+      if (isMod && key === "enter") {
         event.preventDefault();
         handlers.onSend?.();
         return;
       }
 
       // Escape - Close panels
-      if (event.key === "Escape") {
+      if (key === "escape") {
         handlers.onEscape?.();
         return;
       }
     },
-    [handlers],
+    [handlers]
   );
 
   useEffect(() => {
@@ -80,8 +105,7 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
  */
 export function formatShortcut(keys: string[]): string {
   const isMac =
-    typeof navigator !== "undefined" &&
-    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
   return keys
     .map((key) => {

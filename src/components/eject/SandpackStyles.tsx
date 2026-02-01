@@ -5,12 +5,7 @@ import { useServerInsertedHTML } from "next/navigation";
 
 export function SandpackStyles() {
   useServerInsertedHTML(() => {
-    return (
-      <style
-        dangerouslySetInnerHTML={{ __html: getSandpackCssText() }}
-        id="sandpack"
-      />
-    );
+    return <style dangerouslySetInnerHTML={{ __html: getSandpackCssText() }} id="sandpack" />;
   });
   return null;
 }

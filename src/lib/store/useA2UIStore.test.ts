@@ -15,6 +15,14 @@ describe("useA2UIStore", () => {
         typewriterSpeed: 30,
         soundEnabled: true,
         modelConfig: { provider: "auto", model: "" },
+        ambient: {
+          rainEnabled: true,
+          rainVolume: 1,
+          fogEnabled: true,
+          intensity: "medium",
+          crackleEnabled: false,
+          crackleVolume: 0.35,
+        },
       },
       layout: {
         showEditor: true,
@@ -126,6 +134,28 @@ describe("useA2UIStore", () => {
       const settings = useA2UIStore.getState().settings;
       expect(settings.typewriterSpeed).toBe(50);
       expect(settings.soundEnabled).toBe(true); // unchanged
+      expect(settings.ambient.rainEnabled).toBe(true); // unchanged
+    });
+
+    it("updates ambient settings partially", () => {
+      useA2UIStore.getState().updateSettings({
+        ambient: { crackleVolume: 0.8 },
+      });
+
+      const settings = useA2UIStore.getState().settings;
+      expect(settings.ambient.crackleVolume).toBe(0.8);
+      expect(settings.ambient.rainEnabled).toBe(true); // unchanged
+      expect(settings.ambient.rainVolume).toBe(1); // unchanged
+      expect(settings.ambient.fogEnabled).toBe(true); // unchanged
+    });
+
+    it("updates rain volume", () => {
+      useA2UIStore.getState().updateSettings({
+        ambient: { rainVolume: 0.42 },
+      });
+
+      const settings = useA2UIStore.getState().settings;
+      expect(settings.ambient.rainVolume).toBe(0.42);
     });
 
     it("updates model config", () => {

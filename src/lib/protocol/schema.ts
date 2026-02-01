@@ -25,9 +25,7 @@ export const cardComponentSchema = z.object({
   type: z.literal("card"),
   title: z.string(),
   description: z.string().optional(),
-  status: z
-    .enum(["active", "archived", "missing", "redacted"])
-    .default("active"),
+  status: z.enum(["active", "archived", "missing", "redacted"]).default("active"),
 });
 
 const headingSchema = z.object({
@@ -260,7 +258,7 @@ const tabsSchema = z.object({
       z.object({
         label: z.string(),
         content: z.lazy(() => a2uiSchema),
-      }),
+      })
     )
     .min(1),
   activeIndex: z.number().int().min(0).optional(),
@@ -439,7 +437,7 @@ const tabsInputSchema = tabsSchema.extend({
       z.object({
         label: z.string(),
         content: z.lazy(() => a2uiInputSchema),
-      }),
+      })
     )
     .min(1),
 }) satisfies z.ZodType<TabsInputComponent>;
@@ -468,5 +466,5 @@ export const a2uiInputSchema = z.preprocess(
     selectSchema,
     checkboxSchema,
     buttonSchema,
-  ]),
+  ])
 ) as z.ZodType<A2UIInput>;

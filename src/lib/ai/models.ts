@@ -1,9 +1,4 @@
-export type AIProviderType =
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "openai-compatible"
-  | "auto";
+export type AIProviderType = "openai" | "anthropic" | "google" | "openai-compatible" | "auto";
 
 export interface ModelCapabilities {
   chat: boolean;
@@ -191,9 +186,7 @@ export const MODELS: ModelDefinition[] = [
   },
 ];
 
-export function getModelsByProvider(
-  provider: AIProviderType,
-): ModelDefinition[] {
+export function getModelsByProvider(provider: AIProviderType): ModelDefinition[] {
   if (provider === "auto" || provider === "openai-compatible") return [];
   return MODELS.filter((m) => m.provider === provider);
 }

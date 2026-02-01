@@ -84,8 +84,8 @@ function styleToClasses(style?: StyleProps): string {
   ]);
 }
 
-function escapeJsx(str: string): string {
-  return str.replace(/"/g, '\\"').replace(/\n/g, "\\n");
+function jsxString(value: string): string {
+  return JSON.stringify(value);
 }
 
 function renderNode(node: A2UIInput, depth: number = 0): string {
@@ -95,72 +95,49 @@ function renderNode(node: A2UIInput, depth: number = 0): string {
   switch (node.type) {
     case "text": {
       const priorityClass = priorityClasses[node.priority] || "";
-      const baseClass =
-        "px-4 py-2 bg-zinc-900/35 border border-zinc-700/40 rounded-sm shadow-lg";
-      return `${ind}<p className="${buildClassList([baseClass, priorityClass])}">${escapeJsx(node.content)}</p>`;
+      const baseClass = "px-4 py-2 bg-zinc-900/35 border border-zinc-700/40 rounded-sm shadow-lg";
+      return `${ind}<p className={${jsxString(
+        buildClassList([baseClass, priorityClass])
+      )}}>{${jsxString(node.content)}}</p>`;
     }
 
     case "card": {
       const statusClass = statusClasses[node.status] || "";
-      const baseClass =
-        "border bg-zinc-900/50 p-4 rounded-sm shadow-lg max-w-md";
-      return `${ind}<div className="${buildClassList([baseClass, statusClass])}">
-${indChild}<h3 className="font-bold text-lg text-zinc-100 mb-2">${escapeJsx(node.title)}</h3>
-${node.description ? `${indChild}<p className="text-zinc-400 text-sm">${escapeJsx(node.description)}</p>\n` : ""}${ind}</div>`;
+      const baseClass = "border bg-zinc-900/50 p-4 rounded-sm shadow-lg max-w-md";
+      return `${ind}<div className={${jsxString(buildClassList([baseClass, statusClass]))}}>
+${indChild}<h3 className="font-bold text-lg text-zinc-100 mb-2">{${jsxString(node.title)}}</h3>
+${node.description ? `${indChild}<p className="text-zinc-400 text-sm">{${jsxString(node.description)}}</p>\n` : ""}${ind}</div>`;
     }
 
     case "container": {
-      const classes = buildClassList([
-        "flex flex-col",
-        styleToClasses(node.style),
-      ]);
-      const children = node.children
-        .map((child) => renderNode(child, depth + 1))
-        .join("\n");
-      return `${ind}<div className="${classes}">
+      const classes = buildClassList(["flex flex-col", styleToClasses(node.style)]);
+      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
     }
 
     case "row": {
-      const classes = buildClassList([
-        "flex flex-row flex-wrap",
-        styleToClasses(node.style),
-      ]);
-      const children = node.children
-        .map((child) => renderNode(child, depth + 1))
-        .join("\n");
-      return `${ind}<div className="${classes}">
+      const classes = buildClassList(["flex flex-row flex-wrap", styleToClasses(node.style)]);
+      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
     }
 
     case "column": {
-      const classes = buildClassList([
-        "flex flex-col",
-        styleToClasses(node.style),
-      ]);
-      const children = node.children
-        .map((child) => renderNode(child, depth + 1))
-        .join("\n");
-      return `${ind}<div className="${classes}">
+      const classes = buildClassList(["flex flex-col", styleToClasses(node.style)]);
+      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
     }
 
     case "grid": {
-      const colClass = node.columns
-        ? gridColsClasses[node.columns]
-        : "grid-cols-2";
-      const classes = buildClassList([
-        "grid",
-        colClass,
-        styleToClasses(node.style),
-      ]);
-      const children = node.children
-        .map((child) => renderNode(child, depth + 1))
-        .join("\n");
-      return `${ind}<div className="${classes}">
+      const colClass = node.columns ? gridColsClasses[node.columns] : "grid-cols-2";
+      const classes = buildClassList(["grid", colClass, styleToClasses(node.style)]);
+      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
     }
@@ -168,19 +145,11 @@ ${ind}</div>`;
     case "heading": {
       const level = node.level ?? 2;
       const sizeClass =
-        level === 1
-          ? "text-3xl"
-          : level === 2
-            ? "text-2xl"
-            : level === 3
-              ? "text-xl"
-              : "text-lg";
-      const classes = buildClassList([
-        "font-bold text-zinc-100",
-        sizeClass,
-        node.style?.className,
-      ]);
-      return `${ind}<h${level} className="${classes}">${escapeJsx(node.text)}</h${level}>`;
+        level === 1 ? "text-3xl" : level === 2 ? "text-2xl" : level === 3 ? "text-xl" : "text-lg";
+      const classes = buildClassList(["font-bold text-zinc-100", sizeClass, node.style?.className]);
+      return `${ind}<h${level} className={${jsxString(classes)}}>{${jsxString(
+        node.text
+      )}}</h${level}>`;
     }
 
     case "paragraph": {
@@ -188,7 +157,7 @@ ${ind}</div>`;
         "text-sm leading-relaxed text-zinc-400",
         node.style?.className,
       ]);
-      return `${ind}<p className="${classes}">${escapeJsx(node.text)}</p>`;
+      return `${ind}<p className={${jsxString(classes)}}>{${jsxString(node.text)}}</p>`;
     }
 
     case "callout": {
@@ -201,21 +170,19 @@ ${ind}</div>`;
         node.style?.width ? widthClasses[node.style.width] : null,
         node.style?.className,
       ]);
-      return `${ind}<div className="${classes}">
-${indChild}<p className="text-sm">${escapeJsx(node.content)}</p>
+      return `${ind}<div className={${jsxString(classes)}}>
+${indChild}<p className="text-sm">{${jsxString(node.content)}}</p>
 ${ind}</div>`;
     }
 
     case "badge": {
-      const variantClass = node.variant
-        ? variantClasses[node.variant]
-        : "border-zinc-700/40";
+      const variantClass = node.variant ? variantClasses[node.variant] : "border-zinc-700/40";
       const classes = buildClassList([
         "inline-flex items-center gap-2 px-2 py-1 text-xs uppercase tracking-widest border rounded-sm",
         variantClass,
         node.style?.className,
       ]);
-      return `${ind}<span className="${classes}">${escapeJsx(node.label)}</span>`;
+      return `${ind}<span className={${jsxString(classes)}}>{${jsxString(node.label)}}</span>`;
     }
 
     case "divider": {
@@ -224,9 +191,9 @@ ${ind}</div>`;
         node.style?.className,
       ]);
       if (node.label) {
-        return `${ind}<div className="${classes}">
+        return `${ind}<div className={${jsxString(classes)}}>
 ${indChild}<span className="flex-1 border-t border-zinc-700/40" />
-${indChild}<span>${escapeJsx(node.label)}</span>
+${indChild}<span>{${jsxString(node.label)}}</span>
 ${indChild}<span className="flex-1 border-t border-zinc-700/40" />
 ${ind}</div>`;
       }
@@ -242,11 +209,9 @@ ${ind}</div>`;
         node.style?.className,
       ]);
       const items = node.items
-        .map(
-          (item) => `${indChild}<li className="mb-1">${escapeJsx(item)}</li>`,
-        )
+        .map((item) => `${indChild}<li className="mb-1">{${jsxString(item)}}</li>`)
         .join("\n");
-      return `${ind}<${Tag} className="${classes}">
+      return `${ind}<${Tag} className={${jsxString(classes)}}>
 ${items}
 ${ind}</${Tag}>`;
     }
@@ -260,7 +225,9 @@ ${ind}</${Tag}>`;
       const headers = node.columns
         .map(
           (col) =>
-            `${indChild}      <th className="text-left border-b border-zinc-700/40 pb-2 pr-3 uppercase tracking-widest text-zinc-500">${escapeJsx(col)}</th>`,
+            `${indChild}      <th className="text-left border-b border-zinc-700/40 pb-2 pr-3 uppercase tracking-widest text-zinc-500">{${jsxString(
+              col
+            )}}</th>`
         )
         .join("\n");
       const rows = node.rows
@@ -268,7 +235,9 @@ ${ind}</${Tag}>`;
           const cells = row
             .map(
               (cell) =>
-                `${indChild}        <td className="py-2 pr-3 text-zinc-300">${escapeJsx(cell)}</td>`,
+                `${indChild}        <td className="py-2 pr-3 text-zinc-300">{${jsxString(
+                  cell
+                )}}</td>`
             )
             .join("\n");
           return `${indChild}      <tr className="border-b border-zinc-700/20">
@@ -276,7 +245,7 @@ ${cells}
 ${indChild}      </tr>`;
         })
         .join("\n");
-      return `${ind}<div className="${classes}">
+      return `${ind}<div className={${jsxString(classes)}}>
 ${indChild}<table className="w-full border-collapse text-xs">
 ${indChild}  <thead>
 ${indChild}    <tr>
@@ -295,10 +264,12 @@ ${ind}</div>`;
         "border border-zinc-700/40 bg-zinc-900/35 px-4 py-3 rounded-sm shadow-lg",
         node.style?.className,
       ]);
-      return `${ind}<div className="${classes}">
-${indChild}<div className="text-xs uppercase tracking-widest text-zinc-500">${escapeJsx(node.label)}</div>
-${indChild}<div className="text-2xl text-zinc-100 font-bold mt-2">${escapeJsx(node.value)}</div>
-${node.helper ? `${indChild}<div className="text-xs text-zinc-500 mt-1">${escapeJsx(node.helper)}</div>\n` : ""}${ind}</div>`;
+      return `${ind}<div className={${jsxString(classes)}}>
+${indChild}<div className="text-xs uppercase tracking-widest text-zinc-500">{${jsxString(
+        node.label
+      )}}</div>
+${indChild}<div className="text-2xl text-zinc-100 font-bold mt-2">{${jsxString(node.value)}}</div>
+${node.helper ? `${indChild}<div className="text-xs text-zinc-500 mt-1">{${jsxString(node.helper)}}</div>\n` : ""}${ind}</div>`;
     }
 
     case "tabs": {
@@ -315,8 +286,8 @@ ${indChild}      type="button"
 ${indChild}      onClick={() => setActiveTab(${i})}
 ${indChild}      className={\`px-3 py-2 text-xs uppercase tracking-widest border-b-2 transition-colors \${activeTab === ${i} ? "text-amber-500 border-amber-500" : "text-zinc-400 border-transparent hover:text-zinc-100"}\`}
 ${indChild}    >
-${indChild}      ${escapeJsx(tab.label)}
-${indChild}    </button>`,
+${indChild}      {${jsxString(tab.label)}}
+${indChild}    </button>`
         )
         .join("\n");
       const tabPanels = node.tabs
@@ -324,11 +295,11 @@ ${indChild}    </button>`,
           (tab, i) =>
             `${indChild}  {activeTab === ${i} && (
 ${renderNode(tab.content, depth + 3)}
-${indChild}  )}`,
+${indChild}  )}`
         )
         .join("\n");
       return `${ind}{/* Tabs - requires useState for activeTab */}
-${ind}<div className="${classes}">
+${ind}<div className={${jsxString(classes)}}>
 ${indChild}<div className="flex gap-2 border-b border-zinc-700/30 px-2">
 ${tabButtons}
 ${indChild}</div>
@@ -346,7 +317,9 @@ ${ind}</div>`;
       ]);
       const src = node.src || "/placeholder.jpg";
       const alt = node.alt || "Image";
-      return `${ind}<img src="${escapeJsx(src)}" alt="${escapeJsx(alt)}" className="${classes}" />`;
+      return `${ind}<img src={${jsxString(src)}} alt={${jsxString(alt)}} className={${jsxString(
+        classes
+      )}} />`;
     }
 
     case "input": {
@@ -355,15 +328,16 @@ ${ind}</div>`;
         "bg-transparent border-b border-zinc-700/30 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500",
         variantClass,
       ]);
-      const inputName =
-        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
-      return `${ind}<label className="flex flex-col gap-2 text-xs ${node.style?.className || ""}">
-${indChild}<span className="font-medium text-zinc-400">${escapeJsx(node.label)}</span>
+      const inputName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+      return `${ind}<label className={${jsxString(
+        buildClassList(["flex flex-col gap-2 text-xs", node.style?.className])
+      )}}>
+${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}}</span>
 ${indChild}<input
-${indChild}  name="${escapeJsx(inputName)}"
-${indChild}  placeholder="${escapeJsx(node.placeholder)}"
-${indChild}  ${node.value ? `defaultValue="${escapeJsx(node.value)}"` : ""}
-${indChild}  className="${inputClasses}"
+${indChild}  name={${jsxString(inputName)}}
+${indChild}  placeholder={${jsxString(node.placeholder)}}
+${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
+${indChild}  className={${jsxString(inputClasses)}}
 ${indChild}/>
 ${ind}</label>`;
     }
@@ -374,16 +348,17 @@ ${ind}</label>`;
         "bg-transparent border border-zinc-700/30 p-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500",
         variantClass,
       ]);
-      const textareaName =
-        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
-      return `${ind}<label className="flex flex-col gap-2 text-xs ${node.style?.className || ""}">
-${indChild}<span className="font-medium text-zinc-400">${escapeJsx(node.label)}</span>
+      const textareaName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+      return `${ind}<label className={${jsxString(
+        buildClassList(["flex flex-col gap-2 text-xs", node.style?.className])
+      )}}>
+${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}}</span>
 ${indChild}<textarea
-${indChild}  name="${escapeJsx(textareaName)}"
-${indChild}  placeholder="${escapeJsx(node.placeholder)}"
-${indChild}  ${node.value ? `defaultValue="${escapeJsx(node.value)}"` : ""}
+${indChild}  name={${jsxString(textareaName)}}
+${indChild}  placeholder={${jsxString(node.placeholder)}}
+${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
 ${indChild}  rows={${node.rows ?? 3}}
-${indChild}  className="${textareaClasses}"
+${indChild}  className={${jsxString(textareaClasses)}}
 ${indChild}/>
 ${ind}</label>`;
     }
@@ -394,20 +369,18 @@ ${ind}</label>`;
         "bg-zinc-900 border border-zinc-700/30 p-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500",
         variantClass,
       ]);
-      const selectName =
-        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+      const selectName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
       const options = node.options
-        .map(
-          (opt) =>
-            `${indChild}  <option value="${escapeJsx(opt)}">${escapeJsx(opt)}</option>`,
-        )
+        .map((opt) => `${indChild}  <option value={${jsxString(opt)}}>{${jsxString(opt)}}</option>`)
         .join("\n");
-      return `${ind}<label className="flex flex-col gap-2 text-xs ${node.style?.className || ""}">
-${indChild}<span className="font-medium text-zinc-400">${escapeJsx(node.label)}</span>
+      return `${ind}<label className={${jsxString(
+        buildClassList(["flex flex-col gap-2 text-xs", node.style?.className])
+      )}}>
+${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}}</span>
 ${indChild}<select
-${indChild}  name="${escapeJsx(selectName)}"
-${indChild}  defaultValue="${escapeJsx(node.value ?? node.options[0])}"
-${indChild}  className="${selectClasses}"
+${indChild}  name={${jsxString(selectName)}}
+${indChild}  defaultValue={${jsxString(node.value ?? node.options[0])}}
+${indChild}  className={${jsxString(selectClasses)}}
 ${indChild}>
 ${options}
 ${indChild}</select>
@@ -415,11 +388,14 @@ ${ind}</label>`;
     }
 
     case "checkbox": {
-      const checkboxName =
-        node.name || node.label.toLowerCase().replace(/\s+/g, "_");
-      return `${ind}<label className="flex items-center gap-2 text-xs ${node.style?.className || ""}">
-${indChild}<input type="checkbox" name="${escapeJsx(checkboxName)}" ${node.checked ? "defaultChecked" : ""} className="accent-amber-500" />
-${indChild}<span className="text-zinc-400">${escapeJsx(node.label)}</span>
+      const checkboxName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+      return `${ind}<label className={${jsxString(
+        buildClassList(["flex items-center gap-2 text-xs", node.style?.className])
+      )}}>
+${indChild}<input type="checkbox" name={${jsxString(
+        checkboxName
+      )}} ${node.checked ? "defaultChecked" : ""} className="accent-amber-500" />
+${indChild}<span className="text-zinc-400">{${jsxString(node.label)}}</span>
 ${ind}</label>`;
     }
 
@@ -432,7 +408,9 @@ ${ind}</label>`;
         variantClass,
         node.style?.className,
       ]);
-      return `${ind}<button type="button" className="${classes}">${escapeJsx(node.label)}</button>`;
+      return `${ind}<button type="button" className={${jsxString(classes)}}>{${jsxString(
+        node.label
+      )}}</button>`;
     }
 
     default:
@@ -468,9 +446,7 @@ export function exportA2UI(component: A2UIInput): string {
     imports[0] = 'import React, { useState } from "react";';
   }
 
-  const stateDeclarations = hasState
-    ? "\n  const [activeTab, setActiveTab] = useState(0);\n"
-    : "";
+  const stateDeclarations = hasState ? "\n  const [activeTab, setActiveTab] = useState(0);\n" : "";
 
   const rendered = renderNode(component, 2);
 
@@ -495,7 +471,7 @@ export interface ExportFile {
 
 export function exportA2UIMultiFile(
   component: A2UIInput,
-  componentName: string = "Evidence",
+  componentName: string = "Evidence"
 ): ExportFile[] {
   const files: ExportFile[] = [];
   const hooks = detectHooks(component);
@@ -507,9 +483,7 @@ export function exportA2UIMultiFile(
     imports[0] = 'import React, { useState } from "react";';
   }
 
-  const stateDeclarations = hasState
-    ? "\n  const [activeTab, setActiveTab] = useState(0);\n"
-    : "";
+  const stateDeclarations = hasState ? "\n  const [activeTab, setActiveTab] = useState(0);\n" : "";
 
   const rendered = renderNode(component, 2);
 

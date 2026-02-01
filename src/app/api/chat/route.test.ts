@@ -3,17 +3,22 @@ import { POST } from "./route";
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
 import { tools } from "@/lib/ai/tools";
+import { getToolOutputFromSse } from "@/lib/sanity/sse";
 
 // Mock Vercel AI SDK
-vi.mock("ai", () => ({
-  streamText: vi.fn().mockReturnValue({
-    toDataStreamResponse: vi.fn(() => new Response("mock-stream")), // Keep for compat
-    toUIMessageStreamResponse: vi.fn(() => new Response("mock-stream")),
-    toTextStreamResponse: vi.fn(() => new Response("mock-stream")),
-  }),
-  convertToModelMessages: vi.fn(async (msgs) => msgs), // Make async
-  tool: vi.fn((config) => config),
-}));
+vi.mock("ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("ai")>();
+  return {
+    ...actual,
+    streamText: vi.fn().mockReturnValue({
+      toDataStreamResponse: vi.fn(() => new Response("mock-stream")), // Keep for compat
+      toUIMessageStreamResponse: vi.fn(() => new Response("mock-stream")),
+      toTextStreamResponse: vi.fn(() => new Response("mock-stream")),
+    }),
+    convertToModelMessages: vi.fn(async (msgs) => msgs), // Make async
+    tool: vi.fn((config) => config),
+  };
+});
 
 // Mock Provider Factory
 vi.mock("@/lib/ai/factory", () => ({
@@ -45,7 +50,7 @@ describe("/api/chat", () => {
     expect(text).toBe("mock-stream");
   });
 
-  it("returns local simulation message when provider is mock", async () => {
+  it("returns local simulation tool output when provider is mock", async () => {
     vi.mocked(getProviderWithOverrides).mockReturnValueOnce({
       provider: null,
       model: "mock",
@@ -54,12 +59,25 @@ describe("/api/chat", () => {
 
     const req = new NextRequest("http://localhost/api/chat", {
       method: "POST",
-      body: JSON.stringify({ messages: [{ role: "user", content: "Hello" }] }),
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "user",
+            content:
+              'Create a UI card for a missing person with title "Missing: Jane Doe" and description "Last seen near the docks".',
+          },
+        ],
+      }),
     });
 
     const res = await POST(req);
     const text = await res.text();
-    expect(text).toContain("The streets are quiet");
+    const output = getToolOutputFromSse(text, "generate_ui") as {
+      type?: string;
+      title?: string;
+    } | null;
+    expect(output).not.toBeNull();
+    expect(output).toMatchObject({ type: "card", title: "Missing: Jane Doe" });
   });
 
   it("passes tools to streamText", async () => {

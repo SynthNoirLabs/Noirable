@@ -18,27 +18,29 @@ export function DossierCard({
   return (
     <div
       className={cn(
-        "bg-paper shadow-lg p-6 relative border border-noir-gray/20 rotate-[-1deg] max-w-md",
-        className,
+        "bg-paper p-6 relative border border-noir-gray/20 rotate-[-1deg] max-w-md transition-transform hover:rotate-0 hover:scale-[1.01] duration-300",
+        "shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_0_40px_rgba(112,66,20,0.05)]", // worn edges
+        className
       )}
     >
+      {/* Coffee Stain */}
+      <div
+        className="absolute w-[60px] h-[60px] border-2 border-[#704214]/10 rounded-full top-[10%] right-[15%] rotate-12 pointer-events-none"
+        aria-hidden="true"
+      />
+
       {/* Stamp */}
       <div
         className={cn(
-          "absolute top-4 right-4 transform rotate-[15deg] border-2 px-2 py-1 font-typewriter font-bold opacity-80 text-xs",
-          status === "active"
-            ? "border-noir-ink text-noir-ink"
-            : "border-noir-red text-noir-red",
+          "absolute top-4 right-4 transform rotate-[15deg] border-[3px] px-3 py-1 font-typewriter font-bold opacity-80 text-xs tracking-widest mask-stamp",
+          status === "active" ? "border-noir-ink text-noir-ink" : "border-noir-red text-noir-red"
         )}
       >
         {status.toUpperCase()}
       </div>
 
       <div className="border-b-2 border-noir-ink/10 pb-4 mb-4">
-        <TypewriterText
-          content={title}
-          className="text-2xl font-bold text-noir-ink"
-        />
+        <TypewriterText content={title} className="text-2xl font-bold text-noir-ink" />
       </div>
 
       {description && (

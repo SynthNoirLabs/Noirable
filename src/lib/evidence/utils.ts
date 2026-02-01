@@ -1,8 +1,6 @@
 import type { A2UIInput } from "@/lib/protocol/schema";
 
-function firstNonEmpty(
-  ...values: Array<string | null | undefined>
-): string | null {
+function firstNonEmpty(...values: Array<string | null | undefined>): string | null {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }

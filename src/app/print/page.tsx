@@ -6,9 +6,7 @@ import { A2UIRenderer } from "@/components/renderer/A2UIRenderer";
 
 export default function PrintPage() {
   const { evidence, evidenceHistory, activeEvidenceId } = useA2UIStore();
-  const activeEntry = evidenceHistory.find(
-    (entry) => entry.id === activeEvidenceId,
-  );
+  const activeEntry = evidenceHistory.find((entry) => entry.id === activeEvidenceId);
   const data = activeEntry?.data ?? evidence;
 
   return (
@@ -26,12 +24,8 @@ export default function PrintPage() {
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
         <header className="flex items-start justify-between border-b border-[#c7c1b6] pb-4">
           <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-[#8a7f6f]">
-              Case File
-            </div>
-            <h1 className="text-2xl font-semibold tracking-wide">
-              Evidence Report
-            </h1>
+            <div className="text-xs uppercase tracking-[0.3em] text-[#8a7f6f]">Case File</div>
+            <h1 className="text-2xl font-semibold tracking-wide">Evidence Report</h1>
           </div>
           <button
             type="button"

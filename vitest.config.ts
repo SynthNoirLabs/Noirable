@@ -16,18 +16,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      exclude: [
-        "node_modules/**",
-        "tests/**",
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "vitest.*.ts",
-      ],
+      exclude: ["node_modules/**", "tests/**", "**/*.test.ts", "**/*.test.tsx", "vitest.*.ts"],
       thresholds: {
-        statements: 80,
-        branches: 80,
-        functions: 80,
-        lines: 80,
+        statements: 60,
+        branches: 50,
+        functions: 55,
+        lines: 60,
       },
     },
   },

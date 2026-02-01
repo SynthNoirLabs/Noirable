@@ -250,34 +250,10 @@ export const TEMPLATES: Template[] = [
           type: "table",
           columns: ["ID", "Description", "Location", "Date", "Status"],
           rows: [
-            [
-              "EV-001",
-              "Fingerprint sample",
-              "Crime scene A",
-              "Jan 15",
-              "Analyzed",
-            ],
-            [
-              "EV-002",
-              "Security footage",
-              "Building lobby",
-              "Jan 15",
-              "Pending",
-            ],
-            [
-              "EV-003",
-              "Witness statement",
-              "Interview room",
-              "Jan 16",
-              "Verified",
-            ],
-            [
-              "EV-004",
-              "Document fragment",
-              "Suspect residence",
-              "Jan 17",
-              "Processing",
-            ],
+            ["EV-001", "Fingerprint sample", "Crime scene A", "Jan 15", "Analyzed"],
+            ["EV-002", "Security footage", "Building lobby", "Jan 15", "Pending"],
+            ["EV-003", "Witness statement", "Interview room", "Jan 16", "Verified"],
+            ["EV-004", "Document fragment", "Suspect residence", "Jan 17", "Processing"],
           ],
         },
       ],
@@ -319,12 +295,7 @@ export const TEMPLATES: Template[] = [
             { type: "heading", text: "Sidebar", level: 3 },
             {
               type: "list",
-              items: [
-                "Quick Links",
-                "Related Cases",
-                "Recent Updates",
-                "Resources",
-              ],
+              items: ["Quick Links", "Related Cases", "Recent Updates", "Resources"],
             },
           ],
         },
@@ -382,9 +353,7 @@ export const TEMPLATES: Template[] = [
   },
 ];
 
-export function getTemplatesByCategory(
-  category: Template["category"],
-): Template[] {
+export function getTemplatesByCategory(category: Template["category"]): Template[] {
   return TEMPLATES.filter((t) => t.category === category);
 }
 

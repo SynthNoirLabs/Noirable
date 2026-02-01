@@ -9,6 +9,8 @@ interface TypewriterTextProps {
   priority?: "low" | "normal" | "high" | "critical";
   className?: string;
   speed?: number;
+  glow?: boolean;
+  showCursor?: boolean;
 }
 
 const priorityMap = {
@@ -23,14 +25,32 @@ export function TypewriterText({
   priority = "normal",
   className,
   speed,
+  glow = true,
+  showCursor = true,
 }: TypewriterTextProps) {
   // Default to 0 in tests to avoid async rendering issues
   const defaultSpeed = process.env.NODE_ENV === "test" ? 0 : 30;
-  const effectiveSpeed = speed ?? defaultSpeed;
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const effectiveSpeed = reducedMotion ? 0 : (speed ?? defaultSpeed);
 
-  const [displayedText, setDisplayedText] = useState(
-    effectiveSpeed === 0 ? content : "",
-  );
+  const [displayedText, setDisplayedText] = useState(effectiveSpeed === 0 ? content : "");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = () => setReducedMotion(media.matches);
+    handleChange();
+    media.addEventListener?.("change", handleChange);
+    // Legacy Safari fallback
+    media.addListener?.(handleChange);
+    return () => {
+      media.removeEventListener?.("change", handleChange);
+      media.removeListener?.(handleChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (effectiveSpeed === 0) {
@@ -58,13 +78,14 @@ export function TypewriterText({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={cn(
-        "font-typewriter text-lg tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]",
+        "font-typewriter text-lg tracking-wide",
+        glow && "crt-glow",
         priorityMap[priority],
-        className,
+        className
       )}
     >
       {displayedText}
-      <span className="animate-pulse ml-1 opacity-50">_</span>
+      {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
     </motion.div>
   );
 }

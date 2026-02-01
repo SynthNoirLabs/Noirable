@@ -73,7 +73,7 @@ export function ResizeHandle({
       className={cn(
         "absolute top-0 bottom-0 w-2 cursor-col-resize z-20 group",
         position === "right" ? "-right-1" : "-left-1",
-        className,
+        className
       )}
     >
       <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-noir-gray/40 group-hover:bg-noir-amber/60 transition-colors" />

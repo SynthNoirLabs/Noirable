@@ -13,7 +13,9 @@ describe("DossierCard", () => {
     const { container } = render(<DossierCard title="Test" />);
     const card = container.firstChild;
     expect(card).toHaveClass("bg-paper");
-    expect(card).toHaveClass("shadow-lg");
+    expect(card).toHaveClass(
+      "shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_0_40px_rgba(112,66,20,0.05)]"
+    );
   });
 
   it("renders status stamp", () => {

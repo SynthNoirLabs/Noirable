@@ -14,10 +14,7 @@ describe("Template Library", () => {
   it("all templates have valid A2UI data", () => {
     for (const template of TEMPLATES) {
       const result = a2uiInputSchema.safeParse(template.data);
-      expect(
-        result.success,
-        `Template "${template.name}" has invalid data`,
-      ).toBe(true);
+      expect(result.success, `Template "${template.name}" has invalid data`).toBe(true);
     }
   });
 

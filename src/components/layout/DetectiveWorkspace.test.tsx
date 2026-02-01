@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 
@@ -30,12 +30,20 @@ vi.mock("@ai-sdk/react", () => ({
   useChat: (...args: unknown[]) => useChatMock(...args),
 }));
 
+let lastChatSidebarProps: {
+  messages: Array<{ content: string }>;
+  sendMessage?: (message: { text: string }) => Promise<void> | void;
+} | null = null;
+
 vi.mock("@/components/chat/ChatSidebar", () => ({
-  ChatSidebar: ({ messages }: { messages: Array<{ content: string }> }) => (
-    <div data-testid="chat-messages">
-      {messages.map((message) => message.content).join("|")}
-    </div>
-  ),
+  ChatSidebar: (props: { messages: Array<{ content: string }>; sendMessage?: () => void }) => {
+    lastChatSidebarProps = props as typeof lastChatSidebarProps;
+    return (
+      <div data-testid="chat-messages">
+        {props.messages.map((message) => message.content).join("|")}
+      </div>
+    );
+  },
 }));
 
 import { DetectiveWorkspace } from "./DetectiveWorkspace";
@@ -50,6 +58,14 @@ describe("DetectiveWorkspace", () => {
         typewriterSpeed: 30,
         soundEnabled: true,
         modelConfig: { provider: "auto", model: "" },
+        ambient: {
+          rainEnabled: true,
+          rainVolume: 1,
+          fogEnabled: true,
+          intensity: "medium",
+          crackleEnabled: false,
+          crackleVolume: 0.35,
+        },
       },
     });
     useChatMock.mockImplementation(() => ({
@@ -59,6 +75,7 @@ describe("DetectiveWorkspace", () => {
       append: vi.fn(),
     }));
     useChatMock.mockClear();
+    lastChatSidebarProps = null;
   });
 
   it("updates preview when json changes", () => {
@@ -77,7 +94,7 @@ describe("DetectiveWorkspace", () => {
         status: "active",
       },
       null,
-      2,
+      2
     );
 
     fireEvent.change(textarea, { target: { value: newJson } });
@@ -123,25 +140,30 @@ describe("DetectiveWorkspace", () => {
     ];
 
     render(<DetectiveWorkspace />);
-    expect(screen.getByTestId("chat-messages").textContent).toContain(
-      "Legacy assistant response",
-    );
+    expect(screen.getByTestId("chat-messages").textContent).toContain("Legacy assistant response");
   });
 
-  it("passes evidence through the chat transport", () => {
+  it("passes evidence through the chat request body", async () => {
     useA2UIStore.setState({
       evidence: { type: "text", content: "Evidence #1", priority: "normal" },
     });
     mockMessages = [];
 
     render(<DetectiveWorkspace />);
-    const call = useChatMock.mock.calls[0]?.[0] as {
-      transport?: { body?: unknown };
-    };
-    expect(call?.transport).toBeTruthy();
-    expect(call?.transport?.body).toEqual({
-      evidence: { type: "text", content: "Evidence #1", priority: "normal" },
+    const sendMessageMock = useChatMock.mock.results[0]?.value
+      ?.sendMessage as unknown as ReturnType<typeof vi.fn>;
+    expect(sendMessageMock).toBeTruthy();
+    await act(async () => {
+      await lastChatSidebarProps?.sendMessage?.({ text: "Ping" });
     });
+    expect(sendMessageMock).toHaveBeenCalledWith(
+      { text: "Ping" },
+      expect.objectContaining({
+        body: expect.objectContaining({
+          evidence: { type: "text", content: "Evidence #1", priority: "normal" },
+        }),
+      })
+    );
   });
 
   it("updates evidence when tool output arrives", async () => {

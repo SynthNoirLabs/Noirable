@@ -9,12 +9,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AIProviderInstance = any; // Flexible for multiple SDK providers
 
-export type ProviderType =
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "openai-compatible"
-  | "mock";
+export type ProviderType = "openai" | "anthropic" | "google" | "openai-compatible" | "mock";
 
 export interface ProviderResult {
   provider: AIProviderInstance;
@@ -31,9 +26,7 @@ export interface ModelOverride {
  * Get AI provider with optional client-specified overrides.
  * Priority: override provider/model > env vars > auth.json > mock fallback
  */
-export function getProviderWithOverrides(
-  override?: ModelOverride,
-): ProviderResult {
+export function getProviderWithOverrides(override?: ModelOverride): ProviderResult {
   if (!override || override.provider === "auto" || !override.provider) {
     const result = getProvider();
     if (override?.model && result.type !== "mock") {
@@ -61,10 +54,7 @@ export function getProviderWithOverrides(
       const baseUrl = process.env.OPENAI_BASE_URL;
       let apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey && config.openai) {
-        apiKey =
-          typeof config.openai === "string"
-            ? config.openai
-            : config.openai.access;
+        apiKey = typeof config.openai === "string" ? config.openai : config.openai.access;
       }
 
       if (!apiKey && !baseUrl) {
@@ -88,10 +78,7 @@ export function getProviderWithOverrides(
     case "anthropic": {
       let apiKey = process.env.ANTHROPIC_API_KEY;
       if (!apiKey && config.anthropic) {
-        apiKey =
-          typeof config.anthropic === "string"
-            ? config.anthropic
-            : config.anthropic.access;
+        apiKey = typeof config.anthropic === "string" ? config.anthropic : config.anthropic.access;
       }
 
       if (!apiKey) {
@@ -100,20 +87,15 @@ export function getProviderWithOverrides(
 
       return {
         provider: createAnthropic({ apiKey }),
-        model:
-          override.model || process.env.AI_MODEL || "claude-3-5-sonnet-latest",
+        model: override.model || process.env.AI_MODEL || "claude-3-5-sonnet-latest",
         type: "anthropic",
       };
     }
 
     case "google": {
-      let apiKey =
-        process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
       if (!apiKey && config.google) {
-        apiKey =
-          typeof config.google === "string"
-            ? config.google
-            : config.google.access;
+        apiKey = typeof config.google === "string" ? config.google : config.google.access;
       }
 
       if (!apiKey) {
@@ -152,10 +134,7 @@ export function getProvider(): ProviderResult {
     // Check for a key, but default to 'dummy' if using a local proxy that doesn't need one
     let compatKey = process.env.OPENAI_API_KEY;
     if (!compatKey && config.openai) {
-      compatKey =
-        typeof config.openai === "string"
-          ? config.openai
-          : config.openai.access;
+      compatKey = typeof config.openai === "string" ? config.openai : config.openai.access;
     }
 
     // Use standard OpenAI provider but with custom URL.
@@ -173,8 +152,7 @@ export function getProvider(): ProviderResult {
   // 2. Check OpenAI (Env or Config)
   let openAIKey = process.env.OPENAI_API_KEY;
   if (!openAIKey && config.openai) {
-    openAIKey =
-      typeof config.openai === "string" ? config.openai : config.openai.access;
+    openAIKey = typeof config.openai === "string" ? config.openai : config.openai.access;
   }
 
   if (openAIKey) {
@@ -189,9 +167,7 @@ export function getProvider(): ProviderResult {
   let anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!anthropicKey && config.anthropic) {
     anthropicKey =
-      typeof config.anthropic === "string"
-        ? config.anthropic
-        : config.anthropic.access;
+      typeof config.anthropic === "string" ? config.anthropic : config.anthropic.access;
   }
 
   if (anthropicKey) {
@@ -203,11 +179,9 @@ export function getProvider(): ProviderResult {
   }
 
   // 4. Check Google/Gemini (Env or Config)
-  let googleKey =
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  let googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   if (!googleKey && config.google) {
-    googleKey =
-      typeof config.google === "string" ? config.google : config.google.access;
+    googleKey = typeof config.google === "string" ? config.google : config.google.access;
   }
 
   if (googleKey) {

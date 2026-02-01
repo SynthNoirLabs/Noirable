@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useMemo,
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { DeskLayout } from "./DeskLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
@@ -15,14 +9,13 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { a2uiInputSchema } from "@/lib/protocol/schema";
 import { EvidenceBoard } from "@/components/board/EvidenceBoard";
 import { EjectPanel } from "@/components/eject/EjectPanel";
-import {
-  deriveEvidenceLabel,
-  deriveEvidenceStatus,
-} from "@/lib/evidence/utils";
+import { deriveEvidenceLabel, deriveEvidenceStatus } from "@/lib/evidence/utils";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { TemplatePanel } from "@/components/templates/TemplatePanel";
 import { EvidenceSkeleton } from "@/components/board/EvidenceSkeleton";
+import { TrainingDataPanel } from "@/components/training/TrainingDataPanel";
 import type { A2UIInput } from "@/lib/protocol/schema";
+import { createTrainingExample, shouldCapture } from "@/lib/training";
 
 const DEFAULT_JSON = JSON.stringify(
   {
@@ -31,13 +24,44 @@ const DEFAULT_JSON = JSON.stringify(
     priority: "normal",
   },
   null,
-  2,
+  2
 );
+
+/**
+ * Extract the last user prompt from messages array
+ */
+function getLastUserPrompt(
+  messages: Array<{ role: string; content?: string; parts?: unknown[] }>
+): string | null {
+  // Traverse from the end to find the most recent user message
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === "user") {
+      // Extract text from parts if available
+      if (Array.isArray(msg.parts)) {
+        const textParts = msg.parts
+          .filter(
+            (part): part is { type: "text"; text: string } =>
+              typeof part === "object" &&
+              part !== null &&
+              (part as { type?: string }).type === "text"
+          )
+          .map((part) => part.text)
+          .join("");
+        if (textParts) return textParts;
+      }
+      // Fallback to content
+      if (msg.content) return msg.content;
+    }
+  }
+  return null;
+}
 
 export function DetectiveWorkspace() {
   const [json, setJson] = useState(DEFAULT_JSON);
   const [error, setError] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showTraining, setShowTraining] = useState(false);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -55,6 +79,7 @@ export function DetectiveWorkspace() {
     undo,
     redo,
     addPrompt,
+    addTrainingExample,
   } = useA2UIStore();
 
   // Initialize store
@@ -71,21 +96,20 @@ export function DetectiveWorkspace() {
 
   const modelConfig = useMemo(
     () => settings.modelConfig ?? { provider: "auto", model: "" },
-    [settings.modelConfig],
+    [settings.modelConfig]
   );
 
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        body: {
-          evidence,
-          modelConfig:
-            modelConfig?.provider && modelConfig.provider !== "auto"
-              ? { provider: modelConfig.provider, model: modelConfig.model }
-              : undefined,
-        },
-      }),
-    [evidence, modelConfig],
+  const transport = useMemo(() => new DefaultChatTransport(), []);
+
+  const buildRequestBody = useCallback(
+    () => ({
+      evidence,
+      modelConfig:
+        modelConfig?.provider && modelConfig.provider !== "auto"
+          ? { provider: modelConfig.provider, model: modelConfig.model }
+          : undefined,
+    }),
+    [evidence, modelConfig]
   );
 
   const chat = useChat({
@@ -114,7 +138,7 @@ export function DetectiveWorkspace() {
           content,
         };
       }),
-    [messages],
+    [messages]
   );
 
   useEffect(() => {
@@ -142,10 +166,7 @@ export function DetectiveWorkspace() {
             };
           }
         ).toolInvocation;
-        if (
-          invocation?.toolName === "generate_ui" &&
-          invocation?.state === "result"
-        ) {
+        if (invocation?.toolName === "generate_ui" && invocation?.state === "result") {
           const parsed = a2uiInputSchema.safeParse(invocation.result);
           if (parsed.success) {
             if (process.env.NODE_ENV !== "production") {
@@ -167,6 +188,12 @@ export function DetectiveWorkspace() {
             setJson(JSON.stringify(parsed.data, null, 2));
             setError(null);
             setLastFailedPrompt(null); // Clear on success
+
+            // Capture training data from successful generation
+            const userPrompt = getLastUserPrompt(messages);
+            if (userPrompt && shouldCapture(userPrompt, parsed.data)) {
+              addTrainingExample(createTrainingExample(userPrompt, parsed.data));
+            }
             return;
           }
         }
@@ -184,12 +211,7 @@ export function DetectiveWorkspace() {
       }
 
       if (process.env.NODE_ENV !== "production") {
-        console.log(
-          "DEBUG: Tool part:",
-          toolPart.type,
-          "state:",
-          toolPart.state,
-        );
+        console.log("DEBUG: Tool part:", toolPart.type, "state:", toolPart.state);
         if (toolPart.errorText) {
           console.error("DEBUG: Tool error:", toolPart.errorText);
         }
@@ -230,11 +252,16 @@ export function DetectiveWorkspace() {
       setActiveEvidenceId(entry.id);
       setJson(JSON.stringify(parsed.data, null, 2));
       setError(null);
+
+      // Capture training data from successful generation
+      const userPrompt2 = getLastUserPrompt(messages);
+      if (userPrompt2 && shouldCapture(userPrompt2, parsed.data)) {
+        addTrainingExample(createTrainingExample(userPrompt2, parsed.data));
+      }
       return;
     }
 
-    const legacyInvocations = (lastMessage as { toolInvocations?: unknown })
-      .toolInvocations;
+    const legacyInvocations = (lastMessage as { toolInvocations?: unknown }).toolInvocations;
     if (!Array.isArray(legacyInvocations)) return;
 
     for (const tool of legacyInvocations) {
@@ -269,9 +296,15 @@ export function DetectiveWorkspace() {
       setActiveEvidenceId(entry.id);
       setJson(JSON.stringify(parsed.data, null, 2));
       setError(null);
+
+      // Capture training data from successful generation (legacy path)
+      const userPrompt3 = getLastUserPrompt(messages);
+      if (userPrompt3 && shouldCapture(userPrompt3, parsed.data)) {
+        addTrainingExample(createTrainingExample(userPrompt3, parsed.data));
+      }
       return;
     }
-  }, [addEvidence, messages, setActiveEvidenceId, setEvidence]);
+  }, [addEvidence, addTrainingExample, messages, setActiveEvidenceId, setEvidence]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value;
@@ -310,7 +343,19 @@ export function DetectiveWorkspace() {
       setLastFailedPrompt(text);
       setError(null);
     },
-    [addPrompt, activeEvidenceId, pushUndoState],
+    [addPrompt, activeEvidenceId, pushUndoState]
+  );
+
+  const sendMessageWithContext = useCallback(
+    (message?: Parameters<typeof sendMessage>[0], options?: Parameters<typeof sendMessage>[1]) =>
+      sendMessage(message, {
+        ...options,
+        body: {
+          ...(options?.body ?? {}),
+          ...buildRequestBody(),
+        },
+      }),
+    [buildRequestBody, sendMessage]
   );
 
   // Wrap sendMessage to track prompt history
@@ -324,18 +369,18 @@ export function DetectiveWorkspace() {
       if (text) {
         trackAndSend(text);
       }
-      return sendMessage(message, options);
+      return sendMessageWithContext(message, options);
     },
-    [sendMessage, trackAndSend],
+    [sendMessageWithContext, trackAndSend]
   );
 
   // Retry last failed prompt
   const handleRetry = useCallback(() => {
     if (lastFailedPrompt) {
       trackAndSend(lastFailedPrompt);
-      sendMessage({ text: lastFailedPrompt });
+      sendMessageWithContext({ text: lastFailedPrompt });
     }
-  }, [lastFailedPrompt, trackAndSend, sendMessage]);
+  }, [lastFailedPrompt, sendMessageWithContext, trackAndSend]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -359,25 +404,25 @@ export function DetectiveWorkspace() {
       showSidebar={layout.showSidebar}
       showEject={layout.showEject}
       showTemplates={showTemplates}
+      showTraining={showTraining}
       editorWidth={layout.editorWidth}
       sidebarWidth={layout.sidebarWidth}
+      ambient={settings.ambient}
+      soundEnabled={settings.soundEnabled}
+      musicEnabled={settings.musicEnabled}
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
       onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
       onToggleTemplates={() => setShowTemplates(!showTemplates)}
+      onToggleTraining={() => setShowTraining(!showTraining)}
       onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
       onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
       templatePanel={
-        <TemplatePanel
-          onSelect={handleSelectTemplate}
-          onClose={() => setShowTemplates(false)}
-        />
+        <TemplatePanel onSelect={handleSelectTemplate} onClose={() => setShowTemplates(false)} />
       }
+      trainingPanel={<TrainingDataPanel onClose={() => setShowTraining(false)} />}
       ejectPanel={
-        <EjectPanel
-          evidence={evidence}
-          onClose={() => updateLayout({ showEject: false })}
-        />
+        <EjectPanel evidence={evidence} onClose={() => updateLayout({ showEject: false })} />
       }
       editor={
         <div className="h-full min-h-0 flex flex-col">
@@ -402,9 +447,7 @@ export function DetectiveWorkspace() {
         ) : error ? (
           <div className="max-w-md space-y-4">
             <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm">
-              <h3 className="text-noir-red font-typewriter font-bold mb-2">
-                CASE FILE ERROR
-              </h3>
+              <h3 className="text-noir-red font-typewriter font-bold mb-2">CASE FILE ERROR</h3>
               <p className="text-noir-red/80 font-mono text-xs">{error}</p>
             </div>
             {lastFailedPrompt && (
@@ -431,12 +474,8 @@ export function DetectiveWorkspace() {
           />
         ) : (
           <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
-            <h3 className="text-noir-red font-typewriter font-bold mb-2">
-              REDACTED
-            </h3>
-            <p className="text-noir-red/80 font-mono text-xs">
-              NO EVIDENCE LOADED.
-            </p>
+            <h3 className="text-noir-red font-typewriter font-bold mb-2">REDACTED</h3>
+            <p className="text-noir-red/80 font-mono text-xs">NO EVIDENCE LOADED.</p>
           </div>
         )
       }
@@ -446,11 +485,13 @@ export function DetectiveWorkspace() {
           sendMessage={handleSendMessage}
           isLoading={isLoading}
           typewriterSpeed={settings.typewriterSpeed}
+          soundEnabled={settings.soundEnabled}
+          ttsEnabled={settings.ttsEnabled}
+          musicEnabled={settings.musicEnabled}
+          ambient={settings.ambient}
           modelConfig={modelConfig}
           onUpdateSettings={updateSettings}
-          onModelConfigChange={(config) =>
-            updateSettings({ modelConfig: config })
-          }
+          onModelConfigChange={(config) => updateSettings({ modelConfig: config })}
           onToggleCollapse={() => updateLayout({ showSidebar: false })}
           inputRef={chatInputRef}
         />

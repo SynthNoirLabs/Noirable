@@ -2,14 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import {
-  X,
-  FileText,
-  LayoutGrid,
-  CreditCard,
-  Table,
-  Columns,
-} from "lucide-react";
+import { X, FileText, LayoutGrid, CreditCard, Table, Columns } from "lucide-react";
 import { TEMPLATES, type Template } from "@/lib/templates";
 import type { A2UIInput } from "@/lib/protocol/schema";
 
@@ -35,9 +28,7 @@ const CATEGORY_LABELS: Record<Template["category"], string> = {
 };
 
 export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
-  const [selectedCategory, setSelectedCategory] = useState<
-    Template["category"] | "all"
-  >("all");
+  const [selectedCategory, setSelectedCategory] = useState<Template["category"] | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredTemplates = useMemo(() => {
@@ -50,9 +41,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        (t) =>
-          t.name.toLowerCase().includes(query) ||
-          t.description.toLowerCase().includes(query),
+        (t) => t.name.toLowerCase().includes(query) || t.description.toLowerCase().includes(query)
       );
     }
 
@@ -106,7 +95,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
               "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap",
               selectedCategory === cat
                 ? "bg-noir-amber/20 text-noir-amber border border-noir-amber/40"
-                : "text-noir-paper/60 hover:text-noir-amber border border-transparent",
+                : "text-noir-paper/60 hover:text-noir-amber border border-transparent"
             )}
           >
             {cat !== "all" && CATEGORY_ICONS[cat]}
@@ -132,9 +121,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-noir-paper/40">
-                      {CATEGORY_ICONS[template.category]}
-                    </span>
+                    <span className="text-noir-paper/40">{CATEGORY_ICONS[template.category]}</span>
                     <span className="font-typewriter text-sm text-noir-paper group-hover:text-noir-amber transition-colors">
                       {template.name}
                     </span>

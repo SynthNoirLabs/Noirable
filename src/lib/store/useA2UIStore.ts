@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist, type PersistStorage } from "zustand/middleware";
 import { A2UIInput } from "@/lib/protocol/schema";
 import { AIProviderType, AVAILABLE_MODELS } from "@/lib/ai/models";
+import type { TrainingExample } from "@/lib/training";
 
 export type { AIProviderType };
 export { AVAILABLE_MODELS };
@@ -11,11 +12,30 @@ export interface ModelConfig {
   model: string;
 }
 
-interface Settings {
+export type AmbientIntensity = "low" | "medium" | "high";
+
+export interface AmbientSettings {
+  rainEnabled: boolean;
+  /** 0..1 volume scale for rain audio (intensity still applies). */
+  rainVolume: number;
+  fogEnabled: boolean;
+  intensity: AmbientIntensity;
+  crackleEnabled: boolean;
+  crackleVolume: number;
+}
+
+export interface Settings {
   typewriterSpeed: number;
   soundEnabled: boolean;
+  ttsEnabled?: boolean;
+  musicEnabled?: boolean;
   modelConfig: ModelConfig;
+  ambient: AmbientSettings;
 }
+
+export type SettingsUpdate = Partial<Omit<Settings, "ambient">> & {
+  ambient?: Partial<AmbientSettings>;
+};
 
 interface Layout {
   showEditor: boolean;
@@ -45,6 +65,9 @@ interface UndoState {
   activeEvidenceId: string | null;
 }
 
+// Re-export TrainingExample for convenience
+export type { TrainingExample } from "@/lib/training";
+
 interface A2UIState {
   // Evidence state
   evidence: A2UIInput | null;
@@ -70,15 +93,65 @@ interface A2UIState {
   addPrompt: (text: string, evidenceId?: string) => void;
   clearPromptHistory: () => void;
 
+  // Training data collection
+  trainingExamples: TrainingExample[];
+  addTrainingExample: (example: TrainingExample) => void;
+  removeTrainingExample: (id: string) => void;
+  clearTrainingExamples: () => void;
+  rateTrainingExample: (id: string, score: number) => void;
+
   // Settings & Layout
   settings: Settings;
-  updateSettings: (settings: Partial<Settings>) => void;
+  updateSettings: (settings: SettingsUpdate) => void;
   layout: Layout;
   updateLayout: (layout: Partial<Layout>) => void;
 }
 
 const MAX_UNDO_STACK = 50;
+const MAX_EVIDENCE_HISTORY = 200;
 const MAX_PROMPT_HISTORY = 100;
+const MAX_TRAINING_EXAMPLES = 1000;
+const STORAGE_DEBOUNCE_MS = 300;
+
+function createDebouncedStorage<S>(storage: PersistStorage<S>, delayMs: number): PersistStorage<S> {
+  const timeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+  return {
+    getItem: storage.getItem,
+    removeItem: (name) => {
+      const timeout = timeouts.get(name);
+      if (timeout) {
+        clearTimeout(timeout);
+        timeouts.delete(name);
+      }
+      return storage.removeItem(name);
+    },
+    setItem: (name, value) => {
+      const timeout = timeouts.get(name);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      const handle = setTimeout(() => {
+        storage.setItem(name, value);
+        timeouts.delete(name);
+      }, delayMs);
+      timeouts.set(name, handle);
+    },
+  };
+}
+
+type PersistedState = {
+  settings: Settings;
+  layout: Layout;
+  evidence: A2UIInput | null;
+  evidenceHistory: EvidenceEntry[];
+  activeEvidenceId: string | null;
+  promptHistory: PromptEntry[];
+  trainingExamples: TrainingExample[];
+};
+
+const baseStorage = createJSONStorage<PersistedState>(() => localStorage);
+const storage = baseStorage ? createDebouncedStorage(baseStorage, STORAGE_DEBOUNCE_MS) : undefined;
 
 export const useA2UIStore = create<A2UIState>()(
   persist(
@@ -89,13 +162,19 @@ export const useA2UIStore = create<A2UIState>()(
       evidenceHistory: [],
       activeEvidenceId: null,
       addEvidence: (entry) =>
-        set((state) => ({
-          evidenceHistory: [...state.evidenceHistory, entry],
-          activeEvidenceId: entry.id,
-        })),
+        set((state) => {
+          const nextHistory = [...state.evidenceHistory, entry];
+          const trimmedHistory =
+            nextHistory.length > MAX_EVIDENCE_HISTORY
+              ? nextHistory.slice(-MAX_EVIDENCE_HISTORY)
+              : nextHistory;
+          return {
+            evidenceHistory: trimmedHistory,
+            activeEvidenceId: entry.id,
+          };
+        }),
       setActiveEvidenceId: (id) => set({ activeEvidenceId: id }),
-      clearHistory: () =>
-        set({ evidenceHistory: [], activeEvidenceId: null, evidence: null }),
+      clearHistory: () => set({ evidenceHistory: [], activeEvidenceId: null, evidence: null }),
       removeEvidence: (id) =>
         set((state) => {
           const newHistory = state.evidenceHistory.filter((e) => e.id !== id);
@@ -189,14 +268,50 @@ export const useA2UIStore = create<A2UIState>()(
         })),
       clearPromptHistory: () => set({ promptHistory: [] }),
 
+      // Training data collection
+      trainingExamples: [],
+      addTrainingExample: (example) =>
+        set((state) => ({
+          trainingExamples: [...state.trainingExamples.slice(-MAX_TRAINING_EXAMPLES + 1), example],
+        })),
+      removeTrainingExample: (id) =>
+        set((state) => ({
+          trainingExamples: state.trainingExamples.filter((e) => e.id !== id),
+        })),
+      clearTrainingExamples: () => set({ trainingExamples: [] }),
+      rateTrainingExample: (id, score) =>
+        set((state) => ({
+          trainingExamples: state.trainingExamples.map((e) =>
+            e.id === id ? { ...e, metadata: { ...e.metadata, qualityScore: score } } : e
+          ),
+        })),
+
       // Settings
       settings: {
         typewriterSpeed: 30,
         soundEnabled: true,
+        ttsEnabled: true,
+        musicEnabled: false,
         modelConfig: { provider: "auto", model: "" },
+        ambient: {
+          rainEnabled: true,
+          rainVolume: 1,
+          fogEnabled: true,
+          intensity: "medium",
+          crackleEnabled: false,
+          crackleVolume: 0.35,
+        },
       },
       updateSettings: (newSettings) =>
-        set((state) => ({ settings: { ...state.settings, ...newSettings } })),
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            ...newSettings,
+            ambient: newSettings.ambient
+              ? { ...state.settings.ambient, ...newSettings.ambient }
+              : state.settings.ambient,
+          },
+        })),
 
       // Layout
       layout: {
@@ -206,20 +321,21 @@ export const useA2UIStore = create<A2UIState>()(
         editorWidth: 300,
         sidebarWidth: 360,
       },
-      updateLayout: (newLayout) =>
-        set((state) => ({ layout: { ...state.layout, ...newLayout } })),
+      updateLayout: (newLayout) => set((state) => ({ layout: { ...state.layout, ...newLayout } })),
     }),
     {
       name: "a2ui-storage",
+      ...(storage ? { storage } : {}),
       partialize: (state) => ({
         settings: state.settings,
         layout: state.layout,
         evidence: state.evidence,
-        evidenceHistory: state.evidenceHistory,
+        evidenceHistory: state.evidenceHistory.slice(-MAX_EVIDENCE_HISTORY),
         activeEvidenceId: state.activeEvidenceId,
-        promptHistory: state.promptHistory,
+        promptHistory: state.promptHistory.slice(-MAX_PROMPT_HISTORY),
+        trainingExamples: state.trainingExamples.slice(-MAX_TRAINING_EXAMPLES),
         // Note: undoStack/redoStack intentionally not persisted
       }),
-    },
-  ),
+    }
+  )
 );

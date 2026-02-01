@@ -18,12 +18,12 @@ export function EvidenceBoard({
   onSelect,
   fallbackEvidence,
 }: EvidenceBoardProps) {
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [view, setView] = useState<"grid" | "list" | "timeline">("grid");
   const [searchQuery, setSearchQuery] = useState("");
 
   const sortedEntries = useMemo(
     () => [...entries].sort((a, b) => b.createdAt - a.createdAt),
-    [entries],
+    [entries]
   );
 
   const filteredEntries = useMemo(() => {
@@ -33,31 +33,43 @@ export function EvidenceBoard({
       (entry) =>
         entry.label.toLowerCase().includes(query) ||
         entry.id.toLowerCase().includes(query) ||
-        entry.status?.toLowerCase().includes(query),
+        entry.status?.toLowerCase().includes(query)
     );
   }, [sortedEntries, searchQuery]);
 
-  const activeEntry =
-    entries.find((entry) => entry.id === activeId) ?? sortedEntries[0];
+  const activeEntry = entries.find((entry) => entry.id === activeId) ?? sortedEntries[0];
+  const activeStamp = activeEntry?.status ?? "active";
+  const stampStyle = (status?: string) => {
+    switch (status) {
+      case "missing":
+        return "border-noir-red text-noir-red/90 bg-noir-red/10";
+      case "archived":
+        return "border-noir-gray/60 text-noir-paper/60 bg-noir-gray/20";
+      case "redacted":
+        return "border-noir-paper/40 text-noir-paper/70 bg-noir-paper/10";
+      default:
+        return "border-noir-amber/60 text-noir-amber/80 bg-noir-amber/10";
+    }
+  };
 
   const shouldShowFallback = sortedEntries.length === 0 && fallbackEvidence;
 
   return (
     <div className="w-full max-w-5xl flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="text-xs font-typewriter uppercase tracking-[0.3em] text-noir-amber/60">
-          Evidence Board
-        </div>
-        <div className="flex items-center gap-3">
+      {/* Only show search/view controls when there are entries */}
+      {sortedEntries.length > 0 && (
+        <div className="flex items-center justify-end gap-4 relative z-20 bg-noir-black/20 backdrop-blur-sm rounded-sm px-4 py-3 border border-noir-gray/20 mb-4">
           {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-noir-paper/40" />
+          <div className="relative flex items-center">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-noir-paper/50 pointer-events-none" />
             <input
+              id="evidence-search"
+              name="evidence-search"
               type="text"
               placeholder="Search evidence..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-40 pl-7 pr-7 py-1 bg-noir-black/40 border border-noir-gray/40 rounded-sm text-noir-paper/90 text-xs font-mono placeholder:text-noir-paper/40 focus:outline-none focus:border-noir-amber/60 transition-colors"
+              className="w-56 h-10 pl-10 pr-9 bg-noir-black/50 border border-noir-gray/50 rounded text-noir-paper/90 text-sm font-mono placeholder:text-noir-paper/40 focus:outline-none focus:border-noir-amber/60 transition-colors"
             />
             {searchQuery && (
               <button
@@ -70,15 +82,15 @@ export function EvidenceBoard({
             )}
           </div>
           {/* View Toggle */}
-          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider">
             <button
               type="button"
               onClick={() => setView("grid")}
               className={cn(
-                "px-2 py-1 border rounded-sm transition-colors",
+                "px-3 py-1.5 border rounded transition-colors",
                 view === "grid"
                   ? "border-noir-amber/70 text-noir-amber bg-noir-amber/10"
-                  : "border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber",
+                  : "border-noir-gray/70 text-noir-paper bg-noir-black/30 hover:text-noir-amber hover:border-noir-amber/40"
               )}
             >
               Grid
@@ -87,17 +99,29 @@ export function EvidenceBoard({
               type="button"
               onClick={() => setView("list")}
               className={cn(
-                "px-2 py-1 border rounded-sm transition-colors",
+                "px-3 py-1.5 border rounded transition-colors",
                 view === "list"
                   ? "border-noir-amber/70 text-noir-amber bg-noir-amber/10"
-                  : "border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber",
+                  : "border-noir-gray/70 text-noir-paper bg-noir-black/30 hover:text-noir-amber hover:border-noir-amber/40"
               )}
             >
               List
             </button>
+            <button
+              type="button"
+              onClick={() => setView("timeline")}
+              className={cn(
+                "px-3 py-1.5 border rounded transition-colors",
+                view === "timeline"
+                  ? "border-noir-amber/70 text-noir-amber bg-noir-amber/10"
+                  : "border-noir-gray/70 text-noir-paper bg-noir-black/30 hover:text-noir-amber hover:border-noir-amber/40"
+              )}
+            >
+              Timeline
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {filteredEntries.length === 0 ? (
         searchQuery ? (
@@ -113,13 +137,51 @@ export function EvidenceBoard({
             No evidence on record.
           </div>
         )
+      ) : view === "timeline" ? (
+        <div className="relative border-l border-noir-amber/20 pl-6 space-y-4">
+          {filteredEntries.map((entry) => {
+            const isActive = entry.id === activeEntry?.id;
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => onSelect(entry.id)}
+                className={cn(
+                  "relative text-left border rounded-sm p-3 bg-noir-black/40 hover:border-noir-amber/60 transition-colors w-full",
+                  isActive
+                    ? "border-noir-amber/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
+                    : "border-noir-gray/40"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute -left-[30px] top-4 w-3 h-3 rounded-full border",
+                    isActive
+                      ? "border-noir-amber bg-noir-amber/30"
+                      : "border-noir-gray/40 bg-noir-black"
+                  )}
+                  aria-hidden="true"
+                />
+                <div className="text-[10px] font-mono text-noir-paper/50 uppercase tracking-[0.2em]">
+                  {new Date(entry.createdAt).toLocaleString()}
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <span className="font-typewriter text-sm text-noir-paper/90">{entry.label}</span>
+                  {entry.status && (
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-noir-amber/70">
+                      {entry.status}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       ) : (
         <div
           className={cn(
             "grid gap-4",
-            view === "grid"
-              ? "grid-cols-[repeat(auto-fit,minmax(220px,1fr))]"
-              : "grid-cols-1",
+            view === "grid" ? "grid-cols-[repeat(auto-fit,minmax(220px,1fr))]" : "grid-cols-1"
           )}
         >
           {filteredEntries.map((entry) => {
@@ -133,13 +195,11 @@ export function EvidenceBoard({
                   "text-left border rounded-sm p-3 bg-noir-black/40 hover:border-noir-amber/60 transition-colors",
                   isActive
                     ? "border-noir-amber/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
-                    : "border-noir-gray/40",
+                    : "border-noir-gray/40"
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-typewriter text-sm text-noir-paper/90">
-                    {entry.label}
-                  </span>
+                  <span className="font-typewriter text-sm text-noir-paper/90">{entry.label}</span>
                   {entry.status && (
                     <span className="text-[10px] font-mono uppercase tracking-widest text-noir-amber/70">
                       {entry.status}
@@ -156,8 +216,19 @@ export function EvidenceBoard({
       )}
 
       {activeEntry && (
-        <div className="w-full flex justify-center">
-          <A2UIRenderer data={activeEntry.data} />
+        <div className="w-full flex flex-col items-center relative mt-6">
+          <div
+            className={cn(
+              "absolute -top-5 right-8 rotate-[-6deg] px-3 py-1 border-2 text-[10px] font-mono uppercase tracking-[0.4em] backdrop-blur-sm z-10",
+              stampStyle(activeStamp)
+            )}
+            data-testid="evidence-stamp"
+          >
+            {activeStamp}
+          </div>
+          <div className="w-full">
+            <A2UIRenderer data={activeEntry.data} />
+          </div>
         </div>
       )}
     </div>

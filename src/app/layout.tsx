@@ -32,11 +32,7 @@ export default function RootLayout({
       <head>
         <SandpackStyles />
       </head>
-      <body
-        className={`${inter.variable} ${specialElite.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body className={`${inter.variable} ${specialElite.variable} antialiased`}>{children}</body>
     </html>
   );
 }

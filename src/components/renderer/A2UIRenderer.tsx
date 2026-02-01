@@ -19,9 +19,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
   if (!result.success) {
     return (
       <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
-        <h3 className="text-noir-red font-typewriter font-bold mb-2">
-          REDACTED
-        </h3>
+        <h3 className="text-noir-red font-typewriter font-bold mb-2">REDACTED</h3>
         <p className="text-noir-red/80 font-mono text-xs">
           UNKNOWN ARTIFACT DETECTED.
           <br />
@@ -102,7 +100,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         className={cn(
           "w-full border border-noir-gray/40 bg-noir-black/35 rounded-sm",
           node.style?.width ? widthMap[node.style.width] : null,
-          node.style?.className,
+          node.style?.className
         )}
       >
         <div className="flex gap-2 border-b border-noir-gray/30 px-2">
@@ -115,16 +113,14 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
                 "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2 transition-colors",
                 index === activeIndex
                   ? "text-noir-amber border-noir-amber"
-                  : "text-noir-paper/60 border-transparent hover:text-noir-paper",
+                  : "text-noir-paper/60 border-transparent hover:text-noir-paper"
               )}
             >
               {tab.label}
             </button>
           ))}
         </div>
-        <div className="p-4">
-          {activeTab ? renderComponent(activeTab.content) : null}
-        </div>
+        <div className="p-4">{activeTab ? renderComponent(activeTab.content) : null}</div>
       </div>
     );
   };
@@ -141,11 +137,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         );
       case "card":
         return (
-          <DossierCard
-            title={node.title}
-            description={node.description}
-            status={node.status}
-          />
+          <DossierCard title={node.title} description={node.description} status={node.status} />
         );
       case "container":
         return (
@@ -156,13 +148,11 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               node.style?.padding ? paddingMap[node.style.padding] : null,
               node.style?.align ? alignMap[node.style.align] : null,
               node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.children.map((child, index) => (
-              <React.Fragment key={index}>
-                {renderComponent(child)}
-              </React.Fragment>
+              <React.Fragment key={index}>{renderComponent(child)}</React.Fragment>
             ))}
           </div>
         );
@@ -175,13 +165,11 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               node.style?.padding ? paddingMap[node.style.padding] : null,
               node.style?.align ? alignMap[node.style.align] : null,
               node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.children.map((child, index) => (
-              <React.Fragment key={index}>
-                {renderComponent(child)}
-              </React.Fragment>
+              <React.Fragment key={index}>{renderComponent(child)}</React.Fragment>
             ))}
           </div>
         );
@@ -194,13 +182,11 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               node.style?.padding ? paddingMap[node.style.padding] : null,
               node.style?.align ? alignMap[node.style.align] : null,
               node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.children.map((child, index) => (
-              <React.Fragment key={index}>
-                {renderComponent(child)}
-              </React.Fragment>
+              <React.Fragment key={index}>{renderComponent(child)}</React.Fragment>
             ))}
           </div>
         );
@@ -213,13 +199,11 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               node.style?.gap ? spacingMap[node.style.gap] : null,
               node.style?.padding ? paddingMap[node.style.padding] : null,
               node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.children.map((child, index) => (
-              <React.Fragment key={index}>
-                {renderComponent(child)}
-              </React.Fragment>
+              <React.Fragment key={index}>{renderComponent(child)}</React.Fragment>
             ))}
           </div>
         );
@@ -232,7 +216,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               node.level === 2 && "text-2xl",
               node.level === 3 && "text-xl",
               node.level === 4 && "text-lg",
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.text}
@@ -243,7 +227,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <p
             className={cn(
               "font-mono text-sm leading-relaxed text-noir-paper/80",
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.text}
@@ -255,14 +239,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             className={cn(
               "border-l-2 border-noir-amber/60 bg-noir-black/45 px-4 py-3 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]",
               node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
+              node.style?.className
             )}
           >
-            <TypewriterText
-              content={node.content}
-              priority={node.priority}
-              className="text-sm"
-            />
+            <TypewriterText content={node.content} priority={node.priority} className="text-sm" />
           </div>
         );
       case "badge":
@@ -271,7 +251,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             className={cn(
               "inline-flex items-center gap-2 px-2 py-1 text-[10px] uppercase tracking-[0.2em] border rounded-sm font-typewriter",
               node.variant ? variantMap[node.variant] : "border-noir-gray/40",
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.label}
@@ -282,14 +262,12 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-noir-paper/60 font-typewriter",
-              node.style?.className,
+              node.style?.className
             )}
           >
             <span className="flex-1 border-t border-noir-gray/40" />
             {node.label && <span>{node.label}</span>}
-            {node.label && (
-              <span className="flex-1 border-t border-noir-gray/40" />
-            )}
+            {node.label && <span className="flex-1 border-t border-noir-gray/40" />}
           </div>
         );
       case "list": {
@@ -299,7 +277,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             className={cn(
               "ml-5 text-sm text-noir-paper/85 font-mono",
               node.ordered ? "list-decimal" : "list-disc",
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.items.map((item, index) => (
@@ -316,7 +294,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             className={cn(
               "w-full overflow-x-auto",
               node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
+              node.style?.className
             )}
           >
             <table className="w-full border-collapse text-xs font-mono">
@@ -336,10 +314,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
                 {node.rows.map((row, rowIndex) => (
                   <tr key={rowIndex} className="border-b border-noir-gray/20">
                     {row.map((cell, cellIndex) => (
-                      <td
-                        key={cellIndex}
-                        className="py-2 pr-3 text-noir-paper/80"
-                      >
+                      <td key={cellIndex} className="py-2 pr-3 text-noir-paper/80">
                         {cell}
                       </td>
                     ))}
@@ -354,19 +329,15 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "border border-noir-gray/40 bg-noir-black/35 px-4 py-3 rounded-sm shadow-[0_0_12px_rgba(0,0,0,0.35)]",
-              node.style?.className,
+              node.style?.className
             )}
           >
             <div className="text-[10px] uppercase tracking-[0.3em] text-noir-paper/60 font-typewriter">
               {node.label}
             </div>
-            <div className="text-2xl text-noir-paper font-typewriter mt-2">
-              {node.value}
-            </div>
+            <div className="text-2xl text-noir-paper font-typewriter mt-2">{node.value}</div>
             {node.helper && (
-              <div className="text-xs text-noir-paper/60 font-mono mt-1">
-                {node.helper}
-              </div>
+              <div className="text-xs text-noir-paper/60 font-mono mt-1">{node.helper}</div>
             )}
           </div>
         );
@@ -379,7 +350,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             <div
               className={cn(
                 "border border-noir-gray/40 bg-noir-black/35 px-4 py-3 rounded-sm text-xs font-mono text-noir-paper/70",
-                node.style?.className,
+                node.style?.className
               )}
             >
               IMAGE PENDING
@@ -394,20 +365,15 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             className={cn(
               "rounded-sm object-cover",
               node.style?.width ? widthMap[node.style.width] : null,
-              node.style?.className,
+              node.style?.className
             )}
           />
         );
       case "input": {
-        const inputName =
-          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const inputName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
-          <label
-            className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
-          >
-            <span className="font-typewriter text-noir-paper/70">
-              {node.label}
-            </span>
+          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
             <input
               name={inputName}
               placeholder={node.placeholder}
@@ -415,57 +381,43 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               onChange={(e) => formContext?.setValue(inputName, e.target.value)}
               className={cn(
                 "bg-transparent border-b border-noir-gray/30 py-2 text-sm text-noir-paper focus:outline-none",
-                node.variant ? variantMap[node.variant] : "",
+                node.variant ? variantMap[node.variant] : ""
               )}
             />
           </label>
         );
       }
       case "textarea": {
-        const textareaName =
-          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const textareaName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
-          <label
-            className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
-          >
-            <span className="font-typewriter text-noir-paper/70">
-              {node.label}
-            </span>
+          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
             <textarea
               name={textareaName}
               placeholder={node.placeholder}
               defaultValue={node.value ?? ""}
-              onChange={(e) =>
-                formContext?.setValue(textareaName, e.target.value)
-              }
+              onChange={(e) => formContext?.setValue(textareaName, e.target.value)}
               rows={node.rows ?? 3}
               className={cn(
                 "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
-                node.variant ? variantMap[node.variant] : "",
+                node.variant ? variantMap[node.variant] : ""
               )}
             />
           </label>
         );
       }
       case "select": {
-        const selectName =
-          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const selectName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
-          <label
-            className={cn("flex flex-col gap-2 text-xs", node.style?.className)}
-          >
-            <span className="font-typewriter text-noir-paper/70">
-              {node.label}
-            </span>
+          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
             <select
               name={selectName}
               defaultValue={node.value ?? node.options[0]}
-              onChange={(e) =>
-                formContext?.setValue(selectName, e.target.value)
-              }
+              onChange={(e) => formContext?.setValue(selectName, e.target.value)}
               className={cn(
                 "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
-                node.variant ? variantMap[node.variant] : "",
+                node.variant ? variantMap[node.variant] : ""
               )}
             >
               {node.options.map((option) => (
@@ -478,26 +430,16 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         );
       }
       case "checkbox": {
-        const checkboxName =
-          node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const checkboxName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
-          <label
-            className={cn(
-              "flex items-center gap-2 text-xs",
-              node.style?.className,
-            )}
-          >
+          <label className={cn("flex items-center gap-2 text-xs", node.style?.className)}>
             <input
               type="checkbox"
               name={checkboxName}
               defaultChecked={node.checked ?? false}
-              onChange={(e) =>
-                formContext?.setValue(checkboxName, e.target.checked)
-              }
+              onChange={(e) => formContext?.setValue(checkboxName, e.target.checked)}
             />
-            <span className="font-typewriter text-noir-paper/70">
-              {node.label}
-            </span>
+            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
           </label>
         );
       }
@@ -526,7 +468,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             className={cn(
               "px-3 py-2 text-xs uppercase tracking-widest border rounded-sm",
               node.variant ? variantMap[node.variant] : "",
-              node.style?.className,
+              node.style?.className
             )}
           >
             {node.label}

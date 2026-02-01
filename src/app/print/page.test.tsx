@@ -13,6 +13,14 @@ describe("Print page", () => {
         typewriterSpeed: 30,
         soundEnabled: true,
         modelConfig: { provider: "auto", model: "" },
+        ambient: {
+          rainEnabled: true,
+          rainVolume: 1,
+          fogEnabled: true,
+          intensity: "medium",
+          crackleEnabled: false,
+          crackleVolume: 0.35,
+        },
       },
     });
   });

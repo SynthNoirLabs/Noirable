@@ -9,22 +9,13 @@ import {
   type ExportFile,
 } from "@/lib/eject/exportA2UI";
 import type { A2UIInput } from "@/lib/protocol/schema";
-import {
-  Copy,
-  Check,
-  Code,
-  FileJson,
-  X,
-  FolderOpen,
-  Play,
-  Download,
-} from "lucide-react";
+import { Copy, Check, Code, FileJson, X, FolderOpen, Play, Download } from "lucide-react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
 // Lazy load Sandpack for performance
 const SandpackPreview = lazy(() =>
-  import("./SandpackPreview").then((m) => ({ default: m.SandpackPreview })),
+  import("./SandpackPreview").then((m) => ({ default: m.SandpackPreview }))
 );
 
 interface EjectPanelProps {
@@ -41,7 +32,10 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
 
   const reactCode = evidence ? exportA2UI(evidence) : "";
   const jsonCode = evidence ? exportA2UIAsJSON(evidence) : "";
-  const multiFiles = evidence ? exportA2UIMultiFile(evidence, "Evidence") : [];
+  const multiFiles = React.useMemo(
+    () => (evidence ? exportA2UIMultiFile(evidence, "Evidence") : []),
+    [evidence]
+  );
 
   const getMultiFileContent = (files: ExportFile[]): string => {
     return files.map((f) => `// === ${f.path} ===\n${f.content}`).join("\n\n");
@@ -91,7 +85,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
       <div
         className={cn(
           "flex flex-col h-full bg-noir-black/90 border-l border-noir-gray/30",
-          className,
+          className
         )}
       >
         <div className="p-4 border-b border-noir-gray/30 flex items-center justify-between">
@@ -114,9 +108,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             <div className="text-noir-amber/40 mb-4">
               <Code className="w-12 h-12 mx-auto" />
             </div>
-            <p className="font-typewriter text-noir-paper/50 text-sm">
-              NO EVIDENCE LOADED
-            </p>
+            <p className="font-typewriter text-noir-paper/50 text-sm">NO EVIDENCE LOADED</p>
             <p className="font-mono text-xs text-noir-paper/30 mt-2">
               Generate UI via chat to enable code export
             </p>
@@ -130,7 +122,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
     <div
       className={cn(
         "flex flex-col h-full bg-noir-black/90 border-l border-noir-gray/30",
-        className,
+        className
       )}
     >
       <div className="p-4 border-b border-noir-gray/30">
@@ -158,7 +150,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "react"
                 ? "bg-noir-dark border-noir-gray/40 text-noir-amber"
-                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper",
+                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper"
             )}
           >
             <Code className="w-3 h-3" />
@@ -171,7 +163,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "json"
                 ? "bg-noir-dark border-noir-gray/40 text-noir-amber"
-                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper",
+                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper"
             )}
           >
             <FileJson className="w-3 h-3" />
@@ -184,7 +176,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "multifile"
                 ? "bg-noir-dark border-noir-gray/40 text-noir-amber"
-                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper",
+                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper"
             )}
           >
             <FolderOpen className="w-3 h-3" />
@@ -197,7 +189,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "sandbox"
                 ? "bg-noir-dark border-noir-gray/40 text-noir-amber"
-                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper",
+                : "bg-transparent border-transparent text-noir-paper/50 hover:text-noir-paper"
             )}
           >
             <Play className="w-3 h-3" />
@@ -223,15 +215,9 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               {(activeTab === "react" || activeTab === "multifile") && (
                 <button
                   type="button"
-                  onClick={
-                    activeTab === "multifile"
-                      ? handleDownloadZip
-                      : handleDownloadSingle
-                  }
+                  onClick={activeTab === "multifile" ? handleDownloadZip : handleDownloadSingle}
                   className="flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all bg-noir-dark/80 border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/40"
-                  aria-label={
-                    activeTab === "multifile" ? "Download ZIP" : "Download file"
-                  }
+                  aria-label={activeTab === "multifile" ? "Download ZIP" : "Download file"}
                 >
                   <Download className="w-3 h-3" />
                   {activeTab === "multifile" ? "ZIP" : "File"}
@@ -244,7 +230,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
                   "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all",
                   copied
                     ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
-                    : "bg-noir-dark/80 border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/40",
+                    : "bg-noir-dark/80 border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/40"
                 )}
                 aria-label={copied ? "Copied!" : "Copy to clipboard"}
               >
@@ -291,11 +277,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
                   ? `Multi-File (${multiFiles.length} files)`
                   : "Live Preview"}
           </span>
-          <span>
-            {activeTab === "sandbox"
-              ? "Sandpack"
-              : `${currentCode.length} chars`}
-          </span>
+          <span>{activeTab === "sandbox" ? "Sandpack" : `${currentCode.length} chars`}</span>
         </div>
       </div>
     </div>
