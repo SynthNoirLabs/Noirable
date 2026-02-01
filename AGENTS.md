@@ -196,3 +196,55 @@ Fallback auth: `~/.local/share/opencode/auth.json`
 | [docs/architecture.md](docs/architecture.md)                       | Technical architecture, data flows        |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)                         | Dev workflow, code style, testing         |
 | [docs/reference/a2ui-protocol.md](docs/reference/a2ui-protocol.md) | A2UI component schema reference           |
+
+## A2UI v0.9 Protocol
+
+The project now supports A2UI v0.9 specification for agent-generated UI.
+
+### API Endpoint
+
+- `/api/a2ui/stream` - SSE streaming endpoint
+- Accepts: `{ prompt: string }`
+- Returns: JSONL stream with A2UI v0.9 messages
+
+### Message Types
+
+- `createSurface` - Initialize new surface
+- `updateComponents` - Add/update components
+- `deleteSurface` - Remove surface
+
+### Components
+
+18 standard catalog components:
+
+| Category | Components                                                       |
+| -------- | ---------------------------------------------------------------- |
+| Layout   | Row, Column, List, Card, Tabs, Divider, Modal                    |
+| Content  | Text, Image, Icon, Video, AudioPlayer                            |
+| Input    | Button, CheckBox, TextField, DateTimeInput, ChoicePicker, Slider |
+
+### Testing
+
+```bash
+# Unit tests
+pnpm test src/lib/a2ui/
+pnpm test src/components/a2ui/
+
+# E2E tests
+pnpm e2e tests/e2e/a2ui/
+```
+
+### Key Files
+
+| Task                     | Location                   |
+| ------------------------ | -------------------------- |
+| A2UI v0.9 message schema | `src/lib/a2ui/schema/`     |
+| A2UI catalog components  | `src/lib/a2ui/catalog/`    |
+| A2UI surface management  | `src/lib/a2ui/surfaces/`   |
+| A2UI React components    | `src/components/a2ui/`     |
+| A2UI streaming endpoint  | `src/app/api/a2ui/stream/` |
+
+### Legacy Protocol
+
+The old tool-result protocol (`src/lib/protocol/schema.ts`) is deprecated but still functional.
+New features should use A2UI v0.9

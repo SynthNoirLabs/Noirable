@@ -27,6 +27,7 @@ Detective: "The file's on your desk. Rain-soaked, like everything else in this t
 - **Template Library** - 8 pre-built templates for quick starts
 - **Undo/Redo** - Full state history with keyboard shortcuts
 - **Multi-Provider** - OpenAI, Anthropic, Google, or any OpenAI-compatible API
+- **A2UI v0.9 Protocol** - Full compliance with Google A2UI specification
 
 ## Quick Start
 

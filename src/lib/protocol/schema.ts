@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use A2UI v0.9 protocol instead (src/lib/a2ui/)
+ * This schema is maintained for backward compatibility only.
+ * New features should use the standard A2UI catalog.
+ */
+
 import { z } from "zod";
 
 const spacingToken = z.enum(["none", "xs", "sm", "md", "lg", "xl"]);
