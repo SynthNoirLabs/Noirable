@@ -9,11 +9,14 @@ import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { getProviderWithOverrides, type ModelOverride } from "@/lib/ai/factory";
 import { tools } from "@/lib/ai/tools";
 import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
+import type { AestheticId } from "@/lib/aesthetic/types";
 
 type ChatRequestBody = {
   messages: UIMessage[];
   evidence?: unknown;
   modelConfig?: ModelOverride;
+  /** Active aesthetic profile ID for persona selection */
+  aestheticId?: AestheticId;
 };
 
 type UIMessagePartType = UIMessage["parts"][number];
@@ -230,7 +233,7 @@ export async function POST(req: Request) {
       console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
     }
 
-    const { messages, evidence, modelConfig } = json;
+    const { messages, evidence, modelConfig, aestheticId } = json;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Messages missing or invalid", { status: 400 });
@@ -282,7 +285,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: auth.provider(auth.model),
       messages: convertedMessages,
-      system: buildSystemPrompt(evidence),
+      system: buildSystemPrompt(evidence, aestheticId),
       tools,
     });
 

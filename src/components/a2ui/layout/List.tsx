@@ -22,7 +22,7 @@ export const List: React.FC<ComponentRendererProps> = ({ node }) => {
       )}
     >
       {listNode.items.map((item, index) => (
-        <li key={index} className="text-noir-paper/90 font-mono text-sm">
+        <li key={index} className="text-[var(--aesthetic-text)]/90 font-mono text-sm">
           {item}
         </li>
       ))}

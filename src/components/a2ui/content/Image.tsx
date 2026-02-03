@@ -45,7 +45,7 @@ export const Image: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }
       <div
         className={cn(
           "flex items-center justify-center bg-gray-100 rounded-md p-8 text-gray-400",
-          theme === "noir" && "bg-noir-black/45 text-noir-gray/40 border border-noir-gray/20",
+          "bg-[var(--aesthetic-background)]/45 text-[var(--aesthetic-text-muted)]/40 border border-[var(--aesthetic-border)]/20",
           getCommonStyles({ style: style as Record<string, unknown> | undefined })
         )}
       >
@@ -66,10 +66,7 @@ export const Image: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }
     >
       {isLoading && (
         <div
-          className={cn(
-            "absolute inset-0 animate-pulse",
-            theme === "noir" ? "bg-noir-gray/20" : "bg-gray-200"
-          )}
+          className={cn("absolute inset-0 animate-pulse", "bg-[var(--aesthetic-surface-alt)]/20")}
         />
       )}
       <img

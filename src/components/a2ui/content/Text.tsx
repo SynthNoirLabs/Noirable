@@ -39,7 +39,7 @@ export const Text: React.FC<ComponentRendererProps> = ({ node, theme = "noir" })
 
   const commonClasses = cn(
     getCommonStyles({ style: style as Record<string, unknown> | undefined }),
-    theme === "noir" ? "text-noir-paper" : "text-gray-900"
+    "text-[var(--aesthetic-text)]"
   );
 
   switch (variant) {

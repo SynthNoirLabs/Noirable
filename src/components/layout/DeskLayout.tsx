@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NoirEffects } from "@/components/noir/NoirEffects";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
-import type { AmbientSettings } from "@/lib/store/useA2UIStore";
+import type { AmbientSettings, AestheticId } from "@/lib/store/useA2UIStore";
 import { ResizeHandle } from "./ResizeHandle";
 
 interface DeskLayoutProps {
@@ -37,6 +37,8 @@ interface DeskLayoutProps {
   ambient?: AmbientSettings;
   soundEnabled?: boolean;
   musicEnabled?: boolean;
+  /** Active aesthetic profile ID */
+  aestheticId?: AestheticId;
   className?: string;
 }
 
@@ -64,6 +66,7 @@ export function DeskLayout({
   ambient,
   soundEnabled,
   musicEnabled,
+  aestheticId,
   className,
 }: DeskLayoutProps) {
   const isEditorVisible = showEditor;
@@ -102,8 +105,9 @@ export function DeskLayout({
   return (
     <div
       data-testid="desk-layout"
+      data-aesthetic={aestheticId ?? "noir"}
       className={cn(
-        "min-h-screen grid gap-0 bg-noir-dark text-noir-paper relative isolate overflow-hidden film-grain vignette",
+        "min-h-screen grid gap-0 bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] relative isolate overflow-hidden film-grain vignette",
         gridColsClass,
         className
       )}
@@ -120,6 +124,7 @@ export function DeskLayout({
         ambient={ambientSettings}
         soundEnabled={soundSetting}
         musicEnabled={musicSetting}
+        aestheticId={aestheticId}
       />
       <div
         data-testid="noir-rain-bg"
@@ -127,7 +132,7 @@ export function DeskLayout({
         aria-hidden="true"
       />
       <div
-        className="absolute inset-0 bg-noir-dark/80 pointer-events-none z-0"
+        className="absolute inset-0 bg-[var(--aesthetic-surface)]/80 pointer-events-none z-0"
         aria-hidden="true"
       />
       {!isEditorVisible && onToggleEditor && (
@@ -136,7 +141,7 @@ export function DeskLayout({
           onClick={onToggleEditor}
           aria-label="Show editor"
           title="Show editor"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-noir-black/70 border border-noir-gray/40 text-noir-paper/80 hover:text-noir-amber hover:border-noir-amber/50 transition-colors p-2 rounded-sm"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm"
         >
           <PanelLeftOpen className="w-4 h-4" />
         </button>
@@ -147,7 +152,7 @@ export function DeskLayout({
           onClick={onToggleSidebar}
           aria-label="Show sidebar"
           title="Show sidebar"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-noir-black/70 border border-noir-gray/40 text-noir-paper/80 hover:text-noir-amber hover:border-noir-amber/50 transition-colors p-2 rounded-sm"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm"
         >
           <PanelRightOpen className="w-4 h-4" />
         </button>
@@ -156,7 +161,7 @@ export function DeskLayout({
       {isEditorVisible && (
         <div
           data-testid="editor-pane"
-          className="border-r border-noir-gray/30 p-4 overflow-hidden bg-noir-black/50 relative z-10 flex flex-col min-h-0"
+          className="border-r border-[var(--aesthetic-border)]/30 p-4 overflow-hidden bg-[var(--aesthetic-background)]/50 relative z-10 flex flex-col min-h-0"
         >
           {onResizeEditor && (
             <ResizeHandle
@@ -174,15 +179,17 @@ export function DeskLayout({
             aria-hidden="true"
           />
           <div className="relative z-10 flex flex-col flex-1 min-h-0">
-            <div className="mb-4 border-b border-noir-gray/20 pb-2 flex items-center justify-between gap-2">
-              <h2 className="font-typewriter text-sm text-noir-paper/70">CASE FILE // JSON DATA</h2>
+            <div className="mb-4 border-b border-[var(--aesthetic-border)]/20 pb-2 flex items-center justify-between gap-2">
+              <h2 className="font-typewriter text-sm text-[var(--aesthetic-text)]/70">
+                CASE FILE // JSON DATA
+              </h2>
               {onToggleEditor && (
                 <button
                   type="button"
                   onClick={onToggleEditor}
                   aria-label="Hide editor"
                   title="Hide editor"
-                  className="text-noir-gray hover:text-noir-amber transition-colors p-1"
+                  className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors p-1"
                 >
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
@@ -195,7 +202,7 @@ export function DeskLayout({
 
       {/* Template Panel */}
       {isTemplatesVisible && templatePanel && (
-        <div className="h-full overflow-hidden border-r border-noir-gray/20 relative z-10">
+        <div className="h-full overflow-hidden border-r border-[var(--aesthetic-border)]/20 relative z-10">
           {templatePanel}
         </div>
       )}
@@ -204,9 +211,9 @@ export function DeskLayout({
         data-testid="evidence-board"
         className="bg-venetian relative flex flex-col min-h-screen z-10"
       >
-        <div className="sticky top-0 z-20 px-6 py-3 bg-noir-black/30 border-b border-noir-gray/20 backdrop-blur-sm">
+        <div className="sticky top-0 z-20 px-6 py-3 bg-[var(--aesthetic-background)]/30 border-b border-[var(--aesthetic-border)]/20 backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-typewriter text-xs text-noir-amber/60 uppercase tracking-[0.3em]">
+            <span className="font-typewriter text-xs text-[var(--aesthetic-accent)]/60 uppercase tracking-[0.3em]">
               Evidence Board
             </span>
             <div className="flex items-center gap-2 overflow-x-auto">
@@ -219,8 +226,8 @@ export function DeskLayout({
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
                     showTraining
-                      ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
-                      : "bg-noir-black/50 border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber hover:border-noir-amber/40"
+                      ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
+                      : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
                   )}
                 >
                   <Database className="w-3 h-3" />
@@ -236,8 +243,8 @@ export function DeskLayout({
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
                     showTemplates
-                      ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
-                      : "bg-noir-black/50 border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber hover:border-noir-amber/40"
+                      ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
+                      : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
                   )}
                 >
                   <LayoutTemplate className="w-3 h-3" />
@@ -253,8 +260,8 @@ export function DeskLayout({
                   className={cn(
                     "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
                     showEject
-                      ? "bg-noir-amber/20 border-noir-amber/40 text-noir-amber"
-                      : "bg-noir-black/50 border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber hover:border-noir-amber/40"
+                      ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
+                      : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
                   )}
                 >
                   <Code className="w-3 h-3" />
@@ -282,7 +289,7 @@ export function DeskLayout({
       {isSidebarVisible && (
         <div
           data-testid="chat-sidebar"
-          className="fixed top-0 right-0 h-screen overflow-hidden border-l border-noir-gray/20 bg-noir-black/80 z-30"
+          className="fixed top-0 right-0 h-screen overflow-hidden border-l border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-background)]/80 z-30"
           style={{ width: `${sidebarWidth}px` }}
         >
           {onResizeSidebar && (

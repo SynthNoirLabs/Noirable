@@ -24,7 +24,7 @@ export const Video: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }
       className={cn(
         "relative rounded-md overflow-hidden bg-black",
         getCommonStyles({ style: style as Record<string, unknown> | undefined }),
-        theme === "noir" && "border border-noir-gray/20 shadow-lg"
+        "border border-[var(--aesthetic-border)]/20 shadow-lg"
       )}
     >
       <video

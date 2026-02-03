@@ -6,7 +6,8 @@ import { useFormContext } from "@/components/renderer/FormContext";
 
 export const Button: React.FC<ComponentRendererProps<ButtonType>> = ({
   node,
-  theme = "standard",
+  // Theme prop reserved for future theming support
+  theme: _theme = "standard",
 }) => {
   const formContext = useFormContext();
 
@@ -14,28 +15,23 @@ export const Button: React.FC<ComponentRendererProps<ButtonType>> = ({
     const action = node.action;
 
     if ("event" in action) {
-      console.log(`[Button] Triggering event: ${action.event.name}`, action.event.context);
-
       // Legacy support for form submission
       if (action.event.name === "submit" && formContext?.onSubmit) {
         e.preventDefault();
         formContext.onSubmit(formContext.getValues());
       }
-    } else if ("functionCall" in action) {
-      console.log(
-        `[Button] Calling function: ${action.functionCall.call}`,
-        action.functionCall.args
-      );
     }
   };
 
   const variantStyles = {
-    primary: "bg-noir-paper text-noir-black hover:bg-noir-paper/90",
-    borderless: "bg-transparent text-noir-paper hover:bg-noir-paper/10 border border-transparent",
+    primary:
+      "bg-[var(--aesthetic-text)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-text)]/90",
+    borderless:
+      "bg-transparent text-[var(--aesthetic-text)] hover:bg-[var(--aesthetic-text)]/10 border border-transparent",
   };
 
   const baseStyles =
-    "px-4 py-2 rounded-sm font-typewriter text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-noir-paper/50 disabled:opacity-50 disabled:cursor-not-allowed";
+    "px-4 py-2 rounded-sm font-typewriter text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--aesthetic-text)]/50 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variantClass = node.variant ? variantStyles[node.variant] : variantStyles.primary;
 

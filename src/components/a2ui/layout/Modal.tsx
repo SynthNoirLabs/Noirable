@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components -- Dynamic component registry pattern */
 import React, { useState, useMemo } from "react";
 import { type ComponentRendererProps, getComponent } from "../registry";
 import { getCommonStyles } from "./utils";
@@ -17,34 +18,30 @@ const ModalContent: React.FC<{
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
 
-  // eslint-disable-next-line react-hooks/static-components
   const TriggerComponent = useMemo(() => getComponent(node.trigger.type), [node.trigger.type]);
-  // eslint-disable-next-line react-hooks/static-components
   const ContentComponent = useMemo(() => getComponent(node.content.type), [node.content.type]);
 
   return (
     <>
       <div onClick={openModal} className="inline-block cursor-pointer">
-        {/* eslint-disable-next-line react-hooks/static-components */}
         <TriggerComponent node={node.trigger} theme={theme} />
       </div>
 
       {isOpen &&
         createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-noir-black/80 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--aesthetic-background)]/80 backdrop-blur-sm p-4">
             <div
               className={cn(
-                "relative bg-noir-dark border border-noir-gray/50 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 rounded-sm",
+                "relative bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/50 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 rounded-sm",
                 getCommonStyles(node)
               )}
             >
               <button
                 onClick={closeModal}
-                className="absolute top-2 right-2 text-noir-paper/50 hover:text-noir-red transition-colors"
+                className="absolute top-2 right-2 text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-error)] transition-colors"
               >
                 ✕
               </button>
-              {/* eslint-disable-next-line react-hooks/static-components */}
               <ContentComponent node={node.content} theme={theme} />
             </div>
           </div>,

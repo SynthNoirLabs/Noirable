@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-type SoundEffectName = "typewriter" | "thunder" | "phone";
+export type SoundEffectName = "typewriter" | "thunder" | "phone";
 
 export interface NoirSoundEffectsControls {
   playTypewriter: () => void;
@@ -10,13 +10,18 @@ export interface NoirSoundEffectsControls {
   playPhoneRing: () => void;
 }
 
+/** SFX configuration type */
+export type SfxConfig = Record<SoundEffectName, { src: string; volume: number }>;
+
 interface NoirSoundEffectsProps {
   enabled: boolean;
   onReady?: (controls: NoirSoundEffectsControls | null) => void;
+  /** SFX configuration from audio pack. Overrides defaults. */
+  sfxConfig?: SfxConfig;
 }
 
-// Static audio files - no API calls needed
-const SFX_FILES: Record<SoundEffectName, { src: string; volume: number }> = {
+/** Default SFX configuration (noir aesthetic) */
+const DEFAULT_SFX_CONFIG: SfxConfig = {
   typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.6 },
   thunder: { src: "/assets/noir/thunder.mp3", volume: 0.75 },
   phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.7 },
@@ -31,8 +36,11 @@ function useCallbackRef<T>(callback: T | undefined) {
   return ref;
 }
 
-export function NoirSoundEffects({ enabled, onReady }: NoirSoundEffectsProps) {
+export function NoirSoundEffects({ enabled, onReady, sfxConfig }: NoirSoundEffectsProps) {
   const onReadyRef = useCallbackRef(onReady);
+
+  // Use provided config or fallback to defaults
+  const effectiveSfxConfig = sfxConfig ?? DEFAULT_SFX_CONFIG;
 
   const playEffect = useCallback(
     (name: SoundEffectName) => {
@@ -40,14 +48,14 @@ export function NoirSoundEffects({ enabled, onReady }: NoirSoundEffectsProps) {
         return;
       }
 
-      const { src, volume } = SFX_FILES[name];
+      const { src, volume } = effectiveSfxConfig[name];
       const audio = new Audio(src);
       audio.volume = volume;
       audio.play().catch(() => {
         // Ignore autoplay errors - user interaction required
       });
     },
-    [enabled]
+    [enabled, effectiveSfxConfig]
   );
 
   const controls = useMemo<NoirSoundEffectsControls>(

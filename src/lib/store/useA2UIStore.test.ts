@@ -23,6 +23,7 @@ describe("useA2UIStore", () => {
           crackleEnabled: false,
           crackleVolume: 0.35,
         },
+        aestheticId: "noir",
       },
       layout: {
         showEditor: true,
@@ -166,6 +167,18 @@ describe("useA2UIStore", () => {
       const settings = useA2UIStore.getState().settings;
       expect(settings.modelConfig.provider).toBe("openai");
       expect(settings.modelConfig.model).toBe("gpt-4o");
+    });
+
+    it("updates aestheticId", () => {
+      expect(useA2UIStore.getState().settings.aestheticId).toBe("noir");
+
+      useA2UIStore.getState().updateSettings({ aestheticId: "minimal" });
+
+      const settings = useA2UIStore.getState().settings;
+      expect(settings.aestheticId).toBe("minimal");
+      // Other settings unchanged
+      expect(settings.soundEnabled).toBe(true);
+      expect(settings.ambient.rainEnabled).toBe(true);
     });
   });
 

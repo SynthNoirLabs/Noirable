@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components -- Dynamic component registry pattern */
 import React, { useState, useMemo } from "react";
 import { type ComponentRendererProps, getComponent } from "../registry";
 import { widthMap } from "./utils";
@@ -13,21 +14,20 @@ const TabsContent: React.FC<{
   const [activeIndex, setActiveIndex] = useState(0);
 
   const activeTab = node.tabs[activeIndex];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const ChildComponent = useMemo(
     () => (activeTab ? getComponent(activeTab.content.type) : null),
-    [activeTab?.content.type]
+    [activeTab]
   );
 
   return (
     <div
       className={cn(
-        "w-full border border-noir-gray/40 bg-noir-black/35 rounded-sm",
+        "w-full border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 rounded-sm",
         node.style?.width ? widthMap[node.style.width] : null,
         node.style?.className
       )}
     >
-      <div className="flex gap-2 border-b border-noir-gray/30 px-2 overflow-x-auto">
+      <div className="flex gap-2 border-b border-[var(--aesthetic-border)]/30 px-2 overflow-x-auto">
         {node.tabs.map((tab, index) => (
           <button
             key={`${tab.label}-${index}`}
@@ -36,8 +36,8 @@ const TabsContent: React.FC<{
             className={cn(
               "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2 transition-colors whitespace-nowrap",
               index === activeIndex
-                ? "text-noir-amber border-noir-amber"
-                : "text-noir-paper/60 border-transparent hover:text-noir-paper"
+                ? "text-[var(--aesthetic-accent)] border-[var(--aesthetic-accent)]"
+                : "text-[var(--aesthetic-text)]/60 border-transparent hover:text-[var(--aesthetic-text)]"
             )}
           >
             {tab.label}
@@ -45,7 +45,6 @@ const TabsContent: React.FC<{
         ))}
       </div>
       <div className="p-4">
-        {/* eslint-disable-next-line react-hooks/static-components */}
         {activeTab && ChildComponent && <ChildComponent node={activeTab.content} theme={theme} />}
       </div>
     </div>

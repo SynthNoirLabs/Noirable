@@ -14,10 +14,10 @@ interface TypewriterTextProps {
 }
 
 const priorityMap = {
-  low: "text-noir-paper/50",
-  normal: "text-noir-paper",
-  high: "text-noir-amber",
-  critical: "text-noir-red",
+  low: "text-[var(--aesthetic-text)]/50",
+  normal: "text-[var(--aesthetic-text)]",
+  high: "text-[var(--aesthetic-accent)]",
+  critical: "text-[var(--aesthetic-error)]",
 };
 
 export function TypewriterText({

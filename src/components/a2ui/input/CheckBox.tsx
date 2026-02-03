@@ -7,7 +7,8 @@ import { getBindingPath, validate } from "./utils";
 
 export const CheckBox: React.FC<ComponentRendererProps<CheckBoxType>> = ({
   node,
-  theme = "standard",
+  // Theme prop reserved for future theming support
+  theme: _theme = "standard",
 }) => {
   const formContext = useFormContext();
   const bindingPath = getBindingPath(node.value);
@@ -43,14 +44,16 @@ export const CheckBox: React.FC<ComponentRendererProps<CheckBoxType>> = ({
           name={bindingPath || node.id}
           checked={!!currentValue}
           onChange={handleChange}
-          className="appearance-none w-4 h-4 border border-noir-gray/50 rounded-sm checked:bg-noir-paper checked:border-noir-paper focus:outline-none focus:ring-1 focus:ring-noir-paper/50 transition-colors relative"
+          className="appearance-none w-4 h-4 border border-[var(--aesthetic-border)]/50 rounded-sm checked:bg-[var(--aesthetic-text)] checked:border-[var(--aesthetic-text)] focus:outline-none focus:ring-1 focus:ring-[var(--aesthetic-text)]/50 transition-colors relative"
         />
         {/* Custom checkmark visualization could go here */}
-        <span className="font-typewriter text-noir-paper/70 hover:text-noir-paper transition-colors">
+        <span className="font-typewriter text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-text)] transition-colors">
           {label}
         </span>
       </label>
-      {error && <span className="text-[10px] text-noir-red font-mono ml-6">{error}</span>}
+      {error && (
+        <span className="text-[10px] text-[var(--aesthetic-error)] font-mono ml-6">{error}</span>
+      )}
     </div>
   );
 };

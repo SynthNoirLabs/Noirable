@@ -7,7 +7,8 @@ import { getBindingPath, validate } from "./utils";
 
 export const Slider: React.FC<ComponentRendererProps<SliderType>> = ({
   node,
-  theme = "standard",
+  // Theme prop reserved for future theming support
+  theme: _theme = "standard",
 }) => {
   const formContext = useFormContext();
   const bindingPath = getBindingPath(node.value);
@@ -33,8 +34,8 @@ export const Slider: React.FC<ComponentRendererProps<SliderType>> = ({
   return (
     <label className="flex flex-col gap-2 text-xs w-full">
       <div className="flex justify-between items-end">
-        <span className="font-typewriter text-noir-paper/70">{label}</span>
-        <span className="font-mono text-noir-paper">{currentValue}</span>
+        <span className="font-typewriter text-[var(--aesthetic-text)]/70">{label}</span>
+        <span className="font-mono text-[var(--aesthetic-text)]">{currentValue}</span>
       </div>
       <input
         type="range"
@@ -44,11 +45,13 @@ export const Slider: React.FC<ComponentRendererProps<SliderType>> = ({
         value={currentValue}
         onChange={handleChange}
         className={cn(
-          "w-full h-1 bg-noir-gray/30 rounded-lg appearance-none cursor-pointer accent-noir-paper",
-          error && "accent-noir-red"
+          "w-full h-1 bg-[var(--aesthetic-surface-alt)]/30 rounded-lg appearance-none cursor-pointer accent-[var(--aesthetic-text)]",
+          error && "accent-[var(--aesthetic-error)]"
         )}
       />
-      {error && <span className="text-[10px] text-noir-red font-mono">{error}</span>}
+      {error && (
+        <span className="text-[10px] text-[var(--aesthetic-error)] font-mono">{error}</span>
+      )}
     </label>
   );
 };

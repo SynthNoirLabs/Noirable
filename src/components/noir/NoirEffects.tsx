@@ -6,7 +6,8 @@ import { CrackleOverlay } from "@/components/noir/CrackleOverlay";
 import { FogOverlay } from "@/components/noir/FogOverlay";
 import { NoirMusic } from "@/components/noir/NoirMusic";
 import { RainAudio } from "@/components/noir/RainAudio";
-import type { AmbientSettings } from "@/lib/store/useA2UIStore";
+import type { AmbientSettings, AestheticId } from "@/lib/store/useA2UIStore";
+import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 
 const RainOverlay = dynamic(
   async () => {
@@ -20,9 +21,18 @@ interface NoirEffectsProps {
   ambient: AmbientSettings;
   soundEnabled: boolean;
   musicEnabled?: boolean;
+  /** Aesthetic profile ID for audio configuration */
+  aestheticId?: AestheticId;
 }
 
-export function NoirEffects({ ambient, soundEnabled, musicEnabled = false }: NoirEffectsProps) {
+export function NoirEffects({
+  ambient,
+  soundEnabled,
+  musicEnabled = false,
+  aestheticId = "noir",
+}: NoirEffectsProps) {
+  // Get audio pack configuration for the current aesthetic
+  const audioPack = getAudioPack(aestheticId);
   return (
     <>
       <RainOverlay enabled={ambient.rainEnabled} intensity={ambient.intensity} />
@@ -43,7 +53,7 @@ export function NoirEffects({ ambient, soundEnabled, musicEnabled = false }: Noi
         volumeScale={ambient.rainVolume}
         soundEnabled={soundEnabled}
       />
-      <NoirMusic enabled={musicEnabled} soundEnabled={soundEnabled} />
+      <NoirMusic enabled={musicEnabled} soundEnabled={soundEnabled} musicConfig={audioPack.music} />
     </>
   );
 }

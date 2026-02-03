@@ -12,7 +12,7 @@ interface SandpackPreviewProps {
 export function SandpackPreview({ evidence }: SandpackPreviewProps) {
   if (!evidence) {
     return (
-      <div className="h-full flex items-center justify-center text-noir-paper/50 font-typewriter text-xs uppercase tracking-wider">
+      <div className="h-full flex items-center justify-center text-[var(--aesthetic-text)]/50 font-typewriter text-xs uppercase tracking-wider">
         No evidence to preview
       </div>
     );

@@ -82,7 +82,6 @@ export const Icon: React.FC<ComponentRendererProps> = ({ node, theme = "noir" })
   const iconName = resolveText(iconNode.name);
   const lucideName = ICON_MAP[iconName] || "HelpCircle";
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const IconComponent = (LucideIcons[lucideName] || LucideIcons.HelpCircle) as React.ElementType;
 
   // Support style prop
@@ -98,7 +97,7 @@ export const Icon: React.FC<ComponentRendererProps> = ({ node, theme = "noir" })
       <IconComponent
         className={cn(
           "w-6 h-6",
-          theme === "noir" ? "text-noir-paper" : "text-current",
+          "text-[var(--aesthetic-text)]",
           // Allow override via style.className
           typeof (style as Record<string, unknown> | undefined)?.className === "string"
             ? ((style as Record<string, unknown>).className as string)

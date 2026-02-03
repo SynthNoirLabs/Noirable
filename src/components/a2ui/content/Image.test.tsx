@@ -31,6 +31,7 @@ describe("Image Component", () => {
       id: "img-2",
       url: "test.jpg",
       fit: "cover",
+      accessibility: { label: "Test fit image" },
     };
     const props = { node, theme: "noir" } as unknown as ComponentRendererProps;
 
@@ -43,7 +44,12 @@ describe("Image Component", () => {
     // This is hard to test with simple render, but we can check if a skeleton is present initially
     // Or we can mock the Image load event.
     // For now, let's just ensure it renders the img tag.
-    const node: ImageNode = { component: "Image", id: "img-3", url: "test.jpg" };
+    const node: ImageNode = {
+      component: "Image",
+      id: "img-3",
+      url: "test.jpg",
+      accessibility: { label: "Loading test image" },
+    };
     const props = { node, theme: "noir" } as unknown as ComponentRendererProps;
     render(<Image {...props} />);
     expect(screen.getByRole("img")).toBeInTheDocument();

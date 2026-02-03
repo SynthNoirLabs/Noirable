@@ -43,6 +43,7 @@ interface ChatSidebarProps {
   musicEnabled?: boolean;
   ambient?: AmbientSettings;
   modelConfig?: ModelConfig;
+  useA2UIv09?: boolean;
   onUpdateSettings?: (settings: SettingsUpdate) => void;
   onModelConfigChange?: (config: ModelConfig) => void;
   onToggleCollapse?: () => void;
@@ -60,6 +61,7 @@ export function ChatSidebar({
   musicEnabled = false,
   ambient,
   modelConfig,
+  useA2UIv09 = false,
   onUpdateSettings,
   onModelConfigChange,
   onToggleCollapse,
@@ -222,6 +224,10 @@ export function ChatSidebar({
     onUpdateSettings?.({ ambient: { intensity } });
   };
 
+  const toggleA2UIv09 = () => {
+    onUpdateSettings?.({ useA2UIv09: !useA2UIv09 });
+  };
+
   const sendShortcut = formatShortcut(["mod", "enter"]);
 
   const stopTts = useCallback(() => {
@@ -324,20 +330,20 @@ export function ChatSidebar({
   return (
     <div
       className={cn(
-        "flex flex-col h-full bg-noir-black/90 border-l border-noir-gray/20 shadow-[-10px_0_20px_rgba(0,0,0,0.5)]",
+        "flex flex-col h-full bg-[var(--aesthetic-background)]/90 border-l border-[var(--aesthetic-border)]/20 shadow-[-10px_0_20px_rgba(0,0,0,0.5)]",
         className
       )}
     >
-      <div className="p-4 border-b border-noir-gray/20 bg-noir-dark/95 sticky top-0 z-10 backdrop-blur-sm flex justify-between items-center">
-        <h2 className="font-typewriter text-sm text-noir-paper/70 tracking-widest flex items-center gap-2">
+      <div className="p-4 border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/95 sticky top-0 z-10 backdrop-blur-sm flex justify-between items-center">
+        <h2 className="font-typewriter text-sm text-[var(--aesthetic-text)]/70 tracking-widest flex items-center gap-2">
           <Image
             src="/assets/noir/detective-avatar.jpg"
             alt="Detective avatar"
             width={32}
             height={32}
-            className="w-8 h-8 rounded-full object-cover border border-noir-amber/40 shadow-[0_0_10px_rgba(255,191,0,0.18)]"
+            className="w-8 h-8 rounded-full object-cover border border-[var(--aesthetic-accent)]/40 shadow-[0_0_10px_rgba(255,191,0,0.18)]"
           />
-          <Bot className="w-4 h-4 text-noir-amber/70" />
+          <Bot className="w-4 h-4 text-[var(--aesthetic-accent)]/70" />
           INTERROGATION LOG
         </h2>
         <div className="flex items-center gap-2">
@@ -345,7 +351,7 @@ export function ChatSidebar({
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="w-9 h-9 flex items-center justify-center rounded-sm bg-noir-black/30 border border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber hover:border-noir-amber/40 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors"
               title="Collapse sidebar"
               aria-label="Collapse sidebar"
             >
@@ -356,7 +362,7 @@ export function ChatSidebar({
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              className="w-9 h-9 flex items-center justify-center rounded-sm bg-noir-black/30 border border-noir-gray/40 text-noir-paper/60 hover:text-noir-amber hover:border-noir-amber/40 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors"
               title="Configuration"
               aria-label="Open settings"
             >
@@ -373,32 +379,48 @@ export function ChatSidebar({
             animate={{ height: "auto", opacity: 1, overflow: "visible" }}
             exit={{ height: 0, opacity: 0, overflow: "hidden" }}
             transition={{ duration: 0.2 }}
-            className="border-b border-noir-gray/20 bg-noir-dark/50"
+            className="border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50"
           >
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-noir-paper/70">TYPEWRITER SPEED</span>
+                <span className="text-[var(--aesthetic-text)]/70">A2UI v0.9</span>
+                <button
+                  onClick={toggleA2UIv09}
+                  className={cn(
+                    "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
+                    useA2UIv09
+                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
+                  )}
+                  aria-label="Toggle A2UI v0.9 mode"
+                  aria-pressed={useA2UIv09}
+                >
+                  {useA2UIv09 ? "ON" : "OFF"}
+                </button>
+              </div>
+              <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
+                <span className="text-[var(--aesthetic-text)]/70">TYPEWRITER SPEED</span>
                 <button
                   onClick={toggleSpeed}
                   className={cn(
                     "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
                     typewriterSpeed === 0
-                      ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                      : "border-noir-gray/50 text-noir-gray hover:border-noir-paper"
+                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
                   )}
                 >
                   {typewriterSpeed === 0 ? "INSTANT" : "NORMAL"}
                 </button>
               </div>
               <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-noir-paper/70">SOUND FX</span>
+                <span className="text-[var(--aesthetic-text)]/70">SOUND FX</span>
                 <button
                   onClick={toggleSound}
                   className={cn(
                     "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
                     soundSetting
-                      ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                      : "border-noir-gray/50 text-noir-gray hover:border-noir-paper"
+                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
                   )}
                   aria-label="Toggle sound effects"
                   aria-pressed={soundSetting}
@@ -407,7 +429,7 @@ export function ChatSidebar({
                 </button>
               </div>
               <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-noir-paper/70">VOICE (TTS)</span>
+                <span className="text-[var(--aesthetic-text)]/70">VOICE (TTS)</span>
                 <button
                   onClick={toggleTts}
                   disabled={elevenLabsConfigured === false}
@@ -415,8 +437,8 @@ export function ChatSidebar({
                   className={cn(
                     "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
                     ttsSetting
-                      ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                      : "border-noir-gray/50 text-noir-gray hover:border-noir-paper",
+                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]",
                     elevenLabsConfigured === false && "opacity-50 cursor-not-allowed"
                   )}
                   aria-label="Toggle voice playback"
@@ -426,7 +448,7 @@ export function ChatSidebar({
                 </button>
               </div>
               <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-noir-paper/70">NOIR MUSIC</span>
+                <span className="text-[var(--aesthetic-text)]/70">NOIR MUSIC</span>
                 <button
                   onClick={toggleMusic}
                   disabled={elevenLabsConfigured === false}
@@ -434,8 +456,8 @@ export function ChatSidebar({
                   className={cn(
                     "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
                     musicSetting
-                      ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                      : "border-noir-gray/50 text-noir-gray hover:border-noir-paper",
+                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]",
                     elevenLabsConfigured === false && "opacity-50 cursor-not-allowed"
                   )}
                   aria-label="Toggle noir music"
@@ -445,7 +467,7 @@ export function ChatSidebar({
                 </button>
               </div>
               <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-noir-paper/70">FX TRIGGERS</span>
+                <span className="text-[var(--aesthetic-text)]/70">FX TRIGGERS</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -455,8 +477,8 @@ export function ChatSidebar({
                     className={cn(
                       "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors",
                       soundSetting
-                        ? "border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/50"
-                        : "border-noir-gray/30 text-noir-gray",
+                        ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
+                        : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
                       (!soundSetting || elevenLabsConfigured === false) &&
                         "opacity-50 cursor-not-allowed"
                     )}
@@ -472,8 +494,8 @@ export function ChatSidebar({
                     className={cn(
                       "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors",
                       soundSetting
-                        ? "border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/50"
-                        : "border-noir-gray/30 text-noir-gray",
+                        ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
+                        : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
                       (!soundSetting || elevenLabsConfigured === false) &&
                         "opacity-50 cursor-not-allowed"
                     )}
@@ -489,8 +511,8 @@ export function ChatSidebar({
                     className={cn(
                       "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors",
                       soundSetting
-                        ? "border-noir-gray/40 text-noir-paper/70 hover:text-noir-amber hover:border-noir-amber/50"
-                        : "border-noir-gray/30 text-noir-gray",
+                        ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
+                        : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
                       (!soundSetting || elevenLabsConfigured === false) &&
                         "opacity-50 cursor-not-allowed"
                     )}
@@ -500,19 +522,19 @@ export function ChatSidebar({
                   </button>
                 </div>
               </div>
-              <div className="border-t border-noir-gray/30 pt-4 space-y-3">
-                <div className="text-xs font-mono uppercase tracking-widest text-noir-paper/60">
+              <div className="border-t border-[var(--aesthetic-border)]/30 pt-4 space-y-3">
+                <div className="text-xs font-mono uppercase tracking-widest text-[var(--aesthetic-text)]/60">
                   Ambience
                 </div>
                 <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                  <span className="text-noir-paper/70">RAIN</span>
+                  <span className="text-[var(--aesthetic-text)]/70">RAIN</span>
                   <button
                     onClick={toggleRain}
                     className={cn(
                       "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
                       ambientSettings.rainEnabled
-                        ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                        : "border-noir-gray/50 text-noir-gray hover:border-noir-paper"
+                        ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                        : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
                     )}
                     aria-label="Toggle rain"
                     aria-pressed={ambientSettings.rainEnabled}
@@ -522,7 +544,7 @@ export function ChatSidebar({
                 </div>
                 {ambientSettings.rainEnabled && (
                   <div className="text-xs font-mono">
-                    <div className="flex items-center justify-between text-noir-paper/70">
+                    <div className="flex items-center justify-between text-[var(--aesthetic-text)]/70">
                       <span>RAIN VOLUME</span>
                       <span>{Math.round(ambientSettings.rainVolume * 100)}%</span>
                     </div>
@@ -536,19 +558,19 @@ export function ChatSidebar({
                         handleRainVolume(Number(event.currentTarget.value) / 100)
                       }
                       aria-label="Rain volume"
-                      className="w-full mt-2 accent-noir-amber"
+                      className="w-full mt-2 accent-[var(--aesthetic-accent)]"
                     />
                   </div>
                 )}
                 <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                  <span className="text-noir-paper/70">FOG</span>
+                  <span className="text-[var(--aesthetic-text)]/70">FOG</span>
                   <button
                     onClick={toggleFog}
                     className={cn(
                       "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
                       ambientSettings.fogEnabled
-                        ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                        : "border-noir-gray/50 text-noir-gray hover:border-noir-paper"
+                        ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                        : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
                     )}
                     aria-label="Toggle fog"
                     aria-pressed={ambientSettings.fogEnabled}
@@ -557,14 +579,14 @@ export function ChatSidebar({
                   </button>
                 </div>
                 <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                  <span className="text-noir-paper/70">VINYL CRACKLE</span>
+                  <span className="text-[var(--aesthetic-text)]/70">VINYL CRACKLE</span>
                   <button
                     onClick={toggleCrackle}
                     className={cn(
                       "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
                       ambientSettings.crackleEnabled
-                        ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                        : "border-noir-gray/50 text-noir-gray hover:border-noir-paper"
+                        ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                        : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
                     )}
                     aria-label="Toggle crackle"
                     aria-pressed={ambientSettings.crackleEnabled}
@@ -574,7 +596,7 @@ export function ChatSidebar({
                 </div>
                 {ambientSettings.crackleEnabled && (
                   <div className="text-xs font-mono">
-                    <div className="flex items-center justify-between text-noir-paper/70">
+                    <div className="flex items-center justify-between text-[var(--aesthetic-text)]/70">
                       <span>CRACKLE VOLUME</span>
                       <span>{Math.round(ambientSettings.crackleVolume * 100)}%</span>
                     </div>
@@ -588,12 +610,12 @@ export function ChatSidebar({
                         handleCrackleVolume(Number(event.currentTarget.value) / 100)
                       }
                       aria-label="Crackle volume"
-                      className="w-full mt-2 accent-noir-amber"
+                      className="w-full mt-2 accent-[var(--aesthetic-accent)]"
                     />
                   </div>
                 )}
                 <div className="text-xs font-mono">
-                  <span className="text-noir-paper/70">INTENSITY</span>
+                  <span className="text-[var(--aesthetic-text)]/70">INTENSITY</span>
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {(["low", "medium", "high"] as const).map((level) => (
                       <button
@@ -603,8 +625,8 @@ export function ChatSidebar({
                         className={cn(
                           "px-2 py-1 border rounded-sm uppercase tracking-widest text-[10px] transition-colors w-full",
                           ambientSettings.intensity === level
-                            ? "border-noir-amber text-noir-amber bg-noir-amber/10"
-                            : "border-noir-gray/50 text-noir-gray hover:border-noir-paper"
+                            ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                            : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
                         )}
                       >
                         {level}
@@ -625,7 +647,7 @@ export function ChatSidebar({
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.length === 0 && (
-          <div className="text-center py-12 text-noir-paper/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+          <div className="text-center py-12 text-[var(--aesthetic-text)]/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
             <Image
               src="/assets/noir/search-icon.jpg"
               alt="Search icon"
@@ -646,21 +668,25 @@ export function ChatSidebar({
               className={cn(
                 "flex gap-3 text-sm p-3 rounded-sm border relative group",
                 m.role === "user"
-                  ? "bg-noir-amber/5 border-noir-amber/20 ml-8 text-noir-paper shadow-sm"
-                  : "bg-noir-black/40 border-noir-gray/40 mr-8 text-noir-paper shadow-md"
+                  ? "bg-[var(--aesthetic-accent)]/5 border-[var(--aesthetic-accent)]/20 ml-8 text-[var(--aesthetic-text)] shadow-sm"
+                  : "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 mr-8 text-[var(--aesthetic-text)] shadow-md"
               )}
             >
               {/* Decorative corner accents for 'Noir' feel */}
               <div
                 className={cn(
                   "absolute w-1 h-1 top-[-1px] left-[-1px] border-t border-l",
-                  m.role === "user" ? "border-noir-amber/30" : "border-noir-paper/30"
+                  m.role === "user"
+                    ? "border-[var(--aesthetic-accent)]/30"
+                    : "border-[var(--aesthetic-text)]/30"
                 )}
               />
               <div
                 className={cn(
                   "absolute w-1 h-1 bottom-[-1px] right-[-1px] border-b border-r",
-                  m.role === "user" ? "border-noir-amber/30" : "border-noir-paper/30"
+                  m.role === "user"
+                    ? "border-[var(--aesthetic-accent)]/30"
+                    : "border-[var(--aesthetic-text)]/30"
                 )}
               />
 
@@ -668,8 +694,8 @@ export function ChatSidebar({
                 className={cn(
                   "w-6 h-6 flex items-center justify-center rounded-full shrink-0 border shadow-inner",
                   m.role === "user"
-                    ? "border-noir-amber/50 text-noir-amber bg-noir-amber/5"
-                    : "border-noir-paper/50 text-noir-paper bg-noir-paper/5"
+                    ? "border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
+                    : "border-[var(--aesthetic-text)]/50 text-[var(--aesthetic-text)] bg-[var(--aesthetic-text)]/5"
                 )}
               >
                 {m.role === "user" ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
@@ -702,8 +728,8 @@ export function ChatSidebar({
                   }
                   className={cn(
                     "absolute right-2 top-2 w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
-                    "bg-noir-black/40 border-noir-gray/40 text-noir-paper/60",
-                    "hover:text-noir-amber hover:border-noir-amber/40",
+                    "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
+                    "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
                     "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
                     (ttsPlayingId === m.id || ttsLoadingId === m.id) && "opacity-100",
                     (!ttsSetting || elevenLabsConfigured === false) &&
@@ -727,11 +753,11 @@ export function ChatSidebar({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex gap-2 items-center text-noir-gray text-xs font-mono pl-4 opacity-50"
+            className="flex gap-2 items-center text-[var(--aesthetic-text-muted)] text-xs font-mono pl-4 opacity-50"
           >
-            <span className="w-2 h-2 bg-noir-amber/50 rounded-full animate-pulse" />
-            <span className="w-2 h-2 bg-noir-amber/50 rounded-full animate-pulse delay-75" />
-            <span className="w-2 h-2 bg-noir-amber/50 rounded-full animate-pulse delay-150" />
+            <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse delay-75" />
+            <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse delay-150" />
             <span className="ml-2 uppercase tracking-wider text-[10px]">
               Processing Evidence...
             </span>
@@ -740,13 +766,13 @@ export function ChatSidebar({
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 bg-noir-dark/95 border-t border-noir-gray/20">
+      <div className="p-4 bg-[var(--aesthetic-surface)]/95 border-t border-[var(--aesthetic-border)]/20">
         <form onSubmit={onSubmit} className="relative">
           <input
             ref={inputRef}
             name="chat-input"
             autoFocus
-            className="w-full bg-transparent border-b border-noir-gray/30 rounded-none py-3 pl-2 pr-10 text-sm text-noir-paper focus:outline-none focus:border-noir-amber/50 font-mono placeholder:text-noir-paper/45 transition-colors"
+            className="w-full bg-transparent border-b border-[var(--aesthetic-border)]/30 rounded-none py-3 pl-2 pr-10 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-accent)]/50 font-mono placeholder:text-[var(--aesthetic-text)]/45 transition-colors"
             value={localInput}
             onChange={(e) => setLocalInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -756,7 +782,7 @@ export function ChatSidebar({
             type="submit"
             disabled={isLoading || !localInput.trim()}
             aria-label="Send message"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-noir-gray hover:text-noir-amber disabled:opacity-30 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>

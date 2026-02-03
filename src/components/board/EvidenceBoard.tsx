@@ -42,13 +42,13 @@ export function EvidenceBoard({
   const stampStyle = (status?: string) => {
     switch (status) {
       case "missing":
-        return "border-noir-red text-noir-red/90 bg-noir-red/10";
+        return "border-[var(--aesthetic-error)] text-[var(--aesthetic-error)]/90 bg-[var(--aesthetic-error)]/10";
       case "archived":
-        return "border-noir-gray/60 text-noir-paper/60 bg-noir-gray/20";
+        return "border-[var(--aesthetic-border)]/60 text-[var(--aesthetic-text)]/60 bg-[var(--aesthetic-surface-alt)]/20";
       case "redacted":
-        return "border-noir-paper/40 text-noir-paper/70 bg-noir-paper/10";
+        return "border-[var(--aesthetic-text)]/40 text-[var(--aesthetic-text)]/70 bg-[var(--aesthetic-text)]/10";
       default:
-        return "border-noir-amber/60 text-noir-amber/80 bg-noir-amber/10";
+        return "border-[var(--aesthetic-accent)]/60 text-[var(--aesthetic-accent)]/80 bg-[var(--aesthetic-accent)]/10";
     }
   };
 
@@ -58,10 +58,10 @@ export function EvidenceBoard({
     <div className="w-full max-w-5xl flex flex-col gap-6">
       {/* Only show search/view controls when there are entries */}
       {sortedEntries.length > 0 && (
-        <div className="flex items-center justify-end gap-4 relative z-20 bg-noir-black/20 backdrop-blur-sm rounded-sm px-4 py-3 border border-noir-gray/20 mb-4">
+        <div className="flex items-center justify-end gap-4 relative z-20 bg-[var(--aesthetic-background)]/20 backdrop-blur-sm rounded-sm px-4 py-3 border border-[var(--aesthetic-border)]/20 mb-4">
           {/* Search Input */}
           <div className="relative flex items-center">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-noir-paper/50 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--aesthetic-text)]/50 pointer-events-none" />
             <input
               id="evidence-search"
               name="evidence-search"
@@ -69,13 +69,13 @@ export function EvidenceBoard({
               placeholder="Search evidence..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-56 h-10 pl-10 pr-9 bg-noir-black/50 border border-noir-gray/50 rounded text-noir-paper/90 text-sm font-mono placeholder:text-noir-paper/40 focus:outline-none focus:border-noir-amber/60 transition-colors"
+              className="w-56 h-10 pl-10 pr-9 bg-[var(--aesthetic-background)]/50 border border-[var(--aesthetic-border)]/50 rounded text-[var(--aesthetic-text)]/90 text-sm font-mono placeholder:text-[var(--aesthetic-text)]/40 focus:outline-none focus:border-[var(--aesthetic-accent)]/60 transition-colors"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-noir-paper/40 hover:text-noir-amber transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text)]/40 hover:text-[var(--aesthetic-accent)] transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -89,8 +89,8 @@ export function EvidenceBoard({
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors",
                 view === "grid"
-                  ? "border-noir-amber/70 text-noir-amber bg-noir-amber/10"
-                  : "border-noir-gray/70 text-noir-paper bg-noir-black/30 hover:text-noir-amber hover:border-noir-amber/40"
+                  ? "border-[var(--aesthetic-accent)]/70 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                  : "border-[var(--aesthetic-border)]/70 text-[var(--aesthetic-text)] bg-[var(--aesthetic-background)]/30 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
               )}
             >
               Grid
@@ -101,8 +101,8 @@ export function EvidenceBoard({
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors",
                 view === "list"
-                  ? "border-noir-amber/70 text-noir-amber bg-noir-amber/10"
-                  : "border-noir-gray/70 text-noir-paper bg-noir-black/30 hover:text-noir-amber hover:border-noir-amber/40"
+                  ? "border-[var(--aesthetic-accent)]/70 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                  : "border-[var(--aesthetic-border)]/70 text-[var(--aesthetic-text)] bg-[var(--aesthetic-background)]/30 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
               )}
             >
               List
@@ -113,8 +113,8 @@ export function EvidenceBoard({
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors",
                 view === "timeline"
-                  ? "border-noir-amber/70 text-noir-amber bg-noir-amber/10"
-                  : "border-noir-gray/70 text-noir-paper bg-noir-black/30 hover:text-noir-amber hover:border-noir-amber/40"
+                  ? "border-[var(--aesthetic-accent)]/70 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                  : "border-[var(--aesthetic-border)]/70 text-[var(--aesthetic-text)] bg-[var(--aesthetic-background)]/30 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
               )}
             >
               Timeline
@@ -125,7 +125,7 @@ export function EvidenceBoard({
 
       {filteredEntries.length === 0 ? (
         searchQuery ? (
-          <div className="text-noir-paper/50 font-typewriter text-xs uppercase tracking-[0.2em] text-center py-12">
+          <div className="text-[var(--aesthetic-text)]/50 font-typewriter text-xs uppercase tracking-[0.2em] text-center py-12">
             No evidence matches &quot;{searchQuery}&quot;
           </div>
         ) : shouldShowFallback ? (
@@ -133,12 +133,12 @@ export function EvidenceBoard({
             <A2UIRenderer data={fallbackEvidence} />
           </div>
         ) : (
-          <div className="text-noir-paper/50 font-typewriter text-xs uppercase tracking-[0.2em] text-center py-12">
+          <div className="text-[var(--aesthetic-text)]/50 font-typewriter text-xs uppercase tracking-[0.2em] text-center py-12">
             No evidence on record.
           </div>
         )
       ) : view === "timeline" ? (
-        <div className="relative border-l border-noir-amber/20 pl-6 space-y-4">
+        <div className="relative border-l border-[var(--aesthetic-accent)]/20 pl-6 space-y-4">
           {filteredEntries.map((entry) => {
             const isActive = entry.id === activeEntry?.id;
             return (
@@ -147,28 +147,30 @@ export function EvidenceBoard({
                 type="button"
                 onClick={() => onSelect(entry.id)}
                 className={cn(
-                  "relative text-left border rounded-sm p-3 bg-noir-black/40 hover:border-noir-amber/60 transition-colors w-full",
+                  "relative text-left border rounded-sm p-3 bg-[var(--aesthetic-background)]/40 hover:border-[var(--aesthetic-accent)]/60 transition-colors w-full",
                   isActive
-                    ? "border-noir-amber/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
-                    : "border-noir-gray/40"
+                    ? "border-[var(--aesthetic-accent)]/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
+                    : "border-[var(--aesthetic-border)]/40"
                 )}
               >
                 <span
                   className={cn(
                     "absolute -left-[30px] top-4 w-3 h-3 rounded-full border",
                     isActive
-                      ? "border-noir-amber bg-noir-amber/30"
-                      : "border-noir-gray/40 bg-noir-black"
+                      ? "border-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/30"
+                      : "border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]"
                   )}
                   aria-hidden="true"
                 />
-                <div className="text-[10px] font-mono text-noir-paper/50 uppercase tracking-[0.2em]">
+                <div className="text-[10px] font-mono text-[var(--aesthetic-text)]/50 uppercase tracking-[0.2em]">
                   {new Date(entry.createdAt).toLocaleString()}
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-1">
-                  <span className="font-typewriter text-sm text-noir-paper/90">{entry.label}</span>
+                  <span className="font-typewriter text-sm text-[var(--aesthetic-text)]/90">
+                    {entry.label}
+                  </span>
                   {entry.status && (
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-noir-amber/70">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--aesthetic-accent)]/70">
                       {entry.status}
                     </span>
                   )}
@@ -192,21 +194,23 @@ export function EvidenceBoard({
                 type="button"
                 onClick={() => onSelect(entry.id)}
                 className={cn(
-                  "text-left border rounded-sm p-3 bg-noir-black/40 hover:border-noir-amber/60 transition-colors",
+                  "text-left border rounded-sm p-3 bg-[var(--aesthetic-background)]/40 hover:border-[var(--aesthetic-accent)]/60 transition-colors",
                   isActive
-                    ? "border-noir-amber/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
-                    : "border-noir-gray/40"
+                    ? "border-[var(--aesthetic-accent)]/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
+                    : "border-[var(--aesthetic-border)]/40"
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-typewriter text-sm text-noir-paper/90">{entry.label}</span>
+                  <span className="font-typewriter text-sm text-[var(--aesthetic-text)]/90">
+                    {entry.label}
+                  </span>
                   {entry.status && (
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-noir-amber/70">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--aesthetic-accent)]/70">
                       {entry.status}
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] font-mono text-noir-paper/50 mt-2 uppercase tracking-[0.2em]">
+                <div className="text-[10px] font-mono text-[var(--aesthetic-text)]/50 mt-2 uppercase tracking-[0.2em]">
                   Evidence {entry.id.slice(0, 6)}
                 </div>
               </button>

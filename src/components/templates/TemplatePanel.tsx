@@ -58,34 +58,34 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-noir-dark border-l border-noir-gray/20">
+    <div className="h-full flex flex-col bg-[var(--aesthetic-surface)] border-l border-[var(--aesthetic-border)]/20">
       {/* Header */}
-      <div className="p-4 border-b border-noir-gray/20 flex items-center justify-between">
-        <h2 className="font-typewriter text-sm text-noir-paper/70 uppercase tracking-widest">
+      <div className="p-4 border-b border-[var(--aesthetic-border)]/20 flex items-center justify-between">
+        <h2 className="font-typewriter text-sm text-[var(--aesthetic-text)]/70 uppercase tracking-widest">
           Template Library
         </h2>
         <button
           type="button"
           onClick={onClose}
-          className="text-noir-gray hover:text-noir-amber transition-colors"
+          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-noir-gray/20">
+      <div className="p-3 border-b border-[var(--aesthetic-border)]/20">
         <input
           type="text"
           placeholder="Search templates..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 bg-noir-black/40 border border-noir-gray/40 rounded-sm text-noir-paper/90 text-xs font-mono placeholder:text-noir-paper/40 focus:outline-none focus:border-noir-amber/60 transition-colors"
+          className="w-full px-3 py-2 bg-[var(--aesthetic-background)]/40 border border-[var(--aesthetic-border)]/40 rounded-sm text-[var(--aesthetic-text)]/90 text-xs font-mono placeholder:text-[var(--aesthetic-text)]/40 focus:outline-none focus:border-[var(--aesthetic-accent)]/60 transition-colors"
         />
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-1 p-2 border-b border-noir-gray/20 overflow-x-auto">
+      <div className="flex gap-1 p-2 border-b border-[var(--aesthetic-border)]/20 overflow-x-auto">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -94,8 +94,8 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
             className={cn(
               "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap",
               selectedCategory === cat
-                ? "bg-noir-amber/20 text-noir-amber border border-noir-amber/40"
-                : "text-noir-paper/60 hover:text-noir-amber border border-transparent"
+                ? "bg-[var(--aesthetic-accent)]/20 text-[var(--aesthetic-accent)] border border-[var(--aesthetic-accent)]/40"
+                : "text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] border border-transparent"
             )}
           >
             {cat !== "all" && CATEGORY_ICONS[cat]}
@@ -107,7 +107,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       {/* Template List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {filteredTemplates.length === 0 ? (
-          <div className="text-center py-8 text-noir-paper/50 font-typewriter text-xs uppercase tracking-wider">
+          <div className="text-center py-8 text-[var(--aesthetic-text)]/50 font-typewriter text-xs uppercase tracking-wider">
             No templates found
           </div>
         ) : (
@@ -116,21 +116,23 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
               key={template.id}
               type="button"
               onClick={() => onSelect(template.data)}
-              className="w-full text-left p-3 bg-noir-black/30 border border-noir-gray/30 rounded-sm hover:border-noir-amber/50 hover:bg-noir-black/50 transition-colors group"
+              className="w-full text-left p-3 bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/30 rounded-sm hover:border-[var(--aesthetic-accent)]/50 hover:bg-[var(--aesthetic-background)]/50 transition-colors group"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-noir-paper/40">{CATEGORY_ICONS[template.category]}</span>
-                    <span className="font-typewriter text-sm text-noir-paper group-hover:text-noir-amber transition-colors">
+                    <span className="text-[var(--aesthetic-text)]/40">
+                      {CATEGORY_ICONS[template.category]}
+                    </span>
+                    <span className="font-typewriter text-sm text-[var(--aesthetic-text)] group-hover:text-[var(--aesthetic-accent)] transition-colors">
                       {template.name}
                     </span>
                   </div>
-                  <p className="text-[10px] font-mono text-noir-paper/50 mt-1 line-clamp-2">
+                  <p className="text-[10px] font-mono text-[var(--aesthetic-text)]/50 mt-1 line-clamp-2">
                     {template.description}
                   </p>
                 </div>
-                <span className="text-[9px] font-mono text-noir-amber/50 uppercase tracking-wider shrink-0">
+                <span className="text-[9px] font-mono text-[var(--aesthetic-accent)]/50 uppercase tracking-wider shrink-0">
                   {CATEGORY_LABELS[template.category]}
                 </span>
               </div>
@@ -140,7 +142,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-noir-gray/20 text-[10px] font-mono text-noir-paper/40 text-center">
+      <div className="p-3 border-t border-[var(--aesthetic-border)]/20 text-[10px] font-mono text-[var(--aesthetic-text)]/40 text-center">
         {filteredTemplates.length} template
         {filteredTemplates.length !== 1 ? "s" : ""} available
       </div>

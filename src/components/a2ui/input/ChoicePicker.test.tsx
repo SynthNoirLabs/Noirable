@@ -22,7 +22,7 @@ describe("ChoicePicker", () => {
       </FormProvider>
     );
 
-    const select = screen.getByRole("combobox");
+    expect(screen.getByRole("combobox")).toBeDefined();
     expect(screen.getByText("Option A")).toBeDefined();
     expect(screen.getByText("Option B")).toBeDefined();
   });

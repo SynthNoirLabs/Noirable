@@ -7,7 +7,8 @@ import { getBindingPath, validate } from "./utils";
 
 export const TextField: React.FC<ComponentRendererProps<TextFieldType>> = ({
   node,
-  theme = "standard",
+  // Theme prop reserved for future theming support
+  theme: _theme = "standard",
 }) => {
   const formContext = useFormContext();
   const bindingPath = getBindingPath(node.value);
@@ -38,18 +39,20 @@ export const TextField: React.FC<ComponentRendererProps<TextFieldType>> = ({
 
   return (
     <label className="flex flex-col gap-2 text-xs w-full">
-      <span className="font-typewriter text-noir-paper/70">{label}</span>
+      <span className="font-typewriter text-[var(--aesthetic-text)]/70">{label}</span>
       <input
         type={inputType}
         name={bindingPath || node.id}
         value={currentValue}
         onChange={handleChange}
         className={cn(
-          "bg-transparent border-b border-noir-gray/30 py-2 text-sm text-noir-paper focus:outline-none focus:border-noir-paper transition-colors w-full placeholder:text-noir-gray/30",
-          error && "border-noir-red/70"
+          "bg-transparent border-b border-[var(--aesthetic-border)]/30 py-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-text)] transition-colors w-full placeholder:text-[var(--aesthetic-text-muted)]/30",
+          error && "border-[var(--aesthetic-error)]/70"
         )}
       />
-      {error && <span className="text-[10px] text-noir-red font-mono">{error}</span>}
+      {error && (
+        <span className="text-[10px] text-[var(--aesthetic-error)] font-mono">{error}</span>
+      )}
     </label>
   );
 };

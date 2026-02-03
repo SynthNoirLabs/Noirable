@@ -16,6 +16,9 @@ import { EvidenceSkeleton } from "@/components/board/EvidenceSkeleton";
 import { TrainingDataPanel } from "@/components/training/TrainingDataPanel";
 import type { A2UIInput } from "@/lib/protocol/schema";
 import { createTrainingExample, shouldCapture } from "@/lib/training";
+// A2UI v0.9 imports
+import { useA2UIStream } from "@/lib/a2ui/hooks/useA2UIStream";
+import { A2UIv09Preview } from "@/components/a2ui/A2UIv09Preview";
 
 const DEFAULT_JSON = JSON.stringify(
   {
@@ -101,6 +104,25 @@ export function DetectiveWorkspace() {
 
   const transport = useMemo(() => new DefaultChatTransport(), []);
 
+  // A2UI v0.9 hook
+  const useV09 = settings.useA2UIv09 ?? false;
+  const {
+    sendPrompt: sendV09Prompt,
+    isStreaming: isV09Streaming,
+    error: v09Error,
+  } = useA2UIStream({
+    onComplete: (surfaceId) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[A2UI v0.9] Surface completed:", surfaceId);
+      }
+      setLastFailedPrompt(null);
+    },
+    onError: (err) => {
+      console.error("[A2UI v0.9] Error:", err);
+      setError(err.message);
+    },
+  });
+
   const buildRequestBody = useCallback(
     () => ({
       evidence,
@@ -108,8 +130,9 @@ export function DetectiveWorkspace() {
         modelConfig?.provider && modelConfig.provider !== "auto"
           ? { provider: modelConfig.provider, model: modelConfig.model }
           : undefined,
+      aestheticId: settings.aestheticId,
     }),
-    [evidence, modelConfig]
+    [evidence, modelConfig, settings.aestheticId]
   );
 
   const chat = useChat({
@@ -118,7 +141,8 @@ export function DetectiveWorkspace() {
   });
 
   const { messages, status, sendMessage } = chat;
-  const isLoading = status === "submitted" || status === "streaming";
+  const isLegacyLoading = status === "submitted" || status === "streaming";
+  const isLoading = useV09 ? isV09Streaming : isLegacyLoading;
 
   const uiMessages = useMemo(
     () =>
@@ -197,6 +221,21 @@ export function DetectiveWorkspace() {
             return;
           }
         }
+
+        // Handle set_aesthetic tool result
+        if (invocation?.toolName === "set_aesthetic" && invocation?.state === "result") {
+          const result = invocation.result as {
+            success?: boolean;
+            aestheticId?: string;
+            message?: string;
+          };
+          if (result?.success && result?.aestheticId) {
+            if (process.env.NODE_ENV !== "production") {
+              console.log("Aesthetic changed:", result.aestheticId, result.message);
+            }
+            updateSettings({ aestheticId: result.aestheticId as "noir" | "minimal" });
+          }
+        }
       }
 
       const toolPart = part as {
@@ -236,7 +275,6 @@ export function DetectiveWorkspace() {
         continue;
       }
 
-      console.log("Tool Result received:", parsed.data);
       const entry = {
         id:
           typeof globalThis.crypto?.randomUUID === "function"
@@ -280,7 +318,6 @@ export function DetectiveWorkspace() {
         continue;
       }
 
-      console.log("Tool Result received:", parsed.data);
       const entry = {
         id:
           typeof globalThis.crypto?.randomUUID === "function"
@@ -369,9 +406,16 @@ export function DetectiveWorkspace() {
       if (text) {
         trackAndSend(text);
       }
+
+      // Use A2UI v0.9 endpoint when enabled
+      if (useV09 && text) {
+        await sendV09Prompt(text);
+        return;
+      }
+
       return sendMessageWithContext(message, options);
     },
-    [sendMessageWithContext, trackAndSend]
+    [sendMessageWithContext, trackAndSend, useV09, sendV09Prompt]
   );
 
   // Retry last failed prompt
@@ -410,6 +454,7 @@ export function DetectiveWorkspace() {
       ambient={settings.ambient}
       soundEnabled={settings.soundEnabled}
       musicEnabled={settings.musicEnabled}
+      aestheticId={settings.aestheticId}
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
       onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
@@ -427,7 +472,7 @@ export function DetectiveWorkspace() {
       editor={
         <div className="h-full min-h-0 flex flex-col">
           <textarea
-            className="w-full flex-1 min-h-0 bg-noir-black/30 text-noir-paper/95 font-mono text-sm leading-relaxed resize-none focus:outline-none p-3 border border-noir-gray/30 rounded-sm shadow-inner"
+            className="w-full flex-1 min-h-0 bg-[var(--aesthetic-background)]/30 text-[var(--aesthetic-text)]/95 font-mono text-sm leading-relaxed resize-none focus:outline-none p-3 border border-[var(--aesthetic-border)]/30 rounded-sm shadow-inner"
             id="json-editor"
             name="json-editor"
             value={json}
@@ -435,7 +480,7 @@ export function DetectiveWorkspace() {
             spellCheck={false}
           />
           {error && (
-            <div className="text-noir-red font-typewriter text-xs mt-2 border-t border-noir-red pt-2">
+            <div className="text-[var(--aesthetic-error)] font-typewriter text-xs mt-2 border-t border-[var(--aesthetic-error)] pt-2">
               Error: {error}
             </div>
           )}
@@ -444,27 +489,33 @@ export function DetectiveWorkspace() {
       preview={
         isLoading ? (
           <EvidenceSkeleton />
-        ) : error ? (
+        ) : error || v09Error ? (
           <div className="max-w-md space-y-4">
-            <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm">
-              <h3 className="text-noir-red font-typewriter font-bold mb-2">CASE FILE ERROR</h3>
-              <p className="text-noir-red/80 font-mono text-xs">{error}</p>
+            <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm">
+              <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
+                CASE FILE ERROR
+              </h3>
+              <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
+                {error || v09Error?.message}
+              </p>
             </div>
             {lastFailedPrompt && (
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={handleRetry}
-                  className="px-4 py-2 bg-noir-amber/20 border border-noir-amber/50 text-noir-amber font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-noir-amber/30 transition-colors"
+                  className="px-4 py-2 bg-[var(--aesthetic-accent)]/20 border border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-accent)]/30 transition-colors"
                 >
                   Retry Last Command
                 </button>
-                <span className="text-noir-paper/50 font-mono text-xs truncate max-w-[200px]">
+                <span className="text-[var(--aesthetic-text)]/50 font-mono text-xs truncate max-w-[200px]">
                   &ldquo;{lastFailedPrompt}&rdquo;
                 </span>
               </div>
             )}
           </div>
+        ) : useV09 ? (
+          <A2UIv09Preview />
         ) : evidence ? (
           <EvidenceBoard
             entries={evidenceHistory}
@@ -473,9 +524,13 @@ export function DetectiveWorkspace() {
             fallbackEvidence={evidence}
           />
         ) : (
-          <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
-            <h3 className="text-noir-red font-typewriter font-bold mb-2">REDACTED</h3>
-            <p className="text-noir-red/80 font-mono text-xs">NO EVIDENCE LOADED.</p>
+          <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm animate-pulse max-w-md">
+            <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
+              REDACTED
+            </h3>
+            <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
+              NO EVIDENCE LOADED.
+            </p>
           </div>
         )
       }
@@ -490,6 +545,7 @@ export function DetectiveWorkspace() {
           musicEnabled={settings.musicEnabled}
           ambient={settings.ambient}
           modelConfig={modelConfig}
+          useA2UIv09={useV09}
           onUpdateSettings={updateSettings}
           onModelConfigChange={(config) => updateSettings({ modelConfig: config })}
           onToggleCollapse={() => updateLayout({ showSidebar: false })}

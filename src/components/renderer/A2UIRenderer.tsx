@@ -18,9 +18,9 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
 
   if (!result.success) {
     return (
-      <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
-        <h3 className="text-noir-red font-typewriter font-bold mb-2">REDACTED</h3>
-        <p className="text-noir-red/80 font-mono text-xs">
+      <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm animate-pulse max-w-md">
+        <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">REDACTED</h3>
+        <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
           UNKNOWN ARTIFACT DETECTED.
           <br />
           DATA CORRUPTION LEVEL: CRITICAL.
@@ -71,10 +71,13 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
   };
 
   const variantMap: Record<string, string> = {
-    primary: "bg-noir-amber text-noir-ink border-noir-amber/60",
-    secondary: "bg-noir-dark text-noir-paper border-noir-gray/50",
-    ghost: "bg-transparent text-noir-paper border-noir-gray/40",
-    danger: "bg-noir-red text-noir-paper border-noir-red/60",
+    primary:
+      "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] border-[var(--aesthetic-accent)]/60",
+    secondary:
+      "bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] border-[var(--aesthetic-border)]/50",
+    ghost: "bg-transparent text-[var(--aesthetic-text)] border-[var(--aesthetic-border)]/40",
+    danger:
+      "bg-[var(--aesthetic-error)] text-[var(--aesthetic-text)] border-[var(--aesthetic-error)]/60",
   };
 
   type TabsNode = Extract<A2UIInput, { type: "tabs" }>;
@@ -98,12 +101,12 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
     return (
       <div
         className={cn(
-          "w-full border border-noir-gray/40 bg-noir-black/35 rounded-sm",
+          "w-full border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 rounded-sm",
           node.style?.width ? widthMap[node.style.width] : null,
           node.style?.className
         )}
       >
-        <div className="flex gap-2 border-b border-noir-gray/30 px-2">
+        <div className="flex gap-2 border-b border-[var(--aesthetic-border)]/30 px-2">
           {node.tabs.map((tab, index) => (
             <button
               key={`${tab.label}-${index}`}
@@ -112,8 +115,8 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               className={cn(
                 "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2 transition-colors",
                 index === activeIndex
-                  ? "text-noir-amber border-noir-amber"
-                  : "text-noir-paper/60 border-transparent hover:text-noir-paper"
+                  ? "text-[var(--aesthetic-accent)] border-[var(--aesthetic-accent)]"
+                  : "text-[var(--aesthetic-text)]/60 border-transparent hover:text-[var(--aesthetic-text)]"
               )}
             >
               {tab.label}
@@ -132,7 +135,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <TypewriterText
             content={node.content}
             priority={node.priority}
-            className="px-4 py-2 bg-noir-black/35 border border-noir-gray/40 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]"
+            className="px-4 py-2 bg-[var(--aesthetic-background)]/35 border border-[var(--aesthetic-border)]/40 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]"
           />
         );
       case "card":
@@ -211,7 +214,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <div
             className={cn(
-              "font-typewriter text-noir-paper",
+              "font-typewriter text-[var(--aesthetic-text)]",
               node.level === 1 && "text-3xl",
               node.level === 2 && "text-2xl",
               node.level === 3 && "text-xl",
@@ -226,7 +229,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <p
             className={cn(
-              "font-mono text-sm leading-relaxed text-noir-paper/80",
+              "font-mono text-sm leading-relaxed text-[var(--aesthetic-text)]/80",
               node.style?.className
             )}
           >
@@ -237,7 +240,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <div
             className={cn(
-              "border-l-2 border-noir-amber/60 bg-noir-black/45 px-4 py-3 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]",
+              "border-l-2 border-[var(--aesthetic-accent)]/60 bg-[var(--aesthetic-background)]/45 px-4 py-3 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]",
               node.style?.width ? widthMap[node.style.width] : null,
               node.style?.className
             )}
@@ -250,7 +253,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <span
             className={cn(
               "inline-flex items-center gap-2 px-2 py-1 text-[10px] uppercase tracking-[0.2em] border rounded-sm font-typewriter",
-              node.variant ? variantMap[node.variant] : "border-noir-gray/40",
+              node.variant ? variantMap[node.variant] : "border-[var(--aesthetic-border)]/40",
               node.style?.className
             )}
           >
@@ -261,13 +264,13 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <div
             className={cn(
-              "flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-noir-paper/60 font-typewriter",
+              "flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-[var(--aesthetic-text)]/60 font-typewriter",
               node.style?.className
             )}
           >
-            <span className="flex-1 border-t border-noir-gray/40" />
+            <span className="flex-1 border-t border-[var(--aesthetic-border)]/40" />
             {node.label && <span>{node.label}</span>}
-            {node.label && <span className="flex-1 border-t border-noir-gray/40" />}
+            {node.label && <span className="flex-1 border-t border-[var(--aesthetic-border)]/40" />}
           </div>
         );
       case "list": {
@@ -275,7 +278,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <ListTag
             className={cn(
-              "ml-5 text-sm text-noir-paper/85 font-mono",
+              "ml-5 text-sm text-[var(--aesthetic-text)]/85 font-mono",
               node.ordered ? "list-decimal" : "list-disc",
               node.style?.className
             )}
@@ -299,11 +302,11 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           >
             <table className="w-full border-collapse text-xs font-mono">
               <thead>
-                <tr className="text-noir-paper/70">
+                <tr className="text-[var(--aesthetic-text)]/70">
                   {node.columns.map((col, index) => (
                     <th
                       key={index}
-                      className="text-left border-b border-noir-gray/40 pb-2 pr-3 uppercase tracking-[0.2em]"
+                      className="text-left border-b border-[var(--aesthetic-border)]/40 pb-2 pr-3 uppercase tracking-[0.2em]"
                     >
                       {col}
                     </th>
@@ -312,9 +315,9 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               </thead>
               <tbody>
                 {node.rows.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="border-b border-noir-gray/20">
+                  <tr key={rowIndex} className="border-b border-[var(--aesthetic-border)]/20">
                     {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="py-2 pr-3 text-noir-paper/80">
+                      <td key={cellIndex} className="py-2 pr-3 text-[var(--aesthetic-text)]/80">
                         {cell}
                       </td>
                     ))}
@@ -328,16 +331,20 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <div
             className={cn(
-              "border border-noir-gray/40 bg-noir-black/35 px-4 py-3 rounded-sm shadow-[0_0_12px_rgba(0,0,0,0.35)]",
+              "border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3 rounded-sm shadow-[0_0_12px_rgba(0,0,0,0.35)]",
               node.style?.className
             )}
           >
-            <div className="text-[10px] uppercase tracking-[0.3em] text-noir-paper/60 font-typewriter">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[var(--aesthetic-text)]/60 font-typewriter">
               {node.label}
             </div>
-            <div className="text-2xl text-noir-paper font-typewriter mt-2">{node.value}</div>
+            <div className="text-2xl text-[var(--aesthetic-text)] font-typewriter mt-2">
+              {node.value}
+            </div>
             {node.helper && (
-              <div className="text-xs text-noir-paper/60 font-mono mt-1">{node.helper}</div>
+              <div className="text-xs text-[var(--aesthetic-text)]/60 font-mono mt-1">
+                {node.helper}
+              </div>
             )}
           </div>
         );
@@ -349,7 +356,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           return (
             <div
               className={cn(
-                "border border-noir-gray/40 bg-noir-black/35 px-4 py-3 rounded-sm text-xs font-mono text-noir-paper/70",
+                "border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3 rounded-sm text-xs font-mono text-[var(--aesthetic-text)]/70",
                 node.style?.className
               )}
             >
@@ -373,14 +380,14 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         const inputName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
           <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
-            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
+            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
             <input
               name={inputName}
               placeholder={node.placeholder}
               defaultValue={node.value ?? ""}
               onChange={(e) => formContext?.setValue(inputName, e.target.value)}
               className={cn(
-                "bg-transparent border-b border-noir-gray/30 py-2 text-sm text-noir-paper focus:outline-none",
+                "bg-transparent border-b border-[var(--aesthetic-border)]/30 py-2 text-sm text-[var(--aesthetic-text)] focus:outline-none",
                 node.variant ? variantMap[node.variant] : ""
               )}
             />
@@ -391,7 +398,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         const textareaName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
           <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
-            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
+            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
             <textarea
               name={textareaName}
               placeholder={node.placeholder}
@@ -399,7 +406,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               onChange={(e) => formContext?.setValue(textareaName, e.target.value)}
               rows={node.rows ?? 3}
               className={cn(
-                "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
+                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none",
                 node.variant ? variantMap[node.variant] : ""
               )}
             />
@@ -410,13 +417,13 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         const selectName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
         return (
           <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
-            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
+            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
             <select
               name={selectName}
               defaultValue={node.value ?? node.options[0]}
               onChange={(e) => formContext?.setValue(selectName, e.target.value)}
               className={cn(
-                "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none",
+                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none",
                 node.variant ? variantMap[node.variant] : ""
               )}
             >
@@ -439,7 +446,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               defaultChecked={node.checked ?? false}
               onChange={(e) => formContext?.setValue(checkboxName, e.target.checked)}
             />
-            <span className="font-typewriter text-noir-paper/70">{node.label}</span>
+            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
           </label>
         );
       }
@@ -454,7 +461,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               formContext.reset();
               break;
             case "log":
-              console.log("Form values:", formContext.getValues());
+              // Debug action - logs form values to console in development
+              if (process.env.NODE_ENV !== "production") {
+                console.log("Form values:", formContext.getValues());
+              }
               break;
             default:
               // No action - just a display button

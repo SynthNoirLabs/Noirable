@@ -113,7 +113,7 @@ export function RainOverlay({ enabled = true, intensity = "medium" }: RainOverla
       {drops.map((drop) => (
         <div
           key={drop.id}
-          className="absolute w-[1px] bg-gradient-to-b from-transparent via-noir-paper/30 to-noir-paper/70"
+          className="absolute w-[1px] bg-gradient-to-b from-transparent via-[var(--aesthetic-text)]/30 to-[var(--aesthetic-text)]/70"
           style={{
             left: `${drop.left}%`,
             top: `-${drop.height}px`,

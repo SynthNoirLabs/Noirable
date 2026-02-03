@@ -7,7 +7,8 @@ import { getBindingPath, validate } from "./utils";
 
 export const ChoicePicker: React.FC<ComponentRendererProps<ChoicePickerType>> = ({
   node,
-  theme = "standard",
+  // Theme prop reserved for future theming support
+  theme: _theme = "standard",
 }) => {
   const formContext = useFormContext();
   const bindingPath = getBindingPath(node.value);
@@ -30,17 +31,21 @@ export const ChoicePicker: React.FC<ComponentRendererProps<ChoicePickerType>> = 
 
   return (
     <label className="flex flex-col gap-2 text-xs w-full">
-      <span className="font-typewriter text-noir-paper/70">{label}</span>
+      <span className="font-typewriter text-[var(--aesthetic-text)]/70">{label}</span>
       <select
         name={bindingPath || node.id}
         value={currentValue}
         onChange={handleChange}
         className={cn(
-          "bg-transparent border border-noir-gray/30 p-2 text-sm text-noir-paper focus:outline-none focus:border-noir-paper transition-colors w-full rounded-sm",
-          error && "border-noir-red/70"
+          "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-text)] transition-colors w-full rounded-sm",
+          error && "border-[var(--aesthetic-error)]/70"
         )}
       >
-        <option value="" disabled className="bg-noir-black text-noir-paper">
+        <option
+          value=""
+          disabled
+          className="bg-[var(--aesthetic-background)] text-[var(--aesthetic-text)]"
+        >
           Select...
         </option>
         {node.options.map((option) => {
@@ -49,14 +54,16 @@ export const ChoicePicker: React.FC<ComponentRendererProps<ChoicePickerType>> = 
             <option
               key={option.value}
               value={option.value}
-              className="bg-noir-black text-noir-paper"
+              className="bg-[var(--aesthetic-background)] text-[var(--aesthetic-text)]"
             >
               {optLabel}
             </option>
           );
         })}
       </select>
-      {error && <span className="text-[10px] text-noir-red font-mono">{error}</span>}
+      {error && (
+        <span className="text-[10px] text-[var(--aesthetic-error)] font-mono">{error}</span>
+      )}
     </label>
   );
 };

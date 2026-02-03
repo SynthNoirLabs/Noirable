@@ -3,8 +3,10 @@ import { createJSONStorage, persist, type PersistStorage } from "zustand/middlew
 import { A2UIInput } from "@/lib/protocol/schema";
 import { AIProviderType, AVAILABLE_MODELS } from "@/lib/ai/models";
 import type { TrainingExample } from "@/lib/training";
+import type { AestheticId } from "@/lib/aesthetic/types";
 
 export type { AIProviderType };
+export type { AestheticId } from "@/lib/aesthetic/types";
 export { AVAILABLE_MODELS };
 
 export interface ModelConfig {
@@ -31,6 +33,10 @@ export interface Settings {
   musicEnabled?: boolean;
   modelConfig: ModelConfig;
   ambient: AmbientSettings;
+  /** Use A2UI v0.9 protocol instead of legacy */
+  useA2UIv09?: boolean;
+  /** Active aesthetic profile ID */
+  aestheticId?: AestheticId;
 }
 
 export type SettingsUpdate = Partial<Omit<Settings, "ambient">> & {
@@ -301,6 +307,7 @@ export const useA2UIStore = create<A2UIState>()(
           crackleEnabled: false,
           crackleVolume: 0.35,
         },
+        aestheticId: "noir",
       },
       updateSettings: (newSettings) =>
         set((state) => ({

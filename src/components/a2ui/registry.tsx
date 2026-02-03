@@ -52,9 +52,9 @@ export type ComponentRenderer = React.FC<ComponentRendererProps<A2UIInput>>;
 
 export const FallbackRenderer: ComponentRenderer = ({ node }) => {
   return (
-    <div className="bg-noir-red/10 border-2 border-noir-red p-4 rounded-sm animate-pulse max-w-md">
-      <h3 className="text-noir-red font-typewriter font-bold mb-2">REDACTED</h3>
-      <p className="text-noir-red/80 font-mono text-xs">
+    <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm animate-pulse max-w-md">
+      <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">REDACTED</h3>
+      <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
         UNKNOWN ARTIFACT DETECTED: {(node as A2UIInput)?.type || "UNDEFINED"}
         <br />
         DATA CORRUPTION LEVEL: CRITICAL.
@@ -67,7 +67,7 @@ FallbackRenderer.displayName = "FallbackRenderer";
 // Stub for components not yet implemented
 const StubRenderer: ComponentRenderer = ({ node }) => {
   return (
-    <div className="border border-dashed border-noir-gray/40 p-2 text-noir-paper/50 text-xs font-mono">
+    <div className="border border-dashed border-[var(--aesthetic-border)]/40 p-2 text-[var(--aesthetic-text)]/50 text-xs font-mono">
       [{node.type}] PENDING IMPLEMENTATION
     </div>
   );

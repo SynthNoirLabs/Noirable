@@ -18,7 +18,7 @@ export function DossierCard({
   return (
     <div
       className={cn(
-        "bg-paper p-6 relative border border-noir-gray/20 rotate-[-1deg] max-w-md transition-transform hover:rotate-0 hover:scale-[1.01] duration-300",
+        "bg-paper p-6 relative border border-[var(--aesthetic-border)]/20 rotate-[-1deg] max-w-md transition-transform hover:rotate-0 hover:scale-[1.01] duration-300",
         "shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_0_40px_rgba(112,66,20,0.05)]", // worn edges
         className
       )}
@@ -33,21 +33,26 @@ export function DossierCard({
       <div
         className={cn(
           "absolute top-4 right-4 transform rotate-[15deg] border-[3px] px-3 py-1 font-typewriter font-bold opacity-80 text-xs tracking-widest mask-stamp",
-          status === "active" ? "border-noir-ink text-noir-ink" : "border-noir-red text-noir-red"
+          status === "active"
+            ? "border-[var(--aesthetic-border)] text-[var(--aesthetic-border)]"
+            : "border-[var(--aesthetic-error)] text-[var(--aesthetic-error)]"
         )}
       >
         {status.toUpperCase()}
       </div>
 
-      <div className="border-b-2 border-noir-ink/10 pb-4 mb-4">
-        <TypewriterText content={title} className="text-2xl font-bold text-noir-ink" />
+      <div className="border-b-2 border-[var(--aesthetic-border)]/10 pb-4 mb-4">
+        <TypewriterText
+          content={title}
+          className="text-2xl font-bold text-[var(--aesthetic-border)]"
+        />
       </div>
 
       {description && (
         <TypewriterText
           content={description}
           priority="low"
-          className="text-sm leading-relaxed text-noir-ink/80"
+          className="text-sm leading-relaxed text-[var(--aesthetic-border)]/80"
         />
       )}
     </div>

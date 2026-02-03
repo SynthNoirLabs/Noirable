@@ -22,26 +22,21 @@ export const AudioPlayer: React.FC<ComponentRendererProps> = ({ node, theme = "n
     <div
       className={cn(
         "flex items-center gap-4 p-3 rounded-md",
-        theme === "noir" ? "bg-noir-black/45 border border-noir-gray/20" : "bg-gray-100",
+        "bg-[var(--aesthetic-background)]/45 border border-[var(--aesthetic-border)]/20",
         getCommonStyles({ style: style as Record<string, unknown> | undefined })
       )}
     >
       <div
         className={cn(
           "p-2 rounded-full",
-          theme === "noir" ? "bg-noir-amber/10 text-noir-amber" : "bg-white text-gray-500"
+          "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)]"
         )}
       >
         <Music className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
         {description && (
-          <div
-            className={cn(
-              "text-xs font-mono mb-1 truncate",
-              theme === "noir" ? "text-noir-paper/80" : "text-gray-700"
-            )}
-          >
+          <div className={cn("text-xs font-mono mb-1 truncate", "text-[var(--aesthetic-text)]/80")}>
             {description}
           </div>
         )}

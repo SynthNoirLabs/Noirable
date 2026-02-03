@@ -20,6 +20,49 @@
   --color-noir-whiskey: #d4915d;
 }
 
+/* --- AESTHETIC SYSTEM VARIABLES --- */
+
+/* Dynamic theme switching via data-aesthetic attribute */
+
+/* Components migrate from hardcoded colors to var(--aesthetic-*) */
+
+:root {
+  /* Default to noir aesthetic */
+  --aesthetic-background: #0f0f0f;
+  --aesthetic-surface: #1a1a1a;
+  --aesthetic-surface-alt: #2a2a2a;
+  --aesthetic-text: #e0e0e0;
+  --aesthetic-text-muted: #a0a0a0;
+  --aesthetic-accent: #ffbf00;
+  --aesthetic-accent-muted: #b5a642;
+  --aesthetic-border: #2a2a2a;
+  --aesthetic-error: #8a0000;
+}
+
+[data-aesthetic="noir"] {
+  --aesthetic-background: #0f0f0f;
+  --aesthetic-surface: #1a1a1a;
+  --aesthetic-surface-alt: #2a2a2a;
+  --aesthetic-text: #e0e0e0;
+  --aesthetic-text-muted: #a0a0a0;
+  --aesthetic-accent: #ffbf00;
+  --aesthetic-accent-muted: #b5a642;
+  --aesthetic-border: #2a2a2a;
+  --aesthetic-error: #8a0000;
+}
+
+[data-aesthetic="minimal"] {
+  --aesthetic-background: #ffffff;
+  --aesthetic-surface: #f4f4f5;
+  --aesthetic-surface-alt: #e4e4e7;
+  --aesthetic-text: #18181b;
+  --aesthetic-text-muted: #71717a;
+  --aesthetic-accent: #2563eb;
+  --aesthetic-accent-muted: #3b82f6;
+  --aesthetic-border: #e4e4e7;
+  --aesthetic-error: #dc2626;
+}
+
 body {
   @apply bg-noir-dark text-noir-paper font-sans;
 }

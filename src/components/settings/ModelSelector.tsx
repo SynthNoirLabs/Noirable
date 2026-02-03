@@ -65,16 +65,16 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
   return (
     <div className="space-y-4 py-2" ref={containerRef}>
       <div className="flex items-center gap-2 mb-1 opacity-50">
-        <div className="h-px bg-noir-gray/30 flex-1" />
-        <span className="text-[10px] font-mono text-noir-amber uppercase tracking-widest">
+        <div className="h-px bg-[var(--aesthetic-border)]/30 flex-1" />
+        <span className="text-[10px] font-mono text-[var(--aesthetic-accent)] uppercase tracking-widest">
           Neural Link
         </span>
-        <div className="h-px bg-noir-gray/30 flex-1" />
+        <div className="h-px bg-[var(--aesthetic-border)]/30 flex-1" />
       </div>
 
       <div className="space-y-1.5 relative">
-        <label className="text-[10px] font-typewriter text-noir-paper/60 uppercase tracking-wider flex items-center gap-1.5">
-          <Server className="w-3 h-3 text-noir-amber/70" />
+        <label className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5">
+          <Server className="w-3 h-3 text-[var(--aesthetic-accent)]/70" />
           Provider Protocol
         </label>
 
@@ -83,17 +83,17 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
             onClick={() => setActiveDropdown(activeDropdown === "provider" ? null : "provider")}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
-              "bg-noir-dark/50 border rounded-sm outline-none focus:ring-1 focus:ring-noir-amber/30",
+              "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
               activeDropdown === "provider"
-                ? "border-noir-amber text-noir-amber bg-noir-amber/5"
-                : "border-noir-gray/30 text-noir-paper hover:border-noir-gray/60 hover:bg-noir-paper/5"
+                ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
+                : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text)] hover:border-[var(--aesthetic-border)]/60 hover:bg-[var(--aesthetic-text)]/5"
             )}
           >
             <span className="truncate">{currentProviderLabel}</span>
             <ChevronDown
               className={cn(
                 "w-3 h-3 transition-transform duration-200 opacity-70",
-                activeDropdown === "provider" && "rotate-180 text-noir-amber"
+                activeDropdown === "provider" && "rotate-180 text-[var(--aesthetic-accent)]"
               )}
             />
           </button>
@@ -105,9 +105,9 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -5, scale: 0.98 }}
                 transition={{ duration: 0.15, ease: "circOut" }}
-                className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-noir-gray/30 bg-noir-dark/95 shadow-xl backdrop-blur-md"
+                className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md"
               >
-                <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-noir-gray/20">
+                <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20">
                   {PROVIDERS.map((provider) => (
                     <button
                       key={provider.id}
@@ -115,13 +115,13 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                       className={cn(
                         "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
                         modelConfig.provider === provider.id
-                          ? "bg-noir-amber/10 text-noir-amber border-l-2 border-l-noir-amber pl-[10px]"
-                          : "text-noir-paper/80 hover:bg-noir-paper/5 hover:text-noir-paper border-l-2 border-l-transparent"
+                          ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)] border-l-2 border-l-[var(--aesthetic-accent)] pl-[10px]"
+                          : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)] border-l-2 border-l-transparent"
                       )}
                     >
                       <span>{provider.label}</span>
                       {modelConfig.provider === provider.id && (
-                        <Check className="w-3 h-3 text-noir-amber" />
+                        <Check className="w-3 h-3 text-[var(--aesthetic-accent)]" />
                       )}
                     </button>
                   ))}
@@ -133,14 +133,14 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
       </div>
 
       <div className="space-y-1.5 relative">
-        <label className="text-[10px] font-typewriter text-noir-paper/60 uppercase tracking-wider flex items-center gap-1.5">
-          <Cpu className="w-3 h-3 text-noir-amber/70" />
+        <label className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5">
+          <Cpu className="w-3 h-3 text-[var(--aesthetic-accent)]/70" />
           Model Architecture
         </label>
 
         {isAutoProvider ? (
-          <div className="w-full px-3 py-2 text-xs font-mono text-noir-gray/50 bg-noir-black/30 border border-noir-gray/10 rounded-sm flex items-center gap-2 cursor-not-allowed italic">
-            <div className="w-1.5 h-1.5 rounded-full bg-noir-amber/30 animate-pulse" />
+          <div className="w-full px-3 py-2 text-xs font-mono text-[var(--aesthetic-text-muted)]/50 bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/10 rounded-sm flex items-center gap-2 cursor-not-allowed italic">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--aesthetic-accent)]/30 animate-pulse" />
             Auto-Detecting Optimal Model...
           </div>
         ) : isCustomProvider ? (
@@ -150,12 +150,12 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
               value={modelConfig.model}
               onChange={(e) => handleModelChange(e.target.value)}
               placeholder="Enter model ID (e.g. llama-3-70b)"
-              className="w-full bg-transparent border-b border-noir-gray/30 py-2 pl-0 pr-8 text-xs font-mono text-noir-paper placeholder:text-noir-gray/30 focus:outline-none focus:border-noir-amber transition-colors"
+              className="w-full bg-transparent border-b border-[var(--aesthetic-border)]/30 py-2 pl-0 pr-8 text-xs font-mono text-[var(--aesthetic-text)] placeholder:text-[var(--aesthetic-text-muted)]/30 focus:outline-none focus:border-[var(--aesthetic-accent)] transition-colors"
             />
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] text-noir-gray/40 pointer-events-none group-focus-within:text-noir-amber/70 transition-colors uppercase tracking-tight">
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] text-[var(--aesthetic-text-muted)]/40 pointer-events-none group-focus-within:text-[var(--aesthetic-accent)]/70 transition-colors uppercase tracking-tight">
               Custom ID
             </div>
-            <div className="absolute bottom-0 left-0 w-0 h-px bg-noir-amber transition-all duration-300 group-focus-within:w-full" />
+            <div className="absolute bottom-0 left-0 w-0 h-px bg-[var(--aesthetic-accent)] transition-all duration-300 group-focus-within:w-full" />
           </div>
         ) : (
           <div className="relative">
@@ -163,17 +163,17 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
               onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
-                "bg-noir-dark/50 border rounded-sm outline-none focus:ring-1 focus:ring-noir-amber/30",
+                "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
                 activeDropdown === "model"
-                  ? "border-noir-amber text-noir-amber bg-noir-amber/5"
-                  : "border-noir-gray/30 text-noir-paper hover:border-noir-gray/60 hover:bg-noir-paper/5"
+                  ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
+                  : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text)] hover:border-[var(--aesthetic-border)]/60 hover:bg-[var(--aesthetic-text)]/5"
               )}
             >
               <span className="truncate">{modelConfig.model || "Select Model..."}</span>
               <ChevronDown
                 className={cn(
                   "w-3 h-3 transition-transform duration-200 opacity-70",
-                  activeDropdown === "model" && "rotate-180 text-noir-amber"
+                  activeDropdown === "model" && "rotate-180 text-[var(--aesthetic-accent)]"
                 )}
               />
             </button>
@@ -185,9 +185,9 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -5, scale: 0.98 }}
                   transition={{ duration: 0.15, ease: "circOut" }}
-                  className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-noir-gray/30 bg-noir-dark/95 shadow-xl backdrop-blur-md"
+                  className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md"
                 >
-                  <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-noir-gray/20">
+                  <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20">
                     {availableModels.length > 0 ? (
                       availableModels.map((model) => (
                         <button
@@ -196,18 +196,18 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                           className={cn(
                             "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
                             modelConfig.model === model
-                              ? "bg-noir-amber/10 text-noir-amber border-l-2 border-l-noir-amber pl-[10px]"
-                              : "text-noir-paper/80 hover:bg-noir-paper/5 hover:text-noir-paper border-l-2 border-l-transparent"
+                              ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)] border-l-2 border-l-[var(--aesthetic-accent)] pl-[10px]"
+                              : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)] border-l-2 border-l-transparent"
                           )}
                         >
                           <span className="truncate">{model}</span>
                           {modelConfig.model === model && (
-                            <Check className="w-3 h-3 text-noir-amber" />
+                            <Check className="w-3 h-3 text-[var(--aesthetic-accent)]" />
                           )}
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-4 text-center text-noir-gray/50 italic text-[10px]">
+                      <div className="px-3 py-4 text-center text-[var(--aesthetic-text-muted)]/50 italic text-[10px]">
                         No known models available
                       </div>
                     )}
@@ -219,7 +219,7 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
         )}
       </div>
 
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-noir-gray/20 to-transparent mt-2" />
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-[var(--aesthetic-border)]/20 to-transparent mt-2" />
     </div>
   );
 }

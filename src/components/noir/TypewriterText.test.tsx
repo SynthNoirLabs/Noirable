@@ -18,7 +18,7 @@ describe("TypewriterText", () => {
       <TypewriterText content="CONFIDENTIAL" priority="critical" speed={0} />
     );
 
-    const element = container.querySelector(".text-noir-red");
+    const element = container.querySelector(".text-\\[var\\(--aesthetic-error\\)\\]");
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("CONFIDENTIAL");
   });

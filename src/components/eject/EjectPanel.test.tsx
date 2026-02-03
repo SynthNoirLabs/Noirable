@@ -35,7 +35,9 @@ describe("EjectPanel", () => {
   it("renders React code tab by default", () => {
     render(<EjectPanel evidence={mockEvidence} />);
 
-    expect(screen.getByRole("button", { name: /react/i })).toHaveClass("text-noir-amber");
+    expect(screen.getByRole("button", { name: /react/i })).toHaveClass(
+      "text-[var(--aesthetic-accent)]"
+    );
     expect(screen.getByText(/function EvidenceComponent/)).toBeInTheDocument();
   });
 
@@ -45,7 +47,7 @@ describe("EjectPanel", () => {
     const jsonTab = screen.getByRole("button", { name: /json/i });
     fireEvent.click(jsonTab);
 
-    expect(jsonTab).toHaveClass("text-noir-amber");
+    expect(jsonTab).toHaveClass("text-[var(--aesthetic-accent)]");
     expect(screen.getByText(/"type": "container"/)).toBeInTheDocument();
   });
 

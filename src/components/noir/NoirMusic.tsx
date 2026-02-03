@@ -2,15 +2,27 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
+/** Default music source (noir aesthetic) */
+const DEFAULT_MUSIC_SRC = "/assets/noir/noir-jazz-loop.mp3";
+/** Default music volume (noir aesthetic) */
+const DEFAULT_MUSIC_VOLUME = 0.22;
+
 interface NoirMusicProps {
   enabled: boolean;
   soundEnabled?: boolean;
+  /** Volume level (0-1). If not provided, uses musicConfig.volume or default. */
   volume?: number;
+  /** Music configuration from audio pack. Overrides defaults. */
+  musicConfig?: {
+    src: string;
+    volume: number;
+  };
 }
 
-const STATIC_MUSIC_SRC = "/assets/noir/noir-jazz-loop.mp3";
-
-export function NoirMusic({ enabled, soundEnabled = true, volume = 0.22 }: NoirMusicProps) {
+export function NoirMusic({ enabled, soundEnabled = true, volume, musicConfig }: NoirMusicProps) {
+  // Resolve music source and volume from config or defaults
+  const musicSrc = musicConfig?.src ?? DEFAULT_MUSIC_SRC;
+  const effectiveVolume = volume ?? musicConfig?.volume ?? DEFAULT_MUSIC_VOLUME;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const resumeHandlerRef = useRef<(() => void) | null>(null);
   const fadeFrameRef = useRef<number | null>(null);
@@ -110,11 +122,11 @@ export function NoirMusic({ enabled, soundEnabled = true, volume = 0.22 }: NoirM
       return;
     }
 
-    const audio = new Audio(STATIC_MUSIC_SRC);
+    const audio = new Audio(musicSrc);
     audio.loop = true;
     audio.preload = "auto";
     audioRef.current = audio;
-  }, [enabled, soundEnabled]);
+  }, [enabled, soundEnabled, musicSrc]);
 
   // Handle play/pause and volume changes
   useEffect(() => {
@@ -123,7 +135,7 @@ export function NoirMusic({ enabled, soundEnabled = true, volume = 0.22 }: NoirM
       return;
     }
 
-    if (!enabled || !soundEnabled || volume <= 0) {
+    if (!enabled || !soundEnabled || effectiveVolume <= 0) {
       fadeTo(audio, 0, 400, () => {
         audio.pause();
         try {
@@ -137,8 +149,8 @@ export function NoirMusic({ enabled, soundEnabled = true, volume = 0.22 }: NoirM
     }
 
     void attemptPlay();
-    fadeTo(audio, Math.min(1, Math.max(0, volume)), 900);
-  }, [attemptPlay, detachResumeListeners, enabled, fadeTo, soundEnabled, volume]);
+    fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume)), 900);
+  }, [attemptPlay, detachResumeListeners, enabled, fadeTo, soundEnabled, effectiveVolume]);
 
   // Handle visibility changes (pause when tab hidden)
   useEffect(() => {
@@ -153,15 +165,15 @@ export function NoirMusic({ enabled, soundEnabled = true, volume = 0.22 }: NoirM
         audio.pause();
         return;
       }
-      if (enabled && soundEnabled && volume > 0) {
+      if (enabled && soundEnabled && effectiveVolume > 0) {
         void attemptPlay();
-        fadeTo(audio, Math.min(1, Math.max(0, volume)), 600);
+        fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume)), 600);
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [attemptPlay, enabled, fadeTo, soundEnabled, volume]);
+  }, [attemptPlay, enabled, fadeTo, soundEnabled, effectiveVolume]);
 
   // Cleanup on unmount
   useEffect(() => {
