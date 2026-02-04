@@ -30,13 +30,13 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 | Feature | Description | Status |
 |---------|-------------|--------|
 | **AI Chat Interface** | Natural language commands with noir detective persona | Done |
-| **A2UI Protocol** | 20 component types with Zod validation | Done |
+| **A2UI Protocol** | 18 v0.9 standard + 23 legacy component types with Zod validation | Done |
 | **Evidence Board** | History of generated UI components | Done |
 | **Split-Pane Workspace** | Live JSON editor + rendered preview | Done |
 | **Multi-Provider Support** | OpenAI, Anthropic, Google, OpenAI-compatible | Done |
 | **Image Generation** | AI-generated noir-styled images via prompts | Done |
 | **Eject to Code** | Export to React + Tailwind components | Done |
-| **Model Selector** | Switch between 28 registered models | Done |
+| **Model Selector** | Switch between 18 registered models | Done |
 | **Print View** | Print-friendly evidence export | Done |
 | **Resizable Layout** | Drag-to-resize panes | Done |
 | **Form Handlers** | Input/button components with actions | Done |
@@ -170,10 +170,11 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 | Metric | Target | Current |
 |--------|--------|---------|
 | Core functionality | 100% | 100% |
-| Test coverage | >80% | ~85% |
-| CI gate passing | Yes | Yes (after prettier fix) |
+| Test coverage | >80% | ~65.77% |
+| CI gate passing | Yes | Yes |
 | E2E smoke test | Pass | Pass |
+| Unit tests | >500 | 623 |
 
 ---
 
-*Last updated: 2026-01-29*
+*Last updated: 2026-02-01*

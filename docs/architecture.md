@@ -204,6 +204,33 @@ useEffect(() => {
 
 **Response:** Image file from `.data/images/` directory.
 
+### `POST /api/a2ui/stream` (A2UI v0.9)
+
+**Request:**
+```typescript
+{
+  prompt: string  // Natural language UI request
+}
+```
+
+**Response:** Server-Sent Events stream with A2UI v0.9 messages:
+```jsonl
+data: {"type":"createSurface","surfaceId":"...","catalogId":"standard"}
+data: {"type":"updateComponents","surfaceId":"...","components":[...]}
+data: [DONE]
+```
+
+**Message Types:**
+- `createSurface` - Initialize new surface with catalog
+- `updateComponents` - Add/update components in surface
+- `updateDataModel` - Update data at JSON Pointer path
+- `deleteSurface` - Remove surface
+
+**Key Files:**
+- Endpoint: `src/app/api/a2ui/stream/route.ts`
+- Schemas: `src/lib/a2ui/schema/messages.ts`
+- Components: `src/lib/a2ui/catalog/components.ts`
+
 ### `GET /print`
 
 **Response:** Print-friendly HTML view of current evidence.
@@ -245,4 +272,4 @@ useEffect(() => {
 
 ---
 
-*Last updated: 2026-01-28*
+*Last updated: 2026-02-01*

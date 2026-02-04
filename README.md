@@ -3,7 +3,7 @@
 > A noir-themed AI evidence board where natural language becomes visual UI.
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-182%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-623%20passing-brightgreen)]()
 
 ## What is this?
 
@@ -20,7 +20,7 @@ Detective: "The file's on your desk. Rain-soaked, like everything else in this t
 ### Key Features
 
 - **AI Chat Interface** - Talk to a hard-boiled detective AI persona
-- **A2UI Protocol** - 20 validated component types via Zod
+- **A2UI Protocol** - 18 standard components (v0.9) + 23 legacy types via Zod
 - **Live Evidence Board** - See UI generate in real-time with search/filter
 - **Eject to Code** - Export to React + Tailwind with one click
 - **Live Sandbox** - Sandpack integration for interactive code preview
@@ -49,12 +49,13 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Documentation
 
-| Document                                         | Description                         |
-| ------------------------------------------------ | ----------------------------------- |
-| [Product Spec](docs/PRODUCT.md)                  | Vision, features, design guidelines |
-| [Architecture](docs/architecture.md)             | Technical design and data flows     |
-| [Development Guide](docs/DEVELOPMENT.md)         | Setup, workflow, code style         |
-| [A2UI Protocol](docs/reference/a2ui-protocol.md) | Component schema reference          |
+| Document                                          | Description                         |
+| ------------------------------------------------- | ----------------------------------- |
+| [Product Spec](docs/PRODUCT.md)                   | Vision, features, design guidelines |
+| [Architecture](docs/architecture.md)              | Technical design and data flows     |
+| [Development Guide](docs/DEVELOPMENT.md)          | Setup, workflow, code style         |
+| [A2UI Protocol](docs/reference/a2ui-protocol.md)  | Legacy component schema reference   |
+| [A2UI v0.9 Spec](docs/reference/a2ui-v09-spec.md) | A2UI v0.9 specification reference   |
 
 ## Commands
 
@@ -87,40 +88,49 @@ Fallback: `~/.local/share/opencode/auth.json`
 
 ```
 src/
-├── app/api/chat/     # AI streaming endpoint
-├── components/       # React components
-│   ├── board/        # Evidence history
-│   ├── chat/         # Chat sidebar
-│   ├── eject/        # Code export
-│   ├── layout/       # Main workspace
-│   └── renderer/     # A2UI renderer
+├── app/
+│   ├── api/chat/         # AI streaming endpoint (legacy)
+│   └── api/a2ui/stream/  # A2UI v0.9 SSE endpoint
+├── components/
+│   ├── a2ui/             # A2UI v0.9 React components
+│   ├── board/            # Evidence history
+│   ├── chat/             # Chat sidebar
+│   ├── eject/            # Code export
+│   ├── layout/           # Main workspace
+│   └── renderer/         # A2UI renderer
 └── lib/
-    ├── ai/           # Provider factory, tools
-    ├── protocol/     # A2UI Zod schema
-    └── store/        # Zustand state
+    ├── a2ui/             # A2UI v0.9 implementation
+    │   ├── catalog/      # Component schemas
+    │   ├── schema/       # Message schemas
+    │   ├── binding/      # JSON Pointer resolver
+    │   ├── transport/    # SSE/JSONL parser
+    │   └── events/       # Action dispatch
+    ├── ai/               # Provider factory, tools
+    ├── protocol/         # Legacy A2UI Zod schema
+    └── store/            # Zustand state
 ```
 
 ## Status
 
-| Component                | Status |
-| ------------------------ | ------ |
-| Core AI Chat             | Done   |
-| A2UI Protocol (20 types) | Done   |
-| Evidence Board + Search  | Done   |
-| Eject to Code            | Done   |
-| Multi-Provider Support   | Done   |
-| Image Generation         | Done   |
-| Form Handlers            | Done   |
-| Persistent Storage       | Done   |
-| Multi-File Export        | Done   |
-| Undo/Redo                | Done   |
-| Keyboard Shortcuts       | Done   |
-| Template Library         | Done   |
-| Live Sandbox (Sandpack)  | Done   |
-| Prompt History           | Done   |
-| Export to File (.zip)    | Done   |
-| Loading States           | Done   |
-| Error Recovery UI        | Done   |
+| Component                           | Status |
+| ----------------------------------- | ------ |
+| Core AI Chat                        | Done   |
+| A2UI Protocol (18 v0.9 + 23 legacy) | Done   |
+| Evidence Board + Search             | Done   |
+| Eject to Code                       | Done   |
+| Multi-Provider Support              | Done   |
+| Image Generation                    | Done   |
+| Form Handlers                       | Done   |
+| Persistent Storage                  | Done   |
+| Multi-File Export                   | Done   |
+| Undo/Redo                           | Done   |
+| Keyboard Shortcuts                  | Done   |
+| Template Library                    | Done   |
+| Live Sandbox (Sandpack)             | Done   |
+| Prompt History                      | Done   |
+| Export to File (.zip)               | Done   |
+| Loading States                      | Done   |
+| Error Recovery UI                   | Done   |
 
 See [PRODUCT.md](docs/PRODUCT.md) for full roadmap.
 

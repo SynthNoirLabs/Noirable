@@ -70,3 +70,7 @@ tests/stress/output/
 *_ANALYSIS.md
 *_SUMMARY.txt
 hello_*.txt
+
+# IDE/Tool generated
+.code-index/
+src/.code-index/

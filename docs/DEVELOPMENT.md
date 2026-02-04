@@ -309,4 +309,4 @@ pnpm build 2>&1 | head -50
 
 ---
 
-*Last updated: 2026-01-28*
+*Last updated: 2026-02-01*

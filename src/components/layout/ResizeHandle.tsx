@@ -76,7 +76,7 @@ export function ResizeHandle({
         className
       )}
     >
-      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-noir-gray/40 group-hover:bg-noir-amber/60 transition-colors" />
+      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[var(--aesthetic-border)]/40 group-hover:bg-[var(--aesthetic-accent)]/60 transition-colors" />
     </div>
   );
 }

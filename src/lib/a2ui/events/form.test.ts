@@ -12,7 +12,6 @@ import {
   type FormValueRegistry,
   type FormSubmitHandler,
 } from "./form";
-import type { SendFn } from "./dispatch";
 
 describe("collectFormValues", () => {
   it("collects values from registry", () => {
