@@ -37,10 +37,41 @@ export interface Settings {
   useA2UIv09?: boolean;
   /** Active aesthetic profile ID */
   aestheticId?: AestheticId;
+  /** Per-SFX volume overrides (0-1) */
+  sfxVolumes?: Record<"typewriter" | "thunder" | "phone", number>;
+  /** Music volume (0-1) */
+  musicVolume?: number;
+  /** Visual effect intensities (0-1) */
+  effectIntensities?: {
+    rain?: number;
+    fog?: number;
+    crackle?: number;
+  };
+  /** Custom image generation style prompt */
+  imageStylePrompt?: string;
+  /** API keys stored locally */
+  apiKeys?: {
+    elevenlabs?: string;
+    openai?: string;
+  };
+  /** Voice settings for TTS */
+  voiceSettings?:
+    | {
+        voiceId?: string;
+        stability?: number;
+        similarityBoost?: number;
+        style?: number;
+        speed?: number;
+      }
+    | undefined;
 }
 
-export type SettingsUpdate = Partial<Omit<Settings, "ambient">> & {
+export type SettingsUpdate = Partial<
+  Omit<Settings, "ambient" | "effectIntensities" | "voiceSettings">
+> & {
   ambient?: Partial<AmbientSettings>;
+  effectIntensities?: Partial<Settings["effectIntensities"]>;
+  voiceSettings?: Partial<Settings["voiceSettings"]>;
 };
 
 interface Layout {
@@ -308,6 +339,12 @@ export const useA2UIStore = create<A2UIState>()(
           crackleVolume: 0.35,
         },
         aestheticId: "noir",
+        sfxVolumes: undefined,
+        musicVolume: undefined,
+        effectIntensities: undefined,
+        imageStylePrompt: undefined,
+        apiKeys: undefined,
+        voiceSettings: undefined,
       },
       updateSettings: (newSettings) =>
         set((state) => ({
@@ -317,6 +354,12 @@ export const useA2UIStore = create<A2UIState>()(
             ambient: newSettings.ambient
               ? { ...state.settings.ambient, ...newSettings.ambient }
               : state.settings.ambient,
+            effectIntensities: newSettings.effectIntensities
+              ? { ...state.settings.effectIntensities, ...newSettings.effectIntensities }
+              : state.settings.effectIntensities,
+            voiceSettings: newSettings.voiceSettings
+              ? { ...state.settings.voiceSettings, ...newSettings.voiceSettings }
+              : state.settings.voiceSettings,
           },
         })),
 

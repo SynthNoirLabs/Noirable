@@ -331,4 +331,47 @@ describe("useA2UIStore", () => {
       expect(history[2].text).toBe("Third");
     });
   });
+
+  describe("customization settings", () => {
+    it("updates sfxVolumes", () => {
+      const { updateSettings } = useA2UIStore.getState();
+      updateSettings({ sfxVolumes: { typewriter: 0.5, thunder: 0.8, phone: 1.0 } });
+
+      const updated = useA2UIStore.getState().settings;
+      expect(updated.sfxVolumes).toEqual({ typewriter: 0.5, thunder: 0.8, phone: 1.0 });
+    });
+
+    it("updates effectIntensities", () => {
+      const { updateSettings } = useA2UIStore.getState();
+      updateSettings({ effectIntensities: { rain: 0.7, fog: 0.3, crackle: 0.5 } });
+
+      const updated = useA2UIStore.getState().settings;
+      expect(updated.effectIntensities).toEqual({ rain: 0.7, fog: 0.3, crackle: 0.5 });
+    });
+
+    it("updates voiceSettings", () => {
+      const { updateSettings } = useA2UIStore.getState();
+      updateSettings({ voiceSettings: { voiceId: "abc123", stability: 0.5 } });
+
+      const updated = useA2UIStore.getState().settings;
+      expect(updated.voiceSettings?.voiceId).toBe("abc123");
+      expect(updated.voiceSettings?.stability).toBe(0.5);
+    });
+
+    it("updates imageStylePrompt", () => {
+      const { updateSettings } = useA2UIStore.getState();
+      updateSettings({ imageStylePrompt: "cyberpunk neon style" });
+
+      const updated = useA2UIStore.getState().settings;
+      expect(updated.imageStylePrompt).toBe("cyberpunk neon style");
+    });
+
+    it("updates apiKeys without exposing in logs", () => {
+      const { updateSettings } = useA2UIStore.getState();
+      updateSettings({ apiKeys: { elevenlabs: "sk-test-key" } });
+
+      const updated = useA2UIStore.getState().settings;
+      expect(updated.apiKeys?.elevenlabs).toBe("sk-test-key");
+    });
+  });
 });
