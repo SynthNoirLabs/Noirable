@@ -8,7 +8,23 @@
  * Available aesthetic profile identifiers.
  * Each ID corresponds to a full AestheticProfile in the registry.
  */
-export type AestheticId = "noir" | "minimal";
+// Keep existing for backwards compat
+export type BuiltInAestheticId = "noir" | "minimal";
+
+// Custom profiles use prefixed IDs
+export type CustomProfileId = `custom-${string}`;
+
+// Update AestheticId to be union (REPLACE existing definition)
+export type AestheticId = BuiltInAestheticId | CustomProfileId;
+
+// Add type guards
+export function isCustomProfileId(id: string): id is CustomProfileId {
+  return id.startsWith("custom-");
+}
+
+export function isBuiltInAestheticId(id: string): id is BuiltInAestheticId {
+  return id === "noir" || id === "minimal";
+}
 
 /**
  * Sound effect configuration for a single effect.

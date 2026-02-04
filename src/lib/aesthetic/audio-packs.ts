@@ -1,3 +1,4 @@
+import { isBuiltInAestheticId } from "./types";
 import type { AestheticId, AudioPack } from "./types";
 
 /**
@@ -81,4 +82,12 @@ export const AUDIO_PACKS: Record<AestheticId, AudioPack> = {
  */
 export function getAudioPack(aestheticId: AestheticId): AudioPack {
   return AUDIO_PACKS[aestheticId] ?? AUDIO_PACKS.noir;
+}
+
+export function getAudioPackSafe(id: AestheticId): AudioPack | null {
+  if (isBuiltInAestheticId(id)) {
+    return getAudioPack(id);
+  }
+
+  return null;
 }

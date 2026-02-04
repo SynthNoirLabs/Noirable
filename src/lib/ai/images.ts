@@ -2,6 +2,7 @@ import { generateImage, generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
+import { getCustomImageStylePrompt } from "@/lib/ai/image-style";
 import { saveImageBase64 } from "@/lib/ai/imageStore";
 import { getImageGenerationModels, getModelInfo, type ModelInfo } from "@/lib/ai/model-registry";
 
@@ -54,9 +55,12 @@ function selectImageModel(): {
   return null;
 }
 
-export function buildNoirImagePrompt(prompt: string) {
-  if (!prompt.trim()) return NOIR_STYLE_PROMPT;
-  return `${prompt}. Style: ${NOIR_STYLE_PROMPT}.`;
+export function buildNoirImagePrompt(prompt: string): string {
+  const customStyle = getCustomImageStylePrompt();
+  const stylePrompt = customStyle || NOIR_STYLE_PROMPT;
+
+  if (!prompt.trim()) return stylePrompt;
+  return `${prompt}. Style: ${stylePrompt}.`;
 }
 
 function fallbackSvgDataUrl(message: string) {
