@@ -2,14 +2,14 @@
 
 > _"The rain never stops in this town. Neither does the code."_
 
-A noir-themed AI assistant and UI builder inspired by [Lovable](https://lovable.dev), powered by the A2UI Protocol. Users describe what they need in natural language; the detective AI responds with rendered, interactive UI components on an evidence board.
+An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interface. Inspired by [Lovable](https://lovable.dev).
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-816%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-848%20passing-brightgreen)]()
 
 ## What This Is
 
-synthNoirUI is a full-stack application that pairs a conversational AI (playing a hard-boiled detective persona) with a structured UI generation protocol called **A2UI** (AI-to-UI). When you chat with the detective, the AI doesn't just reply with text -- it emits typed component descriptors (cards, tables, forms, timelines, etc.) that get rendered in real time onto a visual evidence board.
+synthNoirUI is a full-stack reference implementation of the **A2UI (Agent to UI) Protocol**. The protocol defines a typed, declarative JSON schema for AI agents to generate rich UI components -- cards, tables, forms, timelines, images -- streamed and rendered in real time. The noir detective persona and evidence board aren't just theming; they're the proving ground for the protocol.
 
 The project implements two protocol versions:
 
@@ -17,6 +17,13 @@ The project implements two protocol versions:
 - **Legacy protocol** -- 23 component types delivered through Vercel AI SDK tool calls, validated with Zod schemas
 
 Both protocols produce the same visual output. The v0.9 path is the active development target.
+
+**A2UI Protocol resources:**
+
+- [a2ui.org](https://a2ui.org/) -- Official site, docs, and quickstart
+- [google/A2UI](https://github.com/google/A2UI) -- GitHub repository (Apache 2.0)
+- [v0.9 Protocol Spec](https://github.com/google/A2UI/blob/main/specification/0.9/docs/a2ui_protocol.md) -- Draft specification this project targets
+- [v0.8 Stable Spec](https://a2ui.org/specification/v0.8-a2ui/) -- Current stable release
 
 ## Core Capabilities
 
