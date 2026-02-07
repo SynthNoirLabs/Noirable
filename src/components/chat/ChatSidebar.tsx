@@ -271,7 +271,7 @@ export function ChatSidebar({
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               title="Collapse sidebar"
               aria-label="Collapse sidebar"
             >
@@ -282,7 +282,7 @@ export function ChatSidebar({
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               title="Configuration"
               aria-label="Open settings"
             >
@@ -320,7 +320,11 @@ export function ChatSidebar({
 
       <NoirSoundEffects enabled={soundSetting} onReady={setSfxControls} />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-6"
+        aria-live="polite"
+        aria-label="Chat messages"
+      >
         {messages.length === 0 && (
           <div className="text-center py-12 text-[var(--aesthetic-text)]/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
             <Image
@@ -405,7 +409,7 @@ export function ChatSidebar({
                     "absolute right-2 top-2 w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
                     "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
                     "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
-                    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                     (ttsPlayingId === m.id || ttsLoadingId === m.id) && "opacity-100",
                     (!ttsSetting || elevenLabsConfigured === false) &&
                       "opacity-40 cursor-not-allowed"
@@ -446,6 +450,7 @@ export function ChatSidebar({
           <input
             ref={inputRef}
             name="chat-input"
+            aria-label="Type your command"
             autoFocus
             className="w-full bg-transparent border-b border-[var(--aesthetic-border)]/30 rounded-none py-3 pl-2 pr-10 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-accent)]/50 font-mono placeholder:text-[var(--aesthetic-text)]/45 transition-colors"
             value={localInput}
@@ -457,7 +462,7 @@ export function ChatSidebar({
             type="submit"
             disabled={isLoading || !localInput.trim()}
             aria-label="Send message"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
           >
             <Send className="w-4 h-4" />
           </button>

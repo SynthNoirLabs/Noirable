@@ -170,9 +170,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           tools,
         });
 
-        const components: Record<string, unknown>[] = [];
-
-        // Process the stream
+        // Process the stream — emit updateComponents incrementally
         for await (const chunk of result.fullStream) {
           if (chunk.type === "tool-call" && chunk.toolName === "generate_ui") {
             // fullStream uses 'input' instead of 'args' for tool calls
@@ -185,19 +183,15 @@ export async function POST(req: NextRequest): Promise<Response> {
               if (!component.id) {
                 component.id = generateComponentId();
               }
-              components.push(component);
+              // 3. Send updateComponents immediately for each component
+              const updateMsg: UpdateComponentsMessage = {
+                type: "updateComponents",
+                surfaceId,
+                components: [component] as UpdateComponentsMessage["components"],
+              };
+              controller.enqueue(encoder.encode(formatSSE(updateMsg)));
             }
           }
-        }
-
-        // 3. Send updateComponents with collected components
-        if (components.length > 0) {
-          const updateMsg: UpdateComponentsMessage = {
-            type: "updateComponents",
-            surfaceId,
-            components: components as UpdateComponentsMessage["components"],
-          };
-          controller.enqueue(encoder.encode(formatSSE(updateMsg)));
         }
 
         // 4. Send [DONE] sentinel

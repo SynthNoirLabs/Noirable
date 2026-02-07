@@ -82,7 +82,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               type="button"
               onClick={() => setActiveIndex(index)}
               className={cn(
-                "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2 transition-colors",
+                "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 index === activeIndex
                   ? "text-[var(--aesthetic-accent)] border-[var(--aesthetic-accent)]"
                   : "text-[var(--aesthetic-text)]/60 border-transparent hover:text-[var(--aesthetic-text)]"
@@ -349,52 +349,64 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         );
       case "input": {
         const inputName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const inputId = `a2ui-input-${inputName}`;
         return (
-          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
-            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
+          <div className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+            <label htmlFor={inputId} className="font-typewriter text-[var(--aesthetic-text)]/70">
+              {node.label}
+            </label>
             <input
+              id={inputId}
               name={inputName}
               placeholder={node.placeholder}
               defaultValue={node.value ?? ""}
               onChange={(e) => formContext?.setValue(inputName, e.target.value)}
               className={cn(
-                "bg-transparent border-b border-[var(--aesthetic-border)]/30 py-2 text-sm text-[var(--aesthetic-text)] focus:outline-none",
+                "bg-transparent border-b border-[var(--aesthetic-border)]/30 py-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 node.variant ? variantMap[node.variant] : ""
               )}
             />
-          </label>
+          </div>
         );
       }
       case "textarea": {
         const textareaName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const textareaId = `a2ui-textarea-${textareaName}`;
         return (
-          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
-            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
+          <div className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+            <label htmlFor={textareaId} className="font-typewriter text-[var(--aesthetic-text)]/70">
+              {node.label}
+            </label>
             <textarea
+              id={textareaId}
               name={textareaName}
               placeholder={node.placeholder}
               defaultValue={node.value ?? ""}
               onChange={(e) => formContext?.setValue(textareaName, e.target.value)}
               rows={node.rows ?? 3}
               className={cn(
-                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none",
+                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 node.variant ? variantMap[node.variant] : ""
               )}
             />
-          </label>
+          </div>
         );
       }
       case "select": {
         const selectName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const selectId = `a2ui-select-${selectName}`;
         return (
-          <label className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
-            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
+          <div className={cn("flex flex-col gap-2 text-xs", node.style?.className)}>
+            <label htmlFor={selectId} className="font-typewriter text-[var(--aesthetic-text)]/70">
+              {node.label}
+            </label>
             <select
+              id={selectId}
               name={selectName}
               defaultValue={node.value ?? node.options[0]}
               onChange={(e) => formContext?.setValue(selectName, e.target.value)}
               className={cn(
-                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none",
+                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 node.variant ? variantMap[node.variant] : ""
               )}
             >
@@ -404,21 +416,26 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
         );
       }
       case "checkbox": {
         const checkboxName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
+        const checkboxId = `a2ui-checkbox-${checkboxName}`;
         return (
-          <label className={cn("flex items-center gap-2 text-xs", node.style?.className)}>
+          <div className={cn("flex items-center gap-2 text-xs", node.style?.className)}>
             <input
+              id={checkboxId}
               type="checkbox"
               name={checkboxName}
               defaultChecked={node.checked ?? false}
               onChange={(e) => formContext?.setValue(checkboxName, e.target.checked)}
+              className="focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
             />
-            <span className="font-typewriter text-[var(--aesthetic-text)]/70">{node.label}</span>
-          </label>
+            <label htmlFor={checkboxId} className="font-typewriter text-[var(--aesthetic-text)]/70">
+              {node.label}
+            </label>
+          </div>
         );
       }
       case "button": {
@@ -447,7 +464,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             type="button"
             onClick={handleClick}
             className={cn(
-              "px-3 py-2 text-xs uppercase tracking-widest border rounded-sm",
+              "px-3 py-2 text-xs uppercase tracking-widest border rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               node.variant ? variantMap[node.variant] : "",
               node.style?.className
             )}

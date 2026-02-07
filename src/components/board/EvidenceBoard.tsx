@@ -55,7 +55,11 @@ export function EvidenceBoard({
   const shouldShowFallback = sortedEntries.length === 0 && fallbackEvidence;
 
   return (
-    <div className="w-full max-w-5xl flex flex-col gap-6">
+    <div
+      className="w-full max-w-5xl flex flex-col gap-6"
+      aria-live="polite"
+      aria-label="Evidence board"
+    >
       {/* Only show search/view controls when there are entries */}
       {sortedEntries.length > 0 && (
         <div className="flex items-center justify-end gap-4 relative z-20 bg-[var(--aesthetic-background)]/20 backdrop-blur-sm rounded-sm px-4 py-3 border border-[var(--aesthetic-border)]/20 mb-4">
@@ -66,6 +70,7 @@ export function EvidenceBoard({
               id="evidence-search"
               name="evidence-search"
               type="text"
+              aria-label="Search evidence"
               placeholder="Search evidence..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -75,7 +80,8 @@ export function EvidenceBoard({
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text)]/40 hover:text-[var(--aesthetic-accent)] transition-colors"
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text)]/40 hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -86,8 +92,9 @@ export function EvidenceBoard({
             <button
               type="button"
               onClick={() => setView("grid")}
+              aria-pressed={view === "grid"}
               className={cn(
-                "px-3 py-1.5 border rounded transition-colors",
+                "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "grid"
                   ? "border-[var(--aesthetic-accent)]/70 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
                   : "border-[var(--aesthetic-border)]/70 text-[var(--aesthetic-text)] bg-[var(--aesthetic-background)]/30 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
@@ -98,8 +105,9 @@ export function EvidenceBoard({
             <button
               type="button"
               onClick={() => setView("list")}
+              aria-pressed={view === "list"}
               className={cn(
-                "px-3 py-1.5 border rounded transition-colors",
+                "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "list"
                   ? "border-[var(--aesthetic-accent)]/70 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
                   : "border-[var(--aesthetic-border)]/70 text-[var(--aesthetic-text)] bg-[var(--aesthetic-background)]/30 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
@@ -110,8 +118,9 @@ export function EvidenceBoard({
             <button
               type="button"
               onClick={() => setView("timeline")}
+              aria-pressed={view === "timeline"}
               className={cn(
-                "px-3 py-1.5 border rounded transition-colors",
+                "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "timeline"
                   ? "border-[var(--aesthetic-accent)]/70 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
                   : "border-[var(--aesthetic-border)]/70 text-[var(--aesthetic-text)] bg-[var(--aesthetic-background)]/30 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
@@ -147,7 +156,7 @@ export function EvidenceBoard({
                 type="button"
                 onClick={() => onSelect(entry.id)}
                 className={cn(
-                  "relative text-left border rounded-sm p-3 bg-[var(--aesthetic-background)]/40 hover:border-[var(--aesthetic-accent)]/60 transition-colors w-full",
+                  "relative text-left border rounded-sm p-3 bg-[var(--aesthetic-background)]/40 hover:border-[var(--aesthetic-accent)]/60 transition-colors w-full focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                   isActive
                     ? "border-[var(--aesthetic-accent)]/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
                     : "border-[var(--aesthetic-border)]/40"
@@ -194,7 +203,7 @@ export function EvidenceBoard({
                 type="button"
                 onClick={() => onSelect(entry.id)}
                 className={cn(
-                  "text-left border rounded-sm p-3 bg-[var(--aesthetic-background)]/40 hover:border-[var(--aesthetic-accent)]/60 transition-colors",
+                  "text-left border rounded-sm p-3 bg-[var(--aesthetic-background)]/40 hover:border-[var(--aesthetic-accent)]/60 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                   isActive
                     ? "border-[var(--aesthetic-accent)]/70 shadow-[0_0_12px_rgba(255,191,0,0.15)]"
                     : "border-[var(--aesthetic-border)]/40"

@@ -260,7 +260,7 @@ function ButtonRenderer({ component }: ComponentProps) {
     <button
       onClick={handleClick}
       className={cn(
-        "px-4 py-2 font-mono text-sm transition-colors",
+        "px-4 py-2 font-mono text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
         btn.variant === "borderless"
           ? "text-[var(--aesthetic-accent)] hover:text-[var(--aesthetic-accent)]/80"
           : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-sm"
@@ -284,15 +284,19 @@ function TextFieldRenderer({ component }: ComponentProps) {
   const label = String(resolveDynamic(field.label, resolveBinding) ?? "");
   const value = String(resolveDynamic(field.value, resolveBinding) ?? "");
 
+  const fieldId = `surface-field-${field.id}`;
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label className="text-[var(--aesthetic-text)]/70 text-xs font-mono">{label}</label>
+        <label htmlFor={fieldId} className="text-[var(--aesthetic-text)]/70 text-xs font-mono">
+          {label}
+        </label>
       )}
       <input
+        id={fieldId}
         type={field.variant === "obscured" ? "password" : "text"}
         defaultValue={value}
-        className="bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm px-3 py-2 text-[var(--aesthetic-text)] font-mono text-sm focus:border-[var(--aesthetic-accent)] focus:outline-none"
+        className="bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm px-3 py-2 text-[var(--aesthetic-text)] font-mono text-sm focus:border-[var(--aesthetic-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
       />
     </div>
   );
@@ -315,7 +319,7 @@ function CheckBoxRenderer({ component }: ComponentProps) {
       <input
         type="checkbox"
         defaultChecked={checked}
-        className="w-4 h-4 accent-[var(--aesthetic-accent)]"
+        className="w-4 h-4 accent-[var(--aesthetic-accent)] focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
       />
       {label}
     </label>

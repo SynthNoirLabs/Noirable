@@ -13,6 +13,7 @@ import { deriveEvidenceLabel, deriveEvidenceStatus } from "@/lib/evidence/utils"
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { TemplatePanel } from "@/components/templates/TemplatePanel";
 import { EvidenceSkeleton } from "@/components/board/EvidenceSkeleton";
+import { NoirErrorBoundary } from "@/components/shared/NoirErrorBoundary";
 import { TrainingDataPanel } from "@/components/training/TrainingDataPanel";
 import type { A2UIInput } from "@/lib/protocol/schema";
 import { createTrainingExample, shouldCapture } from "@/lib/training";
@@ -438,7 +439,9 @@ export function DetectiveWorkspace() {
       }
       trainingPanel={<TrainingDataPanel onClose={() => setShowTraining(false)} />}
       ejectPanel={
-        <EjectPanel evidence={evidence} onClose={() => updateLayout({ showEject: false })} />
+        <NoirErrorBoundary>
+          <EjectPanel evidence={evidence} onClose={() => updateLayout({ showEject: false })} />
+        </NoirErrorBoundary>
       }
       editor={
         <div className="h-full min-h-0 flex flex-col">
@@ -458,52 +461,54 @@ export function DetectiveWorkspace() {
         </div>
       }
       preview={
-        isLoading ? (
-          <EvidenceSkeleton />
-        ) : error || v09Error ? (
-          <div className="max-w-md space-y-4">
-            <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm">
+        <NoirErrorBoundary>
+          {isLoading ? (
+            <EvidenceSkeleton />
+          ) : error || v09Error ? (
+            <div className="max-w-md space-y-4">
+              <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm">
+                <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
+                  CASE FILE ERROR
+                </h3>
+                <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
+                  {error || v09Error?.message}
+                </p>
+              </div>
+              {lastFailedPrompt && (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    className="px-4 py-2 bg-[var(--aesthetic-accent)]/20 border border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-accent)]/30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+                  >
+                    Retry Last Command
+                  </button>
+                  <span className="text-[var(--aesthetic-text)]/50 font-mono text-xs truncate max-w-[200px]">
+                    &ldquo;{lastFailedPrompt}&rdquo;
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : useV09 ? (
+            <A2UIv09Preview />
+          ) : evidence ? (
+            <EvidenceBoard
+              entries={evidenceHistory}
+              activeId={activeEvidenceId}
+              onSelect={handleSelectEvidence}
+              fallbackEvidence={evidence}
+            />
+          ) : (
+            <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm animate-pulse max-w-md">
               <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
-                CASE FILE ERROR
+                REDACTED
               </h3>
               <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
-                {error || v09Error?.message}
+                NO EVIDENCE LOADED.
               </p>
             </div>
-            {lastFailedPrompt && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleRetry}
-                  className="px-4 py-2 bg-[var(--aesthetic-accent)]/20 border border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-accent)]/30 transition-colors"
-                >
-                  Retry Last Command
-                </button>
-                <span className="text-[var(--aesthetic-text)]/50 font-mono text-xs truncate max-w-[200px]">
-                  &ldquo;{lastFailedPrompt}&rdquo;
-                </span>
-              </div>
-            )}
-          </div>
-        ) : useV09 ? (
-          <A2UIv09Preview />
-        ) : evidence ? (
-          <EvidenceBoard
-            entries={evidenceHistory}
-            activeId={activeEvidenceId}
-            onSelect={handleSelectEvidence}
-            fallbackEvidence={evidence}
-          />
-        ) : (
-          <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm animate-pulse max-w-md">
-            <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
-              REDACTED
-            </h3>
-            <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
-              NO EVIDENCE LOADED.
-            </p>
-          </div>
-        )
+          )}
+        </NoirErrorBoundary>
       }
       sidebar={
         <ChatSidebar

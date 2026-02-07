@@ -218,4 +218,70 @@ describe("/api/a2ui/stream", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
+
+  it("streams updateComponents incrementally for each tool call", async () => {
+    // Override streamText to yield multiple tool calls
+    const { streamText } = await import("ai");
+    vi.mocked(streamText).mockImplementationOnce((() => {
+      const createFullStream = async function* () {
+        yield {
+          type: "tool-call",
+          toolName: "generate_ui",
+          toolCallId: "call-1",
+          args: {
+            component: { id: "comp-a", component: "Text", text: "First" },
+          },
+        };
+        yield {
+          type: "tool-call",
+          toolName: "generate_ui",
+          toolCallId: "call-2",
+          args: {
+            component: { id: "comp-b", component: "Button", label: "Second" },
+          },
+        };
+        yield {
+          type: "tool-call",
+          toolName: "generate_ui",
+          toolCallId: "call-3",
+          args: {
+            component: { id: "comp-c", component: "Card", title: "Third" },
+          },
+        };
+      };
+      return { fullStream: createFullStream() };
+    }) as typeof streamText);
+
+    const { POST } = await import("./route");
+
+    const req = new NextRequest("http://localhost/api/a2ui/stream", {
+      method: "POST",
+      body: JSON.stringify({ prompt: "Create multiple components" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await POST(req);
+    const text = await res.text();
+    const lines = text.split("\n").filter((l: string) => l.startsWith("data: "));
+
+    // Filter to only updateComponents messages
+    const updateLines = lines.filter((l: string) => l.includes("updateComponents"));
+
+    // Should have 3 separate updateComponents messages (one per tool call)
+    expect(updateLines).toHaveLength(3);
+
+    // Each should contain exactly one component
+    for (const line of updateLines) {
+      const payload = JSON.parse(line.slice(6));
+      expect(payload.type).toBe("updateComponents");
+      expect(payload.components).toHaveLength(1);
+    }
+
+    // Verify component IDs arrive in order
+    const ids = updateLines.map((l: string) => {
+      const payload = JSON.parse(l.slice(6));
+      return payload.components[0].id;
+    });
+    expect(ids).toEqual(["comp-a", "comp-b", "comp-c"]);
+  });
 });

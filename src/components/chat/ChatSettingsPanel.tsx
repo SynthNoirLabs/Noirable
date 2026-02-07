@@ -84,7 +84,7 @@ export function ChatSettingsPanel({
         <button
           onClick={() => onUpdateSettings({ useA2UIv09: !useA2UIv09 })}
           className={cn(
-            "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
+            "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
             useA2UIv09
               ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
               : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
@@ -151,7 +151,7 @@ export function ChatSettingsPanel({
               disabled={!soundEnabled || elevenLabsConfigured === false}
               title={sfxDisabledReason}
               className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors",
+                "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 soundEnabled
                   ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
                   : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
@@ -211,8 +211,10 @@ export function ChatSettingsPanel({
                 key={level}
                 type="button"
                 onClick={() => onUpdateSettings({ ambient: { intensity: level } })}
+                aria-pressed={ambientSettings.intensity === level}
+                aria-label={`Set intensity to ${level}`}
                 className={cn(
-                  "px-2 py-1 border rounded-sm uppercase tracking-widest text-[10px] transition-colors w-full",
+                  "px-2 py-1 border rounded-sm uppercase tracking-widest text-[10px] transition-colors w-full focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                   ambientSettings.intensity === level
                     ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
                     : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
@@ -259,7 +261,7 @@ function ToggleRow({
         disabled={disabled}
         title={disabled ? disabledTitle : undefined}
         className={cn(
-          "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
+          "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
           active
             ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
             : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]",
