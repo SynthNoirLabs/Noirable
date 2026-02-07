@@ -50,8 +50,8 @@ async function main() {
   await page.waitForSelector('[data-testid="desk-layout"]');
   await page.waitForTimeout(500);
 
-  // 1. Send a card prompt so the board has content
-  await sendChat(page, "Create a missing person card for Jane Doe last seen at the docks");
+  // 1. Send an image prompt so the board shows a suspect photo
+  await sendChat(page, "Generate a photo of the suspect last seen near the docks");
   await waitForAssistantMessages(page, 1);
 
   // Capture workspace with generated component visible

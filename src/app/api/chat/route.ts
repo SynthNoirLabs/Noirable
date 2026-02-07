@@ -130,6 +130,7 @@ function createMockComponent(prompt: string): A2UIInput {
   if (lower.includes("image") || lower.includes("photo")) {
     return {
       type: "image",
+      src: "/mock/suspect.svg",
       prompt: normalized.length > 0 ? normalized : "Noir alley evidence shot",
       alt: "Evidence photo",
     };
