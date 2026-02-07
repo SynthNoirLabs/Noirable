@@ -7,6 +7,10 @@ An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interfa
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
 [![Tests](https://img.shields.io/badge/tests-848%20passing-brightgreen)]()
 
+![Detective workspace with evidence board and chat](docs/screenshots/workspace.png)
+
+![Evidence board with generated UI component](docs/screenshots/evidence-board.png)
+
 ## What This Is
 
 synthNoirUI is a full-stack reference implementation of the **A2UI (Agent to UI) Protocol**. The protocol defines a typed, declarative JSON schema for AI agents to generate rich UI components -- cards, tables, forms, timelines, images -- streamed and rendered in real time. The noir detective persona and evidence board aren't just theming; they're the proving ground for the protocol.
