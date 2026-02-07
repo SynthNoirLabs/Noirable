@@ -12,16 +12,13 @@ import {
   Volume2,
   VolumeX,
   Loader2,
-  Keyboard,
-  CloudLightning,
-  Phone,
 } from "lucide-react";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { cn } from "@/lib/utils";
 import { NoirSoundEffects } from "@/components/noir/NoirSoundEffects";
 import { TypewriterText } from "@/components/noir/TypewriterText";
-import { ModelSelector } from "@/components/settings/ModelSelector";
+import { ChatSettingsPanel } from "./ChatSettingsPanel";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
 
@@ -84,17 +81,6 @@ export function ChatSidebar({
   const soundSetting = soundEnabled;
   const ttsSetting = ttsEnabled ?? true;
   const musicSetting = musicEnabled ?? false;
-  // `persist` may rehydrate older saved settings that don't include newly added fields.
-  // Merge with defaults to avoid undefined values.
-  const ambientSettings: AmbientSettings = {
-    rainEnabled: true,
-    rainVolume: 1,
-    fogEnabled: true,
-    intensity: "medium",
-    crackleEnabled: false,
-    crackleVolume: 0.35,
-    ...(ambient ?? {}),
-  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -165,67 +151,6 @@ export function ChatSidebar({
     if (e.key === "Enter" && !e.shiftKey) {
       // Allow form submit
     }
-  };
-
-  const toggleSpeed = () => {
-    const newSpeed = typewriterSpeed === 0 ? 30 : 0;
-    onUpdateSettings?.({ typewriterSpeed: newSpeed });
-  };
-
-  const toggleSound = () => {
-    onUpdateSettings?.({ soundEnabled: !soundSetting });
-  };
-
-  const toggleTts = () => {
-    if (elevenLabsConfigured === false) {
-      return;
-    }
-    onUpdateSettings?.({ ttsEnabled: !ttsSetting });
-  };
-
-  const toggleMusic = () => {
-    if (elevenLabsConfigured === false) {
-      return;
-    }
-    onUpdateSettings?.({ musicEnabled: !musicSetting });
-  };
-
-  const toggleRain = () => {
-    onUpdateSettings?.({
-      ambient: { rainEnabled: !ambientSettings.rainEnabled },
-    });
-  };
-
-  const toggleFog = () => {
-    onUpdateSettings?.({
-      ambient: { fogEnabled: !ambientSettings.fogEnabled },
-    });
-  };
-
-  const toggleCrackle = () => {
-    onUpdateSettings?.({
-      ambient: { crackleEnabled: !ambientSettings.crackleEnabled },
-    });
-  };
-
-  const handleCrackleVolume = (value: number) => {
-    onUpdateSettings?.({
-      ambient: { crackleVolume: value },
-    });
-  };
-
-  const handleRainVolume = (value: number) => {
-    onUpdateSettings?.({
-      ambient: { rainVolume: value },
-    });
-  };
-
-  const setIntensity = (intensity: AmbientSettings["intensity"]) => {
-    onUpdateSettings?.({ ambient: { intensity } });
-  };
-
-  const toggleA2UIv09 = () => {
-    onUpdateSettings?.({ useA2UIv09: !useA2UIv09 });
   };
 
   const sendShortcut = formatShortcut(["mod", "enter"]);
@@ -321,11 +246,6 @@ export function ChatSidebar({
     : elevenLabsConfigured === false || ttsUnavailable
       ? "Set ELEVENLABS_API_KEY to enable voice"
       : undefined;
-  const sfxDisabledReason = !soundSetting
-    ? "Enable sound effects"
-    : elevenLabsConfigured === false
-      ? "Set ELEVENLABS_API_KEY to enable effects"
-      : undefined;
 
   return (
     <div
@@ -373,7 +293,7 @@ export function ChatSidebar({
       </div>
 
       <AnimatePresence>
-        {showSettings && (
+        {showSettings && onUpdateSettings && (
           <motion.div
             initial={{ height: 0, opacity: 0, overflow: "hidden" }}
             animate={{ height: "auto", opacity: 1, overflow: "visible" }}
@@ -381,264 +301,19 @@ export function ChatSidebar({
             transition={{ duration: 0.2 }}
             className="border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50"
           >
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-[var(--aesthetic-text)]/70">A2UI v0.9</span>
-                <button
-                  onClick={toggleA2UIv09}
-                  className={cn(
-                    "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                    useA2UIv09
-                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-                  )}
-                  aria-label="Toggle A2UI v0.9 mode"
-                  aria-pressed={useA2UIv09}
-                >
-                  {useA2UIv09 ? "ON" : "OFF"}
-                </button>
-              </div>
-              <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-[var(--aesthetic-text)]/70">TYPEWRITER SPEED</span>
-                <button
-                  onClick={toggleSpeed}
-                  className={cn(
-                    "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                    typewriterSpeed === 0
-                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-                  )}
-                >
-                  {typewriterSpeed === 0 ? "INSTANT" : "NORMAL"}
-                </button>
-              </div>
-              <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-[var(--aesthetic-text)]/70">SOUND FX</span>
-                <button
-                  onClick={toggleSound}
-                  className={cn(
-                    "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                    soundSetting
-                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-                  )}
-                  aria-label="Toggle sound effects"
-                  aria-pressed={soundSetting}
-                >
-                  {soundSetting ? "ON" : "OFF"}
-                </button>
-              </div>
-              <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-[var(--aesthetic-text)]/70">VOICE (TTS)</span>
-                <button
-                  onClick={toggleTts}
-                  disabled={elevenLabsConfigured === false}
-                  title={elevenLabsConfigured === false ? "Set ELEVENLABS_API_KEY to enable" : ""}
-                  className={cn(
-                    "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                    ttsSetting
-                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]",
-                    elevenLabsConfigured === false && "opacity-50 cursor-not-allowed"
-                  )}
-                  aria-label="Toggle voice playback"
-                  aria-pressed={ttsSetting}
-                >
-                  {ttsSetting ? "ON" : "OFF"}
-                </button>
-              </div>
-              <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-[var(--aesthetic-text)]/70">NOIR MUSIC</span>
-                <button
-                  onClick={toggleMusic}
-                  disabled={elevenLabsConfigured === false}
-                  title={elevenLabsConfigured === false ? "Set ELEVENLABS_API_KEY to enable" : ""}
-                  className={cn(
-                    "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                    musicSetting
-                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]",
-                    elevenLabsConfigured === false && "opacity-50 cursor-not-allowed"
-                  )}
-                  aria-label="Toggle noir music"
-                  aria-pressed={musicSetting}
-                >
-                  {musicSetting ? "ON" : "OFF"}
-                </button>
-              </div>
-              <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                <span className="text-[var(--aesthetic-text)]/70">FX TRIGGERS</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => sfxControls?.playTypewriter()}
-                    disabled={!soundSetting || elevenLabsConfigured === false}
-                    title={sfxDisabledReason}
-                    className={cn(
-                      "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors",
-                      soundSetting
-                        ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
-                        : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
-                      (!soundSetting || elevenLabsConfigured === false) &&
-                        "opacity-50 cursor-not-allowed"
-                    )}
-                    aria-label="Play typewriter"
-                  >
-                    <Keyboard className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => sfxControls?.playThunder()}
-                    disabled={!soundSetting || elevenLabsConfigured === false}
-                    title={sfxDisabledReason}
-                    className={cn(
-                      "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors",
-                      soundSetting
-                        ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
-                        : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
-                      (!soundSetting || elevenLabsConfigured === false) &&
-                        "opacity-50 cursor-not-allowed"
-                    )}
-                    aria-label="Play thunder"
-                  >
-                    <CloudLightning className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => sfxControls?.playPhoneRing()}
-                    disabled={!soundSetting || elevenLabsConfigured === false}
-                    title={sfxDisabledReason}
-                    className={cn(
-                      "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors",
-                      soundSetting
-                        ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
-                        : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
-                      (!soundSetting || elevenLabsConfigured === false) &&
-                        "opacity-50 cursor-not-allowed"
-                    )}
-                    aria-label="Play phone ring"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-              <div className="border-t border-[var(--aesthetic-border)]/30 pt-4 space-y-3">
-                <div className="text-xs font-mono uppercase tracking-widest text-[var(--aesthetic-text)]/60">
-                  Ambience
-                </div>
-                <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                  <span className="text-[var(--aesthetic-text)]/70">RAIN</span>
-                  <button
-                    onClick={toggleRain}
-                    className={cn(
-                      "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                      ambientSettings.rainEnabled
-                        ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                        : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-                    )}
-                    aria-label="Toggle rain"
-                    aria-pressed={ambientSettings.rainEnabled}
-                  >
-                    {ambientSettings.rainEnabled ? "ON" : "OFF"}
-                  </button>
-                </div>
-                {ambientSettings.rainEnabled && (
-                  <div className="text-xs font-mono">
-                    <div className="flex items-center justify-between text-[var(--aesthetic-text)]/70">
-                      <span>RAIN VOLUME</span>
-                      <span>{Math.round(ambientSettings.rainVolume * 100)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={1}
-                      value={Math.round(ambientSettings.rainVolume * 100)}
-                      onChange={(event) =>
-                        handleRainVolume(Number(event.currentTarget.value) / 100)
-                      }
-                      aria-label="Rain volume"
-                      className="w-full mt-2 accent-[var(--aesthetic-accent)]"
-                    />
-                  </div>
-                )}
-                <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                  <span className="text-[var(--aesthetic-text)]/70">FOG</span>
-                  <button
-                    onClick={toggleFog}
-                    className={cn(
-                      "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                      ambientSettings.fogEnabled
-                        ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                        : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-                    )}
-                    aria-label="Toggle fog"
-                    aria-pressed={ambientSettings.fogEnabled}
-                  >
-                    {ambientSettings.fogEnabled ? "ON" : "OFF"}
-                  </button>
-                </div>
-                <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-                  <span className="text-[var(--aesthetic-text)]/70">VINYL CRACKLE</span>
-                  <button
-                    onClick={toggleCrackle}
-                    className={cn(
-                      "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center",
-                      ambientSettings.crackleEnabled
-                        ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                        : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-                    )}
-                    aria-label="Toggle crackle"
-                    aria-pressed={ambientSettings.crackleEnabled}
-                  >
-                    {ambientSettings.crackleEnabled ? "ON" : "OFF"}
-                  </button>
-                </div>
-                {ambientSettings.crackleEnabled && (
-                  <div className="text-xs font-mono">
-                    <div className="flex items-center justify-between text-[var(--aesthetic-text)]/70">
-                      <span>CRACKLE VOLUME</span>
-                      <span>{Math.round(ambientSettings.crackleVolume * 100)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={1}
-                      value={Math.round(ambientSettings.crackleVolume * 100)}
-                      onChange={(event) =>
-                        handleCrackleVolume(Number(event.currentTarget.value) / 100)
-                      }
-                      aria-label="Crackle volume"
-                      className="w-full mt-2 accent-[var(--aesthetic-accent)]"
-                    />
-                  </div>
-                )}
-                <div className="text-xs font-mono">
-                  <span className="text-[var(--aesthetic-text)]/70">INTENSITY</span>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {(["low", "medium", "high"] as const).map((level) => (
-                      <button
-                        key={level}
-                        type="button"
-                        onClick={() => setIntensity(level)}
-                        className={cn(
-                          "px-2 py-1 border rounded-sm uppercase tracking-widest text-[10px] transition-colors w-full",
-                          ambientSettings.intensity === level
-                            ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-                            : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-                        )}
-                      >
-                        {level}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {modelConfig && onModelConfigChange && (
-                <ModelSelector modelConfig={modelConfig} onConfigChange={onModelConfigChange} />
-              )}
-            </div>
+            <ChatSettingsPanel
+              typewriterSpeed={typewriterSpeed}
+              soundEnabled={soundSetting}
+              ttsEnabled={ttsSetting}
+              musicEnabled={musicSetting}
+              ambient={ambient ?? {}}
+              modelConfig={modelConfig}
+              useA2UIv09={useA2UIv09}
+              elevenLabsConfigured={elevenLabsConfigured}
+              sfxControls={sfxControls}
+              onUpdateSettings={onUpdateSettings}
+              onModelConfigChange={onModelConfigChange}
+            />
           </motion.div>
         )}
       </AnimatePresence>

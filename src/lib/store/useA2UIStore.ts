@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type PersistStorage } from "zustand/middleware";
 import { A2UIInput } from "@/lib/protocol/schema";
-import { AIProviderType, AVAILABLE_MODELS } from "@/lib/ai/models";
+import { AIProviderType, AVAILABLE_MODELS } from "@/lib/ai/model-registry";
 import type { TrainingExample } from "@/lib/training";
 import type { AestheticId } from "@/lib/aesthetic/types";
 

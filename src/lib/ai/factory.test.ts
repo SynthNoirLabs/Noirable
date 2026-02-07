@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getProvider } from "./factory";
+import { getProvider, _resetAuthCache } from "./factory";
 import fs from "fs";
 
 vi.mock("server-only", () => ({}));
@@ -9,6 +9,7 @@ describe("ProviderFactory", () => {
 
   beforeEach(() => {
     vi.resetModules();
+    _resetAuthCache();
     process.env = { ...originalEnv };
     delete process.env.OPENAI_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;

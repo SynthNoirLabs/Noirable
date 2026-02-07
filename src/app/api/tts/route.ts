@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ELEVENLABS_CONFIG } from "@/lib/elevenlabs/config";
+import { apiSecurityCheck } from "@/lib/api/security";
 
 const MAX_TTS_CHARS = 520;
 
@@ -16,6 +17,9 @@ interface TTSRequest {
 }
 
 export async function POST(request: Request) {
+  const securityError = apiSecurityCheck(request);
+  if (securityError) return securityError;
+
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     return Response.json(

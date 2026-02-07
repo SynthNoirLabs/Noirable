@@ -51,10 +51,8 @@ const Slider = ({
 export function AudioCustomization({ className }: AudioCustomizationProps) {
   const { settings, updateSettings } = useA2UIStore();
 
-  const handlePreview = (type: string) => {
-    // In a real implementation, this would play the actual asset.
-    // For now, we just log or use a placeholder if we had URLs.
-    console.log(`Previewing audio: ${type}`);
+  const handlePreview = (_type: string) => {
+    // TODO: Play actual audio asset when URLs are available
   };
 
   const updateSfxVolume = (type: "typewriter" | "thunder" | "phone", value: number) => {

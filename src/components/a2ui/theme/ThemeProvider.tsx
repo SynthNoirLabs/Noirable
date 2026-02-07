@@ -50,6 +50,7 @@ export function ThemeProvider({ children, defaultTheme = "noir" }: ThemeProvider
 
   return (
     <>
+      {/* Safe: cssVars is generated from hard-coded token maps in tokens.ts, no user input */}
       <style dangerouslySetInnerHTML={{ __html: `:root { ${cssVars} }` }} />
       <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
         {children}

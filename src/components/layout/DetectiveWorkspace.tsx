@@ -165,14 +165,35 @@ export function DetectiveWorkspace() {
     [messages]
   );
 
+  /** Shared logic for committing a new evidence entry to the store */
+  const processNewEvidence = useCallback(
+    (
+      entry: { id: string; createdAt: number; label: string; status?: string; data: A2UIInput },
+      data: A2UIInput
+    ) => {
+      addEvidence(entry);
+      setEvidence(data);
+      setActiveEvidenceId(entry.id);
+      setJson(JSON.stringify(data, null, 2));
+      setError(null);
+    },
+    [addEvidence, setActiveEvidenceId, setEvidence]
+  );
+
+  /** Capture training data if conditions are met */
+  const captureTraining = useCallback(
+    (data: A2UIInput) => {
+      const userPrompt = getLastUserPrompt(messages);
+      if (userPrompt && shouldCapture(userPrompt, data)) {
+        addTrainingExample(createTrainingExample(userPrompt, data));
+      }
+    },
+    [addTrainingExample, messages]
+  );
+
   useEffect(() => {
     if (!messages || messages.length === 0) return;
     const lastMessage = messages[messages.length - 1];
-
-    if (process.env.NODE_ENV !== "production") {
-      console.log("DEBUG: Last message role:", lastMessage.role);
-      console.log("DEBUG: Last message parts:", lastMessage.parts);
-    }
 
     if (lastMessage.role !== "assistant") return;
 
@@ -197,27 +218,15 @@ export function DetectiveWorkspace() {
               console.log("Tool Result received (standard):", parsed.data);
             }
             const entry = {
-              id:
-                typeof globalThis.crypto?.randomUUID === "function"
-                  ? globalThis.crypto.randomUUID()
-                  : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              id: crypto.randomUUID(),
               createdAt: Date.now(),
               label: deriveEvidenceLabel(parsed.data),
               status: deriveEvidenceStatus(parsed.data),
               data: parsed.data,
             };
-            addEvidence(entry);
-            setEvidence(parsed.data);
-            setActiveEvidenceId(entry.id);
-            setJson(JSON.stringify(parsed.data, null, 2));
-            setError(null);
-            setLastFailedPrompt(null); // Clear on success
-
-            // Capture training data from successful generation
-            const userPrompt = getLastUserPrompt(messages);
-            if (userPrompt && shouldCapture(userPrompt, parsed.data)) {
-              addTrainingExample(createTrainingExample(userPrompt, parsed.data));
-            }
+            processNewEvidence(entry, parsed.data);
+            setLastFailedPrompt(null);
+            captureTraining(parsed.data);
             return;
           }
         }
@@ -230,9 +239,6 @@ export function DetectiveWorkspace() {
             message?: string;
           };
           if (result?.success && result?.aestheticId) {
-            if (process.env.NODE_ENV !== "production") {
-              console.log("Aesthetic changed:", result.aestheticId, result.message);
-            }
             updateSettings({ aestheticId: result.aestheticId as "noir" | "minimal" });
           }
         }
@@ -249,13 +255,6 @@ export function DetectiveWorkspace() {
         continue;
       }
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log("DEBUG: Tool part:", toolPart.type, "state:", toolPart.state);
-        if (toolPart.errorText) {
-          console.error("DEBUG: Tool error:", toolPart.errorText);
-        }
-      }
-
       if (toolPart.state === "output-error") {
         setError(`Tool error: ${toolPart.errorText || "Unknown error"}`);
         continue;
@@ -265,10 +264,6 @@ export function DetectiveWorkspace() {
         continue;
       }
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log("DEBUG: Tool output found:", toolPart.output);
-      }
-
       const parsed = a2uiInputSchema.safeParse(toolPart.output);
       if (!parsed.success) {
         setError("Invalid tool output");
@@ -276,26 +271,14 @@ export function DetectiveWorkspace() {
       }
 
       const entry = {
-        id:
-          typeof globalThis.crypto?.randomUUID === "function"
-            ? globalThis.crypto.randomUUID()
-            : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: crypto.randomUUID(),
         createdAt: Date.now(),
         label: deriveEvidenceLabel(parsed.data),
         status: deriveEvidenceStatus(parsed.data),
         data: parsed.data,
       };
-      addEvidence(entry);
-      setEvidence(parsed.data);
-      setActiveEvidenceId(entry.id);
-      setJson(JSON.stringify(parsed.data, null, 2));
-      setError(null);
-
-      // Capture training data from successful generation
-      const userPrompt2 = getLastUserPrompt(messages);
-      if (userPrompt2 && shouldCapture(userPrompt2, parsed.data)) {
-        addTrainingExample(createTrainingExample(userPrompt2, parsed.data));
-      }
+      processNewEvidence(entry, parsed.data);
+      captureTraining(parsed.data);
       return;
     }
 
@@ -319,29 +302,17 @@ export function DetectiveWorkspace() {
       }
 
       const entry = {
-        id:
-          typeof globalThis.crypto?.randomUUID === "function"
-            ? globalThis.crypto.randomUUID()
-            : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: crypto.randomUUID(),
         createdAt: Date.now(),
         label: deriveEvidenceLabel(parsed.data),
         status: deriveEvidenceStatus(parsed.data),
         data: parsed.data,
       };
-      addEvidence(entry);
-      setEvidence(parsed.data);
-      setActiveEvidenceId(entry.id);
-      setJson(JSON.stringify(parsed.data, null, 2));
-      setError(null);
-
-      // Capture training data from successful generation (legacy path)
-      const userPrompt3 = getLastUserPrompt(messages);
-      if (userPrompt3 && shouldCapture(userPrompt3, parsed.data)) {
-        addTrainingExample(createTrainingExample(userPrompt3, parsed.data));
-      }
+      processNewEvidence(entry, parsed.data);
+      captureTraining(parsed.data);
       return;
     }
-  }, [addEvidence, addTrainingExample, messages, setActiveEvidenceId, setEvidence]);
+  }, [captureTraining, messages, processNewEvidence, updateSettings]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value;

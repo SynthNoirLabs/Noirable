@@ -1,6 +1,4 @@
-# Ignore non-source docs and external method artifacts
-bmad-method/**
-conductor/**
+# Ignore non-source docs
 docs/**
 
 # Ignore generated artifacts

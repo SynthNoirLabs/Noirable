@@ -253,8 +253,7 @@ function ButtonRenderer({ component }: ComponentProps) {
   const childComponent = btn.child ? getComponent(btn.child) : null;
 
   const handleClick = () => {
-    // In production, this would dispatch the action
-    console.log("[A2UI] Button clicked:", btn.id, btn.action);
+    // TODO: dispatch btn.action when action system is implemented
   };
 
   return (

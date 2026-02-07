@@ -26,7 +26,7 @@ Add to `~/.config/opencode/opencode.json`:
   "mcp": {
     "code-indexer": {
       "type": "local",
-      "command": ["node", "/path/to/bmad/mcp/code-indexer/dist/index.js"],
+      "command": ["node", "/path/to/synth-noir-ui/mcp/code-indexer/dist/index.js"],
       "enabled": true
     }
   }

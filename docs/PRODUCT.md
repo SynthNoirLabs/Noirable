@@ -4,7 +4,7 @@
 
 ## Vision
 
-**synthNoirUI (bmad)** is a hybrid UI generation platform combining:
+**synthNoirUI** is a hybrid UI generation platform combining:
 
 - **Draft Mode (A2UI):** Rapid, secure, declarative JSON protocol for UI drafting
 - **Eject Mode:** One-click export to editable React + Tailwind code
@@ -123,58 +123,4 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 
 ---
 
-## Original Requirements (PRD v1.0)
-
-### Functional Requirements
-
-| ID | Requirement | Status |
-|----|-------------|--------|
-| FR1 | Chat input for natural language commands | Done |
-| FR2 | AI generation of valid A2UI JSON payloads | Done |
-| FR3 | "Update" commands to modify current state | Done |
-| FR4 | AI persona adheres to "Hard-boiled Detective" | Done |
-| FR5 | Chat history with state persistence | Done |
-
-### Non-Functional Requirements
-
-| ID | Requirement | Status |
-|----|-------------|--------|
-| NFR1 | < 3s latency for text generation | Met |
-| NFR2 | Strict adherence to Zod schema | Met |
-| NFR3 | Thematic error fallbacks | Met |
-
-### Epic Completion Status
-
-#### Epic 1: Foundation & Persona
-
-| Story | Description | Status |
-|-------|-------------|--------|
-| 1.1 | Setup Vercel AI SDK Core | Done |
-| 1.2 | Implement Chat Sidebar | Done |
-| 1.3 | Define System Prompt (Noir Persona) | Done |
-| 1.4 | Multi-provider API Key Support | Done |
-
-#### Epic 2: Tool-Driven Generation
-
-| Story | Description | Status |
-|-------|-------------|--------|
-| 2.1 | Define `generate_ui` Tool using Zod | Done |
-| 2.2 | Connect Tool execution to Zustand State | Done |
-| 2.3 | Implement Contextual Updates | Done |
-| 2.4 | In-Character Error Handling | Done |
-
----
-
-## Success Metrics
-
-| Metric | Target | Current |
-|--------|--------|---------|
-| Core functionality | 100% | 100% |
-| Test coverage | >80% | ~65.77% |
-| CI gate passing | Yes | Yes |
-| E2E smoke test | Pass | Pass |
-| Unit tests | >500 | 623 |
-
----
-
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-07*

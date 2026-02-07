@@ -1,13 +1,71 @@
 import "server-only";
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AIProviderInstance = any; // Flexible for multiple SDK providers
+export type AIProviderInstance =
+  | ReturnType<typeof createOpenAI>
+  | ReturnType<typeof createAnthropic>
+  | ReturnType<typeof createGoogleGenerativeAI>
+  | null;
+
+interface AuthConfig {
+  openai?: string | { access: string };
+  anthropic?: string | { access: string };
+  google?: string | { access: string };
+}
+
+let cachedAuthConfig: AuthConfig | null = null;
+let authConfigLoaded = false;
+
+/** @internal Reset auth config cache (for testing only) */
+export function _resetAuthCache(): void {
+  cachedAuthConfig = null;
+  authConfigLoaded = false;
+}
+
+async function loadAuthConfig(): Promise<AuthConfig> {
+  if (authConfigLoaded) return cachedAuthConfig ?? {};
+  const home = os.homedir();
+  const authPath = path.join(home, ".local/share/opencode/auth.json");
+  try {
+    const data = await fs.readFile(authPath, "utf-8");
+    cachedAuthConfig = JSON.parse(data) as AuthConfig;
+  } catch {
+    cachedAuthConfig = {};
+  }
+  authConfigLoaded = true;
+  return cachedAuthConfig ?? {};
+}
+
+function loadAuthConfigSync(): AuthConfig {
+  if (authConfigLoaded) return cachedAuthConfig ?? {};
+  const home = os.homedir();
+  const authPath = path.join(home, ".local/share/opencode/auth.json");
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fsSync = require("fs") as typeof import("fs");
+    if (fsSync.existsSync(authPath)) {
+      cachedAuthConfig = JSON.parse(fsSync.readFileSync(authPath, "utf-8")) as AuthConfig;
+    }
+  } catch {
+    cachedAuthConfig = {};
+  }
+  authConfigLoaded = true;
+  return cachedAuthConfig ?? {};
+}
+
+function resolveKey(
+  config: AuthConfig,
+  provider: "openai" | "anthropic" | "google"
+): string | undefined {
+  const entry = config[provider];
+  if (!entry) return undefined;
+  return typeof entry === "string" ? entry : entry.access;
+}
 
 export type ProviderType = "openai" | "anthropic" | "google" | "openai-compatible" | "mock";
 
@@ -35,27 +93,13 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
     return result;
   }
 
-  const home = os.homedir();
-  const authPath = path.join(home, ".local/share/opencode/auth.json");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let config: any = {};
-
-  if (fs.existsSync(authPath)) {
-    try {
-      config = JSON.parse(fs.readFileSync(authPath, "utf-8"));
-    } catch {
-      console.warn("Failed to parse auth.json");
-    }
-  }
+  const config = loadAuthConfigSync();
 
   switch (override.provider) {
     case "openai":
     case "openai-compatible": {
       const baseUrl = process.env.OPENAI_BASE_URL;
-      let apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey && config.openai) {
-        apiKey = typeof config.openai === "string" ? config.openai : config.openai.access;
-      }
+      const apiKey = process.env.OPENAI_API_KEY || resolveKey(config, "openai");
 
       if (!apiKey && !baseUrl) {
         throw new Error("OpenAI API key not found");
@@ -76,10 +120,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
     }
 
     case "anthropic": {
-      let apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey && config.anthropic) {
-        apiKey = typeof config.anthropic === "string" ? config.anthropic : config.anthropic.access;
-      }
+      const apiKey = process.env.ANTHROPIC_API_KEY || resolveKey(config, "anthropic");
 
       if (!apiKey) {
         throw new Error("Anthropic API key not found");
@@ -93,10 +134,10 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
     }
 
     case "google": {
-      let apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
-      if (!apiKey && config.google) {
-        apiKey = typeof config.google === "string" ? config.google : config.google.access;
-      }
+      const apiKey =
+        process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+        process.env.GEMINI_API_KEY ||
+        resolveKey(config, "google");
 
       if (!apiKey) {
         throw new Error("Google API key not found");
@@ -114,31 +155,17 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
   }
 }
 
-export function getProvider(): ProviderResult {
-  const home = os.homedir();
-  const authPath = path.join(home, ".local/share/opencode/auth.json");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let config: any = {};
+/** Preload auth config asynchronously (call at app startup) */
+export { loadAuthConfig as preloadAuthConfig };
 
-  if (fs.existsSync(authPath)) {
-    try {
-      config = JSON.parse(fs.readFileSync(authPath, "utf-8"));
-    } catch {
-      console.warn("Failed to parse auth.json");
-    }
-  }
+export function getProvider(): ProviderResult {
+  const config = loadAuthConfigSync();
 
   // 1. Check OpenAI Compatible (Prioritize Custom Proxy)
   const openAIBaseUrl = process.env.OPENAI_BASE_URL;
   if (openAIBaseUrl) {
-    // Check for a key, but default to 'dummy' if using a local proxy that doesn't need one
-    let compatKey = process.env.OPENAI_API_KEY;
-    if (!compatKey && config.openai) {
-      compatKey = typeof config.openai === "string" ? config.openai : config.openai.access;
-    }
+    const compatKey = process.env.OPENAI_API_KEY || resolveKey(config, "openai");
 
-    // Use standard OpenAI provider but with custom URL.
-    // This often ensures better compatibility with tools than the generic 'openai-compatible' wrapper
     return {
       provider: createOpenAI({
         baseURL: openAIBaseUrl,
@@ -150,11 +177,7 @@ export function getProvider(): ProviderResult {
   }
 
   // 2. Check OpenAI (Env or Config)
-  let openAIKey = process.env.OPENAI_API_KEY;
-  if (!openAIKey && config.openai) {
-    openAIKey = typeof config.openai === "string" ? config.openai : config.openai.access;
-  }
-
+  const openAIKey = process.env.OPENAI_API_KEY || resolveKey(config, "openai");
   if (openAIKey) {
     return {
       provider: createOpenAI({ apiKey: openAIKey }),
@@ -164,12 +187,7 @@ export function getProvider(): ProviderResult {
   }
 
   // 3. Check Anthropic (Env or Config)
-  let anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey && config.anthropic) {
-    anthropicKey =
-      typeof config.anthropic === "string" ? config.anthropic : config.anthropic.access;
-  }
-
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || resolveKey(config, "anthropic");
   if (anthropicKey) {
     return {
       provider: createAnthropic({ apiKey: anthropicKey }),
@@ -179,11 +197,10 @@ export function getProvider(): ProviderResult {
   }
 
   // 4. Check Google/Gemini (Env or Config)
-  let googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
-  if (!googleKey && config.google) {
-    googleKey = typeof config.google === "string" ? config.google : config.google.access;
-  }
-
+  const googleKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    resolveKey(config, "google");
   if (googleKey) {
     return {
       provider: createGoogleGenerativeAI({ apiKey: googleKey }),

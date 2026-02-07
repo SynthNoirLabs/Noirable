@@ -6,6 +6,7 @@ import { getProviderWithOverrides } from "@/lib/ai/factory";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { tools } from "@/lib/ai/tools";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
+import { apiSecurityCheck } from "@/lib/api/security";
 
 /**
  * Request body for A2UI stream endpoint
@@ -88,6 +89,9 @@ function formatSSE(data: unknown): string {
  * - [DONE] sentinel
  */
 export async function POST(req: NextRequest): Promise<Response> {
+  const securityError = apiSecurityCheck(req);
+  if (securityError) return securityError;
+
   // Parse request body
   let body: A2UIStreamRequest;
   try {
@@ -158,9 +162,9 @@ export async function POST(req: NextRequest): Promise<Response> {
         };
         controller.enqueue(encoder.encode(formatSSE(createSurfaceMsg)));
 
-        // 2. Stream AI response
+        // 2. Stream AI response (provider is non-null after mock check above)
         const result = streamText({
-          model: auth.provider(auth.model),
+          model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
           system: buildSystemPrompt(),
           tools,

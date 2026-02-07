@@ -4,6 +4,13 @@ import { TypewriterText } from "@/components/noir/TypewriterText";
 import { DossierCard } from "@/components/noir/DossierCard";
 import { cn } from "@/lib/utils";
 import { useFormContext, FormProvider, type FormValues } from "./FormContext";
+import {
+  spacingClasses,
+  paddingClasses,
+  alignClasses,
+  widthClasses,
+  gridColsClasses,
+} from "@/lib/protocol/token-maps";
 
 interface A2UIRendererProps {
   data: unknown;
@@ -31,45 +38,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
 
   const component = result.data;
 
-  const spacingMap: Record<string, string> = {
-    none: "",
-    xs: "gap-2",
-    sm: "gap-3",
-    md: "gap-4",
-    lg: "gap-6",
-    xl: "gap-8",
-  };
-
-  const paddingMap: Record<string, string> = {
-    none: "",
-    xs: "p-2",
-    sm: "p-3",
-    md: "p-4",
-    lg: "p-6",
-    xl: "p-8",
-  };
-
-  const alignMap: Record<string, string> = {
-    start: "items-start",
-    center: "items-center",
-    end: "items-end",
-    stretch: "items-stretch",
-  };
-
-  const widthMap: Record<string, string> = {
-    auto: "w-auto",
-    full: "w-full",
-    "1/2": "w-1/2",
-    "1/3": "w-1/3",
-    "2/3": "w-2/3",
-  };
-
-  const gridColsMap: Record<"2" | "3" | "4", string> = {
-    "2": "grid-cols-2",
-    "3": "grid-cols-3",
-    "4": "grid-cols-4",
-  };
-
+  // Variant map uses CSS variables for theme-awareness (unlike exported token-maps which use hardcoded colors)
   const variantMap: Record<string, string> = {
     primary:
       "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] border-[var(--aesthetic-accent)]/60",
@@ -102,7 +71,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
       <div
         className={cn(
           "w-full border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 rounded-sm",
-          node.style?.width ? widthMap[node.style.width] : null,
+          node.style?.width ? widthClasses[node.style.width] : null,
           node.style?.className
         )}
       >
@@ -147,10 +116,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "flex flex-col",
-              node.style?.gap ? spacingMap[node.style.gap] : null,
-              node.style?.padding ? paddingMap[node.style.padding] : null,
-              node.style?.align ? alignMap[node.style.align] : null,
-              node.style?.width ? widthMap[node.style.width] : null,
+              node.style?.gap ? spacingClasses[node.style.gap] : null,
+              node.style?.padding ? paddingClasses[node.style.padding] : null,
+              node.style?.align ? alignClasses[node.style.align] : null,
+              node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           >
@@ -164,10 +133,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "flex flex-row flex-wrap",
-              node.style?.gap ? spacingMap[node.style.gap] : null,
-              node.style?.padding ? paddingMap[node.style.padding] : null,
-              node.style?.align ? alignMap[node.style.align] : null,
-              node.style?.width ? widthMap[node.style.width] : null,
+              node.style?.gap ? spacingClasses[node.style.gap] : null,
+              node.style?.padding ? paddingClasses[node.style.padding] : null,
+              node.style?.align ? alignClasses[node.style.align] : null,
+              node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           >
@@ -181,10 +150,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "flex flex-col",
-              node.style?.gap ? spacingMap[node.style.gap] : null,
-              node.style?.padding ? paddingMap[node.style.padding] : null,
-              node.style?.align ? alignMap[node.style.align] : null,
-              node.style?.width ? widthMap[node.style.width] : null,
+              node.style?.gap ? spacingClasses[node.style.gap] : null,
+              node.style?.padding ? paddingClasses[node.style.padding] : null,
+              node.style?.align ? alignClasses[node.style.align] : null,
+              node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           >
@@ -198,10 +167,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "grid",
-              node.columns ? gridColsMap[node.columns] : "grid-cols-2",
-              node.style?.gap ? spacingMap[node.style.gap] : null,
-              node.style?.padding ? paddingMap[node.style.padding] : null,
-              node.style?.width ? widthMap[node.style.width] : null,
+              node.columns ? gridColsClasses[node.columns] : "grid-cols-2",
+              node.style?.gap ? spacingClasses[node.style.gap] : null,
+              node.style?.padding ? paddingClasses[node.style.padding] : null,
+              node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           >
@@ -210,9 +179,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             ))}
           </div>
         );
-      case "heading":
+      case "heading": {
+        const HeadingTag = `h${node.level}` as "h1" | "h2" | "h3" | "h4";
         return (
-          <div
+          <HeadingTag
             className={cn(
               "font-typewriter text-[var(--aesthetic-text)]",
               node.level === 1 && "text-3xl",
@@ -223,8 +193,9 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             )}
           >
             {node.text}
-          </div>
+          </HeadingTag>
         );
+      }
       case "paragraph":
         return (
           <p
@@ -241,7 +212,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "border-l-2 border-[var(--aesthetic-accent)]/60 bg-[var(--aesthetic-background)]/45 px-4 py-3 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)]",
-              node.style?.width ? widthMap[node.style.width] : null,
+              node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           >
@@ -296,7 +267,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           <div
             className={cn(
               "w-full overflow-x-auto",
-              node.style?.width ? widthMap[node.style.width] : null,
+              node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           >
@@ -371,7 +342,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             alt={node.alt ?? "Generated image"}
             className={cn(
               "rounded-sm object-cover",
-              node.style?.width ? widthMap[node.style.width] : null,
+              node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           />

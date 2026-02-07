@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Visual regression and layout tests for bmad.
+ * Visual regression and layout tests for synthNoirUI.
  *
  * These tests catch:
  * 1. Visual regressions (screenshot comparison)

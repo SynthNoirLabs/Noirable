@@ -4,6 +4,17 @@ import type { CustomProfileId } from "@/lib/aesthetic/types";
 const STYLE_ELEMENT_ID = "custom-profile-styles";
 
 /**
+ * Strict CSS color value pattern.
+ * Allows: hex (#rgb, #rrggbb, #rrggbbaa), rgb(), rgba(), hsl(), hsla(), and CSS named colors.
+ */
+const CSS_COLOR_PATTERN =
+  /^(#[0-9a-fA-F]{3,8}|rgba?\(\s*[\d.]+%?\s*(,\s*[\d.]+%?\s*){2,3}\)|hsla?\(\s*[\d.]+\s*(,\s*[\d.]+%?\s*){2,3}\)|transparent|currentColor|inherit|[a-zA-Z]{3,20})$/;
+
+function isValidCSSColor(value: string): boolean {
+  return CSS_COLOR_PATTERN.test(value.trim());
+}
+
+/**
  * Font family mappings for presets
  */
 const FONT_FAMILIES: Record<FontPreset, string> = {
@@ -35,7 +46,7 @@ export function buildColorVariables(colors: ProfileColors): string {
   const vars: string[] = [];
 
   for (const [key, value] of Object.entries(colors)) {
-    if (value && key in COLOR_VAR_MAP) {
+    if (value && key in COLOR_VAR_MAP && isValidCSSColor(value)) {
       const varName = COLOR_VAR_MAP[key as keyof ProfileColors];
       vars.push(`${varName}: ${value};`);
     }

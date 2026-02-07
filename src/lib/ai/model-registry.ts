@@ -1,5 +1,3 @@
-import "server-only";
-
 export interface ModelCapabilities {
   chat: boolean;
   vision: boolean;
@@ -327,3 +325,20 @@ export function getImageGenMethod(modelId: string): "generateImage" | "generateT
 export function getModelsByProvider(provider: "openai" | "anthropic" | "google"): ModelInfo[] {
   return Object.values(MODEL_REGISTRY).filter((model) => model.provider === provider);
 }
+
+// Re-exported types and constants previously in models.ts (now consolidated here)
+export type AIProviderType = "openai" | "anthropic" | "google" | "openai-compatible" | "auto";
+
+function getAvailableModelIds(provider: "openai" | "anthropic" | "google"): string[] {
+  return getModelsByProvider(provider)
+    .filter((m) => m.capabilities.chat)
+    .map((m) => m.id);
+}
+
+export const AVAILABLE_MODELS: Record<AIProviderType, string[]> = {
+  auto: [],
+  openai: getAvailableModelIds("openai"),
+  anthropic: getAvailableModelIds("anthropic"),
+  google: getAvailableModelIds("google"),
+  "openai-compatible": [],
+};

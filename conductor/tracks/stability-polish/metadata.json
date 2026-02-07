@@ -1,8 +1,0 @@
-{
-  "track_id": "stability-polish",
-  "type": "quality",
-  "status": "active",
-  "created_at": "2026-01-20T18:30:00Z",
-  "updated_at": "2026-01-20T18:30:00Z",
-  "description": "Quality, stability, and diagnostics improvements"
-}

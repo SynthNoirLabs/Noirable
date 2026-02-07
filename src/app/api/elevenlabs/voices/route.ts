@@ -18,7 +18,8 @@ export interface VoiceListResponse {
   }>;
 }
 
-// Simple in-memory cache
+// In-memory cache. NOTE: Resets on each serverless cold start, so this acts as
+// a best-effort optimization rather than a guaranteed cache layer.
 let cachedVoices: VoiceListResponse | null = null;
 let cacheExpiry = 0;
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes

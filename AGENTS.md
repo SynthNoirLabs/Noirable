@@ -1,4 +1,4 @@
-# bmad — AI Evidence Board
+# synthNoirUI — AI Evidence Board
 
 Noir-themed evidence board where AI generates UI via tool calls. Chat streams A2UI JSON, validated via Zod, rendered as "evidence."
 
