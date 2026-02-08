@@ -5,8 +5,9 @@ import { DossierCard } from "./DossierCard";
 describe("DossierCard", () => {
   it("renders title and description", () => {
     render(<DossierCard title="John Doe" description="Suspect" />);
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-    expect(screen.getByText("Suspect")).toBeInTheDocument();
+    // TypewriterText renders duplicates (sr-only + aria-hidden)
+    expect(screen.getAllByText("John Doe")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Suspect")[0]).toBeInTheDocument();
   });
 
   it("has paper texture and shadow", () => {
