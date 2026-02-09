@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { TypewriterText } from "./TypewriterText";
 
@@ -21,5 +21,13 @@ describe("TypewriterText", () => {
     const element = container.querySelector(".text-\\[var\\(--aesthetic-error\\)\\]");
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("CONFIDENTIAL");
+  });
+
+  it("renders accessible text immediately for screen readers", () => {
+    // Use a slow speed so the visual text is not fully rendered immediately
+    render(<TypewriterText content="Accessible Content" speed={100} />);
+
+    // The full text should be available in the DOM immediately (in sr-only span)
+    expect(screen.getByText("Accessible Content")).toBeInTheDocument();
   });
 });

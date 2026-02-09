@@ -74,18 +74,22 @@ export function TypewriterText({
   }, [content, effectiveSpeed]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className={cn(
-        "font-typewriter text-lg tracking-wide",
-        glow && "crt-glow",
-        priorityMap[priority],
-        className
-      )}
-    >
-      {displayedText}
-      {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
-    </motion.div>
+    <>
+      <span className="sr-only">{content}</span>
+      <motion.div
+        aria-hidden="true"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className={cn(
+          "font-typewriter text-lg tracking-wide",
+          glow && "crt-glow",
+          priorityMap[priority],
+          className
+        )}
+      >
+        {displayedText}
+        {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
+      </motion.div>
+    </>
   );
 }
