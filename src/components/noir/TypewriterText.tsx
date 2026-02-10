@@ -84,8 +84,13 @@ export function TypewriterText({
         className
       )}
     >
-      {displayedText}
-      {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
+      {/* Screen reader only text - full content immediately */}
+      <span className="sr-only">{content}</span>
+      {/* Visual text - hidden from screen readers to prevent stuttering */}
+      <span aria-hidden="true">
+        {displayedText}
+        {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
+      </span>
     </motion.div>
   );
 }

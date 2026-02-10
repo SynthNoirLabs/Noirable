@@ -22,4 +22,17 @@ describe("TypewriterText", () => {
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("CONFIDENTIAL");
   });
+
+  it("renders accessible text structure", () => {
+    const { container } = render(<TypewriterText content="Secret Message" speed={0} />);
+
+    // Full text should be in sr-only span
+    const srElement = container.querySelector(".sr-only");
+    expect(srElement).toBeInTheDocument();
+    expect(srElement?.textContent).toBe("Secret Message");
+
+    // Visual text should be hidden from screen readers
+    const visualElement = container.querySelector('[aria-hidden="true"]');
+    expect(visualElement).toBeInTheDocument();
+  });
 });
