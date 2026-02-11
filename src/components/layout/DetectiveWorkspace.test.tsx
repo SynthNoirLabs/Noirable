@@ -99,7 +99,8 @@ describe("DetectiveWorkspace", () => {
 
     fireEvent.change(textarea, { target: { value: newJson } });
 
-    expect(screen.getByText("New Suspect")).toBeInTheDocument();
+    // Use getAllByText to handle duplicate text from TypewriterText
+    expect(screen.getAllByText("New Suspect")[0]).toBeInTheDocument();
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
   });
 

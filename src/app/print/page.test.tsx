@@ -28,6 +28,8 @@ describe("Print page", () => {
   it("renders evidence with a case header", () => {
     render(<PrintPage />);
     expect(screen.getByText(/Case File/i)).toBeInTheDocument();
-    expect(screen.getByText("Evidence #1")).toBeInTheDocument();
+    // Use getAllByText because TypewriterText creates duplicate content (sr-only + visible)
+    const elements = screen.getAllByText("Evidence #1");
+    expect(elements.length).toBeGreaterThan(0);
   });
 });
