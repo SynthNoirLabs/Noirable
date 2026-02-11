@@ -22,4 +22,18 @@ describe("TypewriterText", () => {
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("CONFIDENTIAL");
   });
+
+  it("provides accessible text for screen readers", () => {
+    const content = "Access Granted";
+    const { container } = render(<TypewriterText content={content} speed={0} />);
+
+    // Check for sr-only text
+    const srElement = container.querySelector(".sr-only");
+    expect(srElement).toBeInTheDocument();
+    expect(srElement).toHaveTextContent(content);
+
+    // Verify aria-hidden elements are present (text wrapper + cursor)
+    const hiddenElements = container.querySelectorAll("[aria-hidden='true']");
+    expect(hiddenElements.length).toBeGreaterThan(0);
+  });
 });
