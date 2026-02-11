@@ -10,7 +10,8 @@ describe("A2UIRenderer", () => {
       priority: "normal",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Evidence #1")).toBeInTheDocument();
+    // TypewriterText duplicates text for accessibility (sr-only + aria-hidden)
+    expect(screen.getAllByText("Evidence #1")[0]).toBeInTheDocument();
   });
 
   it("renders legacy text components with text field", () => {
@@ -19,7 +20,7 @@ describe("A2UIRenderer", () => {
       text: "Legacy note",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Legacy note")).toBeInTheDocument();
+    expect(screen.getAllByText("Legacy note")[0]).toBeInTheDocument();
   });
 
   it("renders a card component", () => {
@@ -29,7 +30,8 @@ describe("A2UIRenderer", () => {
       status: "active",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Suspect Profile")).toBeInTheDocument();
+    // DossierCard uses TypewriterText which duplicates content
+    expect(screen.getAllByText("Suspect Profile")[0]).toBeInTheDocument();
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
   });
 
@@ -63,7 +65,8 @@ describe("A2UIRenderer", () => {
       priority: "high",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Keep eyes on the exits.")).toBeInTheDocument();
+    // Callout uses TypewriterText internally
+    expect(screen.getAllByText("Keep eyes on the exits.")[0]).toBeInTheDocument();
   });
 
   it("renders list and table components", () => {
