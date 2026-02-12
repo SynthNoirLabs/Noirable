@@ -24,9 +24,7 @@ describe("TypewriterText", () => {
   });
 
   it("renders accessible text for screen readers", () => {
-    const { container } = render(
-      <TypewriterText content="Accessible Content" speed={0} />
-    );
+    const { container } = render(<TypewriterText content="Accessible Content" speed={0} />);
 
     // Check for sr-only element
     const srElement = container.querySelector(".sr-only");
