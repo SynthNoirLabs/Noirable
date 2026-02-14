@@ -22,4 +22,18 @@ describe("TypewriterText", () => {
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("CONFIDENTIAL");
   });
+
+  it("provides accessible text for screen readers", () => {
+    const { getAllByText } = render(<TypewriterText content="Evidence Found" speed={0} />);
+
+    // Testing Library should find the text.
+    // Since visual text is hidden with aria-hidden="true", getByText should primarily target the sr-only text.
+    // However, depending on configuration, it might see both or just one.
+    // We use getAllByText to be safe and just ensure it is found.
+    const elements = getAllByText("Evidence Found");
+    expect(elements.length).toBeGreaterThan(0);
+
+    // Verify one of them is screen reader only
+    expect(elements.some((el) => el.classList.contains("sr-only"))).toBe(true);
+  });
 });
