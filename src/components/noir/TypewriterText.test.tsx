@@ -34,6 +34,6 @@ describe("TypewriterText", () => {
     expect(elements.length).toBeGreaterThan(0);
 
     // Verify one of them is screen reader only
-    expect(elements.some(el => el.classList.contains("sr-only"))).toBe(true);
+    expect(elements.some((el) => el.classList.contains("sr-only"))).toBe(true);
   });
 });
