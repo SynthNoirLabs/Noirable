@@ -33,13 +33,13 @@ describe("TypewriterText", () => {
   });
 
   it("hides the animated text from screen readers", () => {
-      const { container } = render(<TypewriterText content="Top Secret" speed={100} />);
+    const { container } = render(<TypewriterText content="Top Secret" speed={100} />);
 
-      // The visible text should be wrapped in an aria-hidden element
-      // We look for an element with aria-hidden="true" inside the component
-      const hiddenElement = container.querySelector('[aria-hidden="true"]');
-      expect(hiddenElement).toBeInTheDocument();
-      // Ensure it contains the cursor or partial text (since speed is > 0)
-      expect(hiddenElement?.textContent).toContain("_");
+    // The visible text should be wrapped in an aria-hidden element
+    // We look for an element with aria-hidden="true" inside the component
+    const hiddenElement = container.querySelector('[aria-hidden="true"]');
+    expect(hiddenElement).toBeInTheDocument();
+    // Ensure it contains the cursor or partial text (since speed is > 0)
+    expect(hiddenElement?.textContent).toContain("_");
   });
 });
