@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { TypewriterText } from "./TypewriterText";
 
@@ -21,5 +21,25 @@ describe("TypewriterText", () => {
     const element = container.querySelector(".text-\\[var\\(--aesthetic-error\\)\\]");
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("CONFIDENTIAL");
+  });
+
+  it("provides full text to screen readers immediately", () => {
+    // Render with a slow speed so animation is not instant
+    render(<TypewriterText content="Top Secret" speed={100} />);
+
+    // Check if the full text is available immediately (e.g., via sr-only span)
+    // Note: getByText might find the sr-only element
+    expect(screen.getByText("Top Secret")).toBeInTheDocument();
+  });
+
+  it("hides the animated text from screen readers", () => {
+    const { container } = render(<TypewriterText content="Top Secret" speed={100} />);
+
+    // The visible text should be wrapped in an aria-hidden element
+    // We look for an element with aria-hidden="true" inside the component
+    const hiddenElement = container.querySelector('[aria-hidden="true"]');
+    expect(hiddenElement).toBeInTheDocument();
+    // Ensure it contains the cursor or partial text (since speed is > 0)
+    expect(hiddenElement?.textContent).toContain("_");
   });
 });

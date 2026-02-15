@@ -20,7 +20,8 @@ describe("ChatSidebar", () => {
     );
     expect(screen.getByText("Hello")).toBeInTheDocument();
     // Use regex to match text ignoring the cursor suffix if present
-    expect(screen.getByText(/Greetings, detective/)).toBeInTheDocument();
+    // Using getAllByText because TypewriterText renders content twice (visible + sr-only)
+    expect(screen.getAllByText(/Greetings, detective/)[0]).toBeInTheDocument();
   });
 
   it("renders input field", () => {
