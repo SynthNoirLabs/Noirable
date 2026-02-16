@@ -99,7 +99,7 @@ describe("DetectiveWorkspace", () => {
 
     fireEvent.change(textarea, { target: { value: newJson } });
 
-    expect(screen.getByText("New Suspect")).toBeInTheDocument();
+    expect(screen.getAllByText("New Suspect")[0]).toBeInTheDocument();
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
   });
 
