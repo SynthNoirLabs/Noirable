@@ -28,6 +28,7 @@ describe("Print page", () => {
   it("renders evidence with a case header", () => {
     render(<PrintPage />);
     expect(screen.getByText(/Case File/i)).toBeInTheDocument();
-    expect(screen.getByText("Evidence #1")).toBeInTheDocument();
+    // TypewriterText renders content twice (sr-only and aria-hidden)
+    expect(screen.getAllByText("Evidence #1")[0]).toBeInTheDocument();
   });
 });
