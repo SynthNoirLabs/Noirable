@@ -84,8 +84,13 @@ export function TypewriterText({
         className
       )}
     >
-      {displayedText}
-      {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
+      <span className="sr-only" data-testid="typewriter-full-text">
+        {content}
+      </span>
+      <span aria-hidden="true">
+        {displayedText}
+        {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
+      </span>
     </motion.div>
   );
 }

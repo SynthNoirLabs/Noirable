@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { TypewriterText } from "./TypewriterText";
 
@@ -21,5 +21,12 @@ describe("TypewriterText", () => {
     const element = container.querySelector(".text-\\[var\\(--aesthetic-error\\)\\]");
     expect(element).toBeInTheDocument();
     expect(element?.textContent).toContain("CONFIDENTIAL");
+  });
+
+  it("should have sr-only text for screen readers", () => {
+    render(<TypewriterText content="Accessible Content" speed={0} />);
+    // Check if there is an element with class sr-only containing the text
+    const srOnlyElement = screen.queryByText("Accessible Content", { selector: ".sr-only" });
+    expect(srOnlyElement).toBeInTheDocument();
   });
 });
