@@ -10,7 +10,8 @@ describe("A2UIRenderer", () => {
       priority: "normal",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Evidence #1")).toBeInTheDocument();
+    // TypewriterText renders duplicate text for a11y (sr-only + aria-hidden)
+    expect(screen.getAllByText("Evidence #1").length).toBeGreaterThan(0);
   });
 
   it("renders legacy text components with text field", () => {
@@ -19,7 +20,8 @@ describe("A2UIRenderer", () => {
       text: "Legacy note",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Legacy note")).toBeInTheDocument();
+    // TypewriterText renders duplicate text for a11y
+    expect(screen.getAllByText("Legacy note").length).toBeGreaterThan(0);
   });
 
   it("renders a card component", () => {
@@ -29,7 +31,8 @@ describe("A2UIRenderer", () => {
       status: "active",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Suspect Profile")).toBeInTheDocument();
+    // TypewriterText renders duplicate text for a11y
+    expect(screen.getAllByText("Suspect Profile").length).toBeGreaterThan(0);
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
   });
 
@@ -63,7 +66,8 @@ describe("A2UIRenderer", () => {
       priority: "high",
     };
     render(<A2UIRenderer data={data} />);
-    expect(screen.getByText("Keep eyes on the exits.")).toBeInTheDocument();
+    // TypewriterText renders duplicate text for a11y
+    expect(screen.getAllByText("Keep eyes on the exits.").length).toBeGreaterThan(0);
   });
 
   it("renders list and table components", () => {

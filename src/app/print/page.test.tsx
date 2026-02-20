@@ -28,6 +28,7 @@ describe("Print page", () => {
   it("renders evidence with a case header", () => {
     render(<PrintPage />);
     expect(screen.getByText(/Case File/i)).toBeInTheDocument();
-    expect(screen.getByText("Evidence #1")).toBeInTheDocument();
+    // TypewriterText renders duplicate text for a11y
+    expect(screen.getAllByText("Evidence #1").length).toBeGreaterThan(0);
   });
 });
