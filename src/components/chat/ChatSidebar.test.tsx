@@ -45,7 +45,7 @@ describe("ChatSidebar", () => {
 
   it("shows typing indicator when loading", () => {
     render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={true} />);
-    expect(screen.getByText(/Processing Evidence/i)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/Processing Evidence/i);
   });
 
   it("renders detective avatar badge", () => {

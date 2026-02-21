@@ -476,6 +476,8 @@ export function ChatSidebar({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            role="status"
+            aria-live="polite"
             className="flex gap-2 items-center text-[var(--aesthetic-text-muted)] text-xs font-mono pl-4 opacity-50"
           >
             <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse" />
