@@ -11,6 +11,8 @@ import {
   PanelRightClose,
   Volume2,
   VolumeX,
+  Copy,
+  Check,
   Loader2,
 } from "lucide-react";
 import type { UseChatHelpers } from "@ai-sdk/react";
@@ -75,6 +77,18 @@ export function ChatSidebar({
     playThunder: () => void;
     playPhoneRing: () => void;
   } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = async (content: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
   const ttsUrlRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -393,36 +407,66 @@ export function ChatSidebar({
                 )}
               </div>
               {m.role === "assistant" && (
-                <button
-                  type="button"
-                  onClick={() => void playTts(m)}
-                  disabled={!ttsSetting || elevenLabsConfigured === false || ttsLoadingId === m.id}
-                  title={ttsDisabledReason}
-                  aria-label={
-                    ttsPlayingId === m.id
-                      ? "Stop voice playback"
-                      : ttsLoadingId === m.id
-                        ? "Loading voice playback"
-                        : "Play voice"
-                  }
+                <div
                   className={cn(
-                    "absolute right-2 top-2 w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
-                    "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
-                    "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
-                    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
-                    (ttsPlayingId === m.id || ttsLoadingId === m.id) && "opacity-100",
-                    (!ttsSetting || elevenLabsConfigured === false) &&
-                      "opacity-40 cursor-not-allowed"
+                    "absolute right-2 top-2 flex items-center gap-1 transition-opacity",
+                    ttsPlayingId === m.id || ttsLoadingId === m.id || copiedId === m.id
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
                   )}
                 >
-                  {ttsLoadingId === m.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : ttsPlayingId === m.id ? (
-                    <VolumeX className="w-3.5 h-3.5" />
-                  ) : (
-                    <Volume2 className="w-3.5 h-3.5" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(m.content, m.id)}
+                    aria-label={copiedId === m.id ? "Copied" : "Copy message"}
+                    className={cn(
+                      "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
+                      "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
+                      "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
+                      "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                      copiedId === m.id &&
+                        "text-[var(--aesthetic-accent)] border-[var(--aesthetic-accent)]/40"
+                    )}
+                  >
+                    {copiedId === m.id ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void playTts(m)}
+                    disabled={
+                      !ttsSetting || elevenLabsConfigured === false || ttsLoadingId === m.id
+                    }
+                    title={ttsDisabledReason}
+                    aria-label={
+                      ttsPlayingId === m.id
+                        ? "Stop voice playback"
+                        : ttsLoadingId === m.id
+                          ? "Loading voice playback"
+                          : "Play voice"
+                    }
+                    className={cn(
+                      "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
+                      "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
+                      "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
+                      "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                      (!ttsSetting || elevenLabsConfigured === false) &&
+                        "opacity-40 cursor-not-allowed"
+                    )}
+                  >
+                    {ttsLoadingId === m.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : ttsPlayingId === m.id ? (
+                      <VolumeX className="w-3.5 h-3.5" />
+                    ) : (
+                      <Volume2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
               )}
             </motion.div>
           ))}
