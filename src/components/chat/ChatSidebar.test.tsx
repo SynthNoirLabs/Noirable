@@ -20,7 +20,9 @@ describe("ChatSidebar", () => {
     );
     expect(screen.getByText("Hello")).toBeInTheDocument();
     // Use regex to match text ignoring the cursor suffix if present
-    expect(screen.getByText(/Greetings, detective/)).toBeInTheDocument();
+    // Note: TypewriterText renders duplicates for a11y (sr-only + aria-hidden)
+    const elements = screen.getAllByText(/Greetings, detective/);
+    expect(elements.length).toBeGreaterThan(0);
   });
 
   it("renders input field", () => {

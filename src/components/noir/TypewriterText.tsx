@@ -34,6 +34,7 @@ export function TypewriterText({
   const effectiveSpeed = reducedMotion ? 0 : (speed ?? defaultSpeed);
 
   const [displayedText, setDisplayedText] = useState(effectiveSpeed === 0 ? content : "");
+  const [prevContent, setPrevContent] = useState(content);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -52,22 +53,36 @@ export function TypewriterText({
     };
   }, []);
 
-  useEffect(() => {
+  // Adjust state during render if content changed
+  if (content !== prevContent) {
+    setPrevContent(content);
     if (effectiveSpeed === 0) {
       setDisplayedText(content);
+    } else {
+      // If content is not a continuation of what's displayed, reset.
+      if (!content.startsWith(displayedText)) {
+        setDisplayedText("");
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (effectiveSpeed === 0) {
       return;
     }
 
-    let i = 0;
-    setDisplayedText("");
     const timer = setInterval(() => {
-      if (i < content.length) {
-        setDisplayedText((prev) => prev + content.charAt(i));
-        i++;
-      } else {
-        clearInterval(timer);
-        setDisplayedText(content);
-      }
+      setDisplayedText((prev) => {
+        if (prev.length < content.length) {
+          if (content.startsWith(prev)) {
+            return prev + content.charAt(prev.length);
+          } else {
+            // Content changed drastically mid-stream? Reset.
+            return "";
+          }
+        }
+        return prev;
+      });
     }, effectiveSpeed);
 
     return () => clearInterval(timer);
@@ -84,8 +99,15 @@ export function TypewriterText({
         className
       )}
     >
-      {displayedText}
-      {showCursor && <span className="animate-pulse ml-1 opacity-50">_</span>}
+      <span className="sr-only" data-testid="typewriter-full-text">
+        {content}
+      </span>
+      <span aria-hidden="true">{displayedText}</span>
+      {showCursor && (
+        <span aria-hidden="true" className="animate-pulse ml-1 opacity-50">
+          _
+        </span>
+      )}
     </motion.div>
   );
 }
