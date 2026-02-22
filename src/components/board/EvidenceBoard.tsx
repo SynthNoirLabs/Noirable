@@ -244,6 +244,15 @@ export function EvidenceBoard({
           </div>
         </div>
       )}
+
+      {/* Accessible status for search results */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {searchQuery
+          ? filteredEntries.length === 0
+            ? `No evidence matches "${searchQuery}"`
+            : `${filteredEntries.length} evidence item${filteredEntries.length === 1 ? "" : "s"} found`
+          : ""}
+      </div>
     </div>
   );
 }
