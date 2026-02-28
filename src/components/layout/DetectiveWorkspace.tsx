@@ -446,6 +446,7 @@ export function DetectiveWorkspace() {
       editor={
         <div className="h-full min-h-0 flex flex-col">
           <textarea
+            aria-label="Edit JSON case file"
             className="w-full flex-1 min-h-0 bg-[var(--aesthetic-background)]/30 text-[var(--aesthetic-text)]/95 font-mono text-sm leading-relaxed resize-none focus:outline-none p-3 border border-[var(--aesthetic-border)]/30 rounded-sm shadow-inner"
             id="json-editor"
             name="json-editor"
