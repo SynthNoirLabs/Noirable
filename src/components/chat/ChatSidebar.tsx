@@ -419,6 +419,7 @@ export function ChatSidebar({
                     type="button"
                     onClick={() => handleCopy(m.content, m.id)}
                     aria-label={copiedId === m.id ? "Copied" : "Copy message"}
+                    title={copiedId === m.id ? "Copied" : "Copy message"}
                     className={cn(
                       "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
                       "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
