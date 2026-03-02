@@ -26,6 +26,12 @@ importers:
       '@codesandbox/sandpack-react':
         specifier: ^2.20.0
         version: 2.20.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@fontsource-variable/inter':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/special-elite':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.18
@@ -620,6 +626,12 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource-variable/inter@5.2.8':
+    resolution: {integrity: sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ==}
+
+  '@fontsource/special-elite@5.2.8':
+    resolution: {integrity: sha512-tJRYZ6dZK3wiGvMS5NMOg6fqctWimNUUrYtLfPGJYqidaFeI2QqFUE0rbn16DjqID0DrnZSHYfqz1jGdctd5ew==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -4275,6 +4287,10 @@ snapshots:
       levn: 0.4.1
 
   '@exodus/bytes@1.9.0': {}
+
+  '@fontsource-variable/inter@5.2.8': {}
+
+  '@fontsource/special-elite@5.2.8': {}
 
   '@humanfs/core@0.19.1': {}
 

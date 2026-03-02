@@ -3,11 +3,11 @@ import { describe, it, expect, vi } from "vitest";
 import React from "react";
 
 // Mock fonts
-vi.mock("next/font/google", () => ({
-  Inter: vi.fn().mockReturnValue({ variable: "font-sans-mock" }),
-  Special_Elite: vi.fn().mockReturnValue({ variable: "font-typewriter-mock" }),
-  Geist: vi.fn().mockReturnValue({ variable: "geist-sans" }),
-  Geist_Mono: vi.fn().mockReturnValue({ variable: "geist-mono" }),
+vi.mock("next/font/local", () => ({
+  default: vi
+    .fn()
+    .mockReturnValueOnce({ variable: "font-sans-mock" })
+    .mockReturnValueOnce({ variable: "font-typewriter-mock" }),
 }));
 
 // Mock Sandpack styles component (uses stitches which fails in test env)

@@ -28,6 +28,8 @@
     "@ai-sdk/openai-compatible": "^2.0.13",
     "@ai-sdk/react": "^3.0.43",
     "@codesandbox/sandpack-react": "^2.20.0",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/special-elite": "^5.2.8",
     "@tailwindcss/postcss": "^4",
     "ai": "6.0.41",
     "clsx": "^2.1.1",
