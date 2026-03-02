@@ -507,10 +507,14 @@ export function ChatSidebar({
           <button
             type="submit"
             disabled={isLoading || !localInput.trim()}
-            aria-label="Send message"
+            aria-label={isLoading ? "Sending message..." : "Send message"}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
           >
-            <Send className="w-4 h-4" />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </form>
       </div>
