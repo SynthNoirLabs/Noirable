@@ -419,6 +419,7 @@ export function ChatSidebar({
                     type="button"
                     onClick={() => handleCopy(m.content, m.id)}
                     aria-label={copiedId === m.id ? "Copied" : "Copy message"}
+                    title={copiedId === m.id ? "Copied" : "Copy message"}
                     className={cn(
                       "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
                       "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
@@ -476,7 +477,9 @@ export function ChatSidebar({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex gap-2 items-center text-[var(--aesthetic-text-muted)] text-xs font-mono pl-4 opacity-50"
+            role="status"
+            aria-live="polite"
+            className="flex gap-2 items-center text-[var(--aesthetic-text-muted)] text-xs font-mono pl-4"
           >
             <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse" />
             <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse delay-75" />
@@ -505,10 +508,14 @@ export function ChatSidebar({
           <button
             type="submit"
             disabled={isLoading || !localInput.trim()}
-            aria-label="Send message"
+            aria-label={isLoading ? "Sending message..." : "Send message"}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
           >
-            <Send className="w-4 h-4" />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </form>
       </div>

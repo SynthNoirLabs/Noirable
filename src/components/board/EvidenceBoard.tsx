@@ -60,6 +60,17 @@ export function EvidenceBoard({
       aria-live="polite"
       aria-label="Evidence board"
     >
+      {/* Search status for screen readers */}
+      <div className="sr-only" role="status">
+        {searchQuery.trim()
+          ? filteredEntries.length === 0
+            ? `No evidence matches "${searchQuery.trim()}"`
+            : `Found ${filteredEntries.length} evidence ${
+                filteredEntries.length === 1 ? "item" : "items"
+              }`
+          : ""}
+      </div>
+
       {/* Only show search/view controls when there are entries */}
       {sortedEntries.length > 0 && (
         <div className="flex items-center justify-end gap-4 relative z-20 bg-[var(--aesthetic-background)]/20 backdrop-blur-sm rounded-sm px-4 py-3 border border-[var(--aesthetic-border)]/20 mb-4">

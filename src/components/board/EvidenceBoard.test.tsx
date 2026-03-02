@@ -59,4 +59,18 @@ describe("EvidenceBoard", () => {
     const stamp = screen.getByTestId("evidence-stamp");
     expect(stamp.textContent?.toLowerCase()).toContain("missing");
   });
+
+  it("announces search results to screen readers", () => {
+    render(<EvidenceBoard entries={entries} activeId="case-alpha" onSelect={vi.fn()} />);
+
+    const searchInput = screen.getByPlaceholderText("Search evidence...");
+    fireEvent.change(searchInput, { target: { value: "Alpha" } });
+
+    // The live region should announce "Found 1 evidence item"
+    const status = screen.getByRole("status");
+    expect(status.textContent).toBe("Found 1 evidence item");
+
+    fireEvent.change(searchInput, { target: { value: "Delta" } });
+    expect(status.textContent).toBe('No evidence matches "Delta"');
+  });
 });

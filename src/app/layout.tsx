@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Special_Elite } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { SandpackStyles } from "@/components/eject/SandpackStyles";
 
-const inter = Inter({
+const inter = localFont({
+  src: "./fonts/inter-variable.woff2",
   variable: "--font-sans",
-  subsets: ["latin"],
+  weight: "100 900",
+  display: "swap",
 });
 
-const specialElite = Special_Elite({
-  weight: "400",
+const specialElite = localFont({
+  src: "./fonts/special-elite-regular.woff2",
   variable: "--font-typewriter",
-  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
