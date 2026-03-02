@@ -4,14 +4,14 @@ import "./globals.css";
 import { SandpackStyles } from "@/components/eject/SandpackStyles";
 
 const inter = localFont({
-  src: "../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
+  src: "./fonts/inter-variable.woff2",
   variable: "--font-sans",
   weight: "100 900",
   display: "swap",
 });
 
 const specialElite = localFont({
-  src: "../../node_modules/@fontsource/special-elite/files/special-elite-latin-400-normal.woff2",
+  src: "./fonts/special-elite-regular.woff2",
   variable: "--font-typewriter",
   weight: "400",
   display: "swap",
