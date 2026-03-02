@@ -61,7 +61,7 @@ export function EvidenceBoard({
       aria-label="Evidence board"
     >
       {/* Search status for screen readers */}
-      <div className="sr-only" role="status" aria-live="polite">
+      <div className="sr-only" role="status">
         {searchQuery
           ? filteredEntries.length === 0
             ? `No evidence matches "${searchQuery}"`

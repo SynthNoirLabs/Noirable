@@ -1,24 +1,27 @@
 import { render, screen, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { ChatSidebar } from "./ChatSidebar";
 import React from "react";
-
-// Mock resize observer
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-
-// Mock scrollIntoView
-window.HTMLElement.prototype.scrollIntoView = function () {};
-
-// Mock fetch
-global.fetch = vi.fn();
 
 describe("ChatSidebar Accessibility", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    );
+
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("announces loading state to screen readers", async () => {
