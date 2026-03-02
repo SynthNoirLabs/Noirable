@@ -62,9 +62,9 @@ export function EvidenceBoard({
     >
       {/* Search status for screen readers */}
       <div className="sr-only" role="status">
-        {searchQuery
+        {searchQuery.trim()
           ? filteredEntries.length === 0
-            ? `No evidence matches "${searchQuery}"`
+            ? `No evidence matches "${searchQuery.trim()}"`
             : `Found ${filteredEntries.length} evidence ${
                 filteredEntries.length === 1 ? "item" : "items"
               }`
