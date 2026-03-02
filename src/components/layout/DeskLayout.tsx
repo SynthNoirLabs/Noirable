@@ -120,6 +120,12 @@ export function DeskLayout({
         } as React.CSSProperties
       }
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--aesthetic-background)] focus:border focus:border-[var(--aesthetic-accent)] focus:text-[var(--aesthetic-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--aesthetic-accent)] font-typewriter text-sm uppercase tracking-widest rounded-sm"
+      >
+        Skip to main content
+      </a>
       <NoirEffects
         ambient={ambientSettings}
         soundEnabled={soundSetting}
@@ -208,8 +214,10 @@ export function DeskLayout({
       )}
 
       <div
+        id="main-content"
         data-testid="evidence-board"
         className="bg-venetian relative flex flex-col min-h-screen z-10"
+        tabIndex={-1}
       >
         <div className="sticky top-0 z-20 px-6 py-3 bg-[var(--aesthetic-background)]/30 border-b border-[var(--aesthetic-border)]/20 backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3">
