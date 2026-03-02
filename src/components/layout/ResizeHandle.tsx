@@ -88,6 +88,7 @@ export function ResizeHandle({
       role="separator"
       tabIndex={0}
       aria-label="Resize panel"
+      aria-orientation="vertical"
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={size}
