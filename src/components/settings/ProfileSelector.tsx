@@ -104,6 +104,9 @@ export function ProfileSelector() {
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-controls="profile-listbox"
           className={cn(
             "w-full flex items-center justify-between px-3 py-2.5 text-sm font-mono transition-all",
             "bg-[var(--aesthetic-surface)]/50 border rounded-sm",
@@ -119,6 +122,8 @@ export function ProfileSelector() {
         <AnimatePresence>
           {isOpen && (
             <motion.div
+              id="profile-listbox"
+              role="listbox"
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
@@ -133,6 +138,8 @@ export function ProfileSelector() {
                 {BUILT_IN_PROFILES.map((profile) => (
                   <button
                     key={profile.id}
+                    role="option"
+                    aria-selected={currentAestheticId === profile.id}
                     onClick={() => handleSelectProfile(profile.id)}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group",
@@ -157,6 +164,8 @@ export function ProfileSelector() {
                     {customProfiles.map((profile) => (
                       <div
                         key={profile.id}
+                        role="option"
+                        aria-selected={currentAestheticId === profile.id}
                         className={cn(
                           "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group",
                           currentAestheticId === profile.id
@@ -166,7 +175,7 @@ export function ProfileSelector() {
                       >
                         <button
                           onClick={() => handleSelectProfile(profile.id)}
-                          className="flex-1 text-left truncate mr-2 focus:outline-none"
+                          className="flex-1 text-left truncate mr-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--aesthetic-accent)]"
                         >
                           {profile.name}
                         </button>
