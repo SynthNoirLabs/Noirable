@@ -33,6 +33,7 @@ const TabsContent: React.FC<{
             key={`${tab.label}-${index}`}
             type="button"
             onClick={() => setActiveIndex(index)}
+            aria-label={`Select ${tab.label} tab`}
             className={cn(
               "px-3 py-2 text-[10px] uppercase tracking-[0.2em] font-typewriter border-b-2 transition-colors whitespace-nowrap",
               index === activeIndex

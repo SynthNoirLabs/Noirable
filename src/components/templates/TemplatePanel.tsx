@@ -91,6 +91,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
             key={cat}
             type="button"
             onClick={() => setSelectedCategory(cat)}
+            aria-label={cat === "all" ? "Show all templates" : `Filter by ${cat} category`}
             className={cn(
               "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap",
               selectedCategory === cat
@@ -116,6 +117,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
               key={template.id}
               type="button"
               onClick={() => onSelect(template.data)}
+              aria-label={`Select template: ${template.name}`}
               className="w-full text-left p-3 bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/30 rounded-sm hover:border-[var(--aesthetic-accent)]/50 hover:bg-[var(--aesthetic-background)]/50 transition-colors group"
             >
               <div className="flex items-start justify-between gap-2">

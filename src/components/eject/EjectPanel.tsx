@@ -148,6 +148,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
           <button
             type="button"
             onClick={() => setActiveTab("react")}
+            aria-label="View React code"
             className={cn(
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "react"
@@ -161,6 +162,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
           <button
             type="button"
             onClick={() => setActiveTab("json")}
+            aria-label="View JSON format"
             className={cn(
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "json"
@@ -174,6 +176,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
           <button
             type="button"
             onClick={() => setActiveTab("multifile")}
+            aria-label="View multi-file setup"
             className={cn(
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "multifile"
@@ -187,6 +190,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
           <button
             type="button"
             onClick={() => setActiveTab("sandbox")}
+            aria-label="Open CodeSandbox"
             className={cn(
               "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
               activeTab === "sandbox"
