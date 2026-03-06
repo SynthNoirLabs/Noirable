@@ -499,7 +499,8 @@ export function ChatSidebar({
             name="chat-input"
             aria-label="Type your command"
             autoFocus
-            className="w-full bg-transparent border-b border-[var(--aesthetic-border)]/30 rounded-none py-3 pl-2 pr-10 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-accent)]/50 font-mono placeholder:text-[var(--aesthetic-text)]/45 transition-colors"
+            disabled={isLoading}
+            className="w-full bg-transparent border-b border-[var(--aesthetic-border)]/30 rounded-none py-3 pl-2 pr-10 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-accent)]/50 font-mono placeholder:text-[var(--aesthetic-text)]/45 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             value={localInput}
             onChange={(e) => setLocalInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -509,7 +510,14 @@ export function ChatSidebar({
             type="submit"
             disabled={isLoading || !localInput.trim()}
             aria-label={isLoading ? "Sending message..." : "Send message"}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+            title={
+              isLoading
+                ? "Processing..."
+                : !localInput.trim()
+                  ? "Type a command to send"
+                  : "Send message"
+            }
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
