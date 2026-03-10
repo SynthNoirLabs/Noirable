@@ -67,7 +67,9 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none rounded-sm"
+          aria-label="Close templates"
+          title="Close templates"
         >
           <X className="w-4 h-4" />
         </button>

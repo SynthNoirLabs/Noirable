@@ -96,8 +96,9 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             <button
               type="button"
               onClick={onClose}
-              className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+              className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none rounded-sm"
               aria-label="Close eject panel"
+              title="Close eject panel"
             >
               <X className="w-4 h-4" />
             </button>

@@ -65,8 +65,9 @@ export function TrainingDataPanel({ onClose }: TrainingDataPanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-text)] transition-colors text-xl"
+          className="text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-text)] transition-colors text-xl focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none rounded-sm"
           aria-label="Close training panel"
+          title="Close training panel"
         >
           ×
         </button>
