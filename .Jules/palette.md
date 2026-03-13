@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2025-05-23 - Disabled Button Tooltips
+
+**Learning:** Simply visually disabling a button (`opacity-50`) without an explanation leaves users confused as to _why_ they can't interact with it. Screen readers might announce "disabled", but visual users are left guessing.
+**Action:** Always pair `disabled` attributes with an informative `title` tooltip (e.g. "Type a message to send" or "Sending message...") and visual cues like `disabled:cursor-not-allowed` to reduce friction and improve clarity.
