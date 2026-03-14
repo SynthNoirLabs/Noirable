@@ -141,7 +141,7 @@ export function DeskLayout({
           onClick={onToggleEditor}
           aria-label="Show editor"
           title="Show editor"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
         >
           <PanelLeftOpen className="w-4 h-4" />
         </button>
@@ -152,7 +152,7 @@ export function DeskLayout({
           onClick={onToggleSidebar}
           aria-label="Show sidebar"
           title="Show sidebar"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
         >
           <PanelRightOpen className="w-4 h-4" />
         </button>
@@ -189,7 +189,7 @@ export function DeskLayout({
                   onClick={onToggleEditor}
                   aria-label="Hide editor"
                   title="Hide editor"
-                  className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors p-1"
+                  className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors p-1 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
                 >
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
@@ -224,7 +224,7 @@ export function DeskLayout({
                   aria-label={showTraining ? "Hide training data" : "Show training data"}
                   title={showTraining ? "Hide training data" : "Training data archive"}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                     showTraining
                       ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
                       : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
@@ -241,7 +241,7 @@ export function DeskLayout({
                   aria-label={showTemplates ? "Hide templates" : "Show templates"}
                   title={showTemplates ? "Hide templates" : "Browse templates"}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                     showTemplates
                       ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
                       : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
@@ -258,7 +258,7 @@ export function DeskLayout({
                   aria-label={showEject ? "Hide code export" : "Show code export"}
                   title={showEject ? "Hide code export" : `Export to code (${ejectShortcut})`}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                     showEject
                       ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
                       : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
