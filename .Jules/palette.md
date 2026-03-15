@@ -1,3 +1,8 @@
+## 2024-06-15 - Keyboard Accessible Layout Toggles
+
+**Learning:** Custom layout toggle buttons (like those for opening sidebars or expanding panels) are entirely inaccessible to keyboard users if they lack visible focus states. Users tabbing through the interface lose track of where they are.
+**Action:** Always ensure layout-level toggle buttons include `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]` alongside hover states so keyboard users can navigate confidently.
+
 ## 2024-05-22 - Accessible Typewriter Effects
 
 **Learning:** Animated typewriter text is a nightmare for screen readers if not handled correctly. They may announce every character update or nothing at all. Additionally, resetting the animation on every streamed chunk creates a jarring visual flicker.
