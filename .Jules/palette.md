@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2025-05-23 - Accessible Custom Dropdowns
+
+**Learning:** Custom dropdown menus (like model or profile selectors) built with `div` and `button` elements are completely opaque to screen readers by default. They don't know it's a list of options or which option is selected.
+**Action:** Implement the ARIA combobox/listbox pattern. Add `role="combobox"`, `aria-expanded`, `aria-controls`, and `aria-haspopup="listbox"` to the trigger button. Add `role="listbox"` to the dropdown container. Add `role="option"` and `aria-selected={isSelected}` to each item.

@@ -80,6 +80,11 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
 
         <div className="relative">
           <button
+            id="provider-combobox"
+            role="combobox"
+            aria-controls="provider-listbox"
+            aria-expanded={activeDropdown === "provider"}
+            aria-haspopup="listbox"
             onClick={() => setActiveDropdown(activeDropdown === "provider" ? null : "provider")}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
@@ -101,6 +106,9 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
           <AnimatePresence>
             {activeDropdown === "provider" && (
               <motion.div
+                id="provider-listbox"
+                role="listbox"
+                aria-label="Provider Protocol"
                 initial={{ opacity: 0, y: -5, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -5, scale: 0.98 }}
@@ -111,6 +119,8 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                   {PROVIDERS.map((provider) => (
                     <button
                       key={provider.id}
+                      role="option"
+                      aria-selected={modelConfig.provider === provider.id}
                       onClick={() => handleProviderChange(provider.id)}
                       className={cn(
                         "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
@@ -160,6 +170,11 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
         ) : (
           <div className="relative">
             <button
+              id="model-combobox"
+              role="combobox"
+              aria-controls="model-listbox"
+              aria-expanded={activeDropdown === "model"}
+              aria-haspopup="listbox"
               onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
@@ -181,6 +196,9 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
             <AnimatePresence>
               {activeDropdown === "model" && (
                 <motion.div
+                  id="model-listbox"
+                  role="listbox"
+                  aria-label="Model Architecture"
                   initial={{ opacity: 0, y: -5, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -5, scale: 0.98 }}
@@ -192,6 +210,8 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                       availableModels.map((model) => (
                         <button
                           key={model}
+                          role="option"
+                          aria-selected={modelConfig.model === model}
                           onClick={() => handleModelChange(model)}
                           className={cn(
                             "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
