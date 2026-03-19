@@ -9,6 +9,29 @@ export interface Template {
 }
 
 export const TEMPLATES: Template[] = [
+  {
+    id: "basic-modal",
+    name: "Basic Modal",
+    description: "A basic modal for testing",
+    category: "layout",
+    data: {
+      type: "modal",
+      trigger: {
+        type: "button",
+        label: "Open Modal",
+        variant: "primary",
+      },
+      content: {
+        type: "container",
+        style: { padding: "lg", gap: "md" },
+        children: [
+          { type: "heading", text: "Test Modal", level: 2 },
+          { type: "text", content: "This is a test modal." },
+        ],
+      },
+    } as unknown as A2UIInput,
+  },
+
   // Forms
   {
     id: "contact-form",

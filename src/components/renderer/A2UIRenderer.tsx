@@ -3,6 +3,7 @@ import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { DossierCard } from "@/components/noir/DossierCard";
 import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 import { useFormContext, FormProvider, type FormValues } from "./FormContext";
 import {
   spacingClasses,
@@ -50,6 +51,52 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
   };
 
   type TabsNode = Extract<A2UIInput, { type: "tabs" }>;
+  type ModalNode = Extract<A2UIInput, { type: "modal" }>;
+
+  const ModalRenderer = ({
+    node,
+    renderComponent,
+  }: {
+    node: ModalNode;
+    renderComponent: (node: A2UIInput) => React.ReactNode;
+  }) => {
+    const [isOpen, setIsOpen] = React.useState(node.open ?? false);
+
+    const openModal = () => setIsOpen(true);
+    const closeModal = () => setIsOpen(false);
+
+    return (
+      <>
+        <div onClick={openModal} className="inline-block cursor-pointer">
+          {renderComponent(node.trigger)}
+        </div>
+
+        {isOpen &&
+          createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--aesthetic-background)]/80 backdrop-blur-sm p-4">
+              <div
+                role="dialog"
+                aria-modal="true"
+                className={cn(
+                  "relative bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/50 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 rounded-sm",
+                  node.style?.className
+                )}
+              >
+                <button
+                  onClick={closeModal}
+                  aria-label="Close modal"
+                  className="absolute top-2 right-2 text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-error)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] rounded-sm"
+                >
+                  ✕
+                </button>
+                {renderComponent(node.content)}
+              </div>
+            </div>,
+            document.body
+          )}
+      </>
+    );
+  };
 
   const TabsRenderer = ({
     node,
@@ -321,6 +368,9 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         );
       case "tabs": {
         return <TabsRenderer node={node} renderComponent={renderComponent} />;
+      }
+      case "modal": {
+        return <ModalRenderer node={node} renderComponent={renderComponent} />;
       }
       case "image":
         if (!node.src) {

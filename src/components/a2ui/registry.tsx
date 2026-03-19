@@ -2,6 +2,7 @@ import React from "react";
 import type { A2UIInput } from "@/lib/protocol/schema";
 import { Text, Image, Icon, Video, AudioPlayer } from "./content";
 import { Button, CheckBox, TextField, DateTimeInput, ChoicePicker, Slider } from "./input";
+import { Modal } from "./layout/Modal";
 
 export const A2UI_TYPES = [
   "text",
@@ -102,6 +103,7 @@ registerComponent("Slider", Slider as unknown as ComponentRenderer);
 // v0.8 / Legacy fallbacks
 registerComponent("text", Text);
 registerComponent("image", Image);
+registerComponent("modal", Modal);
 
 export function registerComponent(type: string, component: ComponentRenderer) {
   registry.set(type, component);
