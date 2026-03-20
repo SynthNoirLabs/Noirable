@@ -127,6 +127,11 @@ export function TrainingDataPanel({ onClose }: TrainingDataPanelProps) {
           type="button"
           onClick={handleExportJSONL}
           disabled={trainingExamples.length === 0}
+          title={
+            trainingExamples.length === 0
+              ? "No training examples available to export"
+              : "Export JSONL"
+          }
           className="px-4 py-2 bg-[var(--aesthetic-accent)]/20 border border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-accent)]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Export JSONL
@@ -135,6 +140,11 @@ export function TrainingDataPanel({ onClose }: TrainingDataPanelProps) {
           type="button"
           onClick={handleExportJSON}
           disabled={trainingExamples.length === 0}
+          title={
+            trainingExamples.length === 0
+              ? "No training examples available to export"
+              : "Export JSON"
+          }
           className="px-4 py-2 bg-[var(--aesthetic-surface-alt)]/20 border border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text)]/80 font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-surface-alt)]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Export JSON
@@ -144,6 +154,9 @@ export function TrainingDataPanel({ onClose }: TrainingDataPanelProps) {
           type="button"
           onClick={handleClear}
           disabled={trainingExamples.length === 0}
+          title={
+            trainingExamples.length === 0 ? "No training examples available to clear" : "Clear All"
+          }
           className="px-4 py-2 bg-[var(--aesthetic-error)]/10 border border-[var(--aesthetic-error)]/50 text-[var(--aesthetic-error)] font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-error)]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Clear All
