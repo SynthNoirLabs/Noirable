@@ -17,3 +17,13 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2026-03-21 - Keyboard Accessible Layout Toggles
+
+**Learning:** Fixed or absolutely positioned toggle buttons (like sidebar toggles or panel closers) that lack focus indicators are completely invisible to keyboard users who navigate via Tab. Without styling, they cannot determine which element has focus.
+**Action:** Ensure all interactive layout toggles use `focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none` (and if appropriate) to provide clear visual feedback to keyboard users.
+
+## 2024-05-25 - Keyboard Accessible Layout Toggles
+
+**Learning:** Fixed or absolutely positioned toggle buttons (like sidebar toggles or panel closers) that lack focus indicators are completely invisible to keyboard users who navigate via Tab. Without `focus-visible` styling, they cannot determine which element has focus.
+**Action:** Ensure all interactive layout toggles use `focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none` (and `rounded-sm` if appropriate) to provide clear visual feedback to keyboard users.
