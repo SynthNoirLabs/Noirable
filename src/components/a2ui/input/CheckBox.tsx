@@ -44,7 +44,7 @@ export const CheckBox: React.FC<ComponentRendererProps<CheckBoxType>> = ({
           name={bindingPath || node.id}
           checked={!!currentValue}
           onChange={handleChange}
-          className="appearance-none w-4 h-4 border border-[var(--aesthetic-border)]/50 rounded-sm checked:bg-[var(--aesthetic-text)] checked:border-[var(--aesthetic-text)] focus:outline-none focus:ring-1 focus:ring-[var(--aesthetic-text)]/50 transition-colors relative"
+          className="appearance-none w-4 h-4 border border-[var(--aesthetic-border)]/50 rounded-sm checked:bg-[var(--aesthetic-text)] checked:border-[var(--aesthetic-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] transition-colors relative"
         />
         {/* Custom checkmark visualization could go here */}
         <span className="font-typewriter text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-text)] transition-colors">

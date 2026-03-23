@@ -37,7 +37,7 @@ export const ChoicePicker: React.FC<ComponentRendererProps<ChoicePickerType>> = 
         value={currentValue}
         onChange={handleChange}
         className={cn(
-          "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-text)] transition-colors w-full rounded-sm",
+          "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] transition-colors w-full rounded-sm",
           error && "border-[var(--aesthetic-error)]/70"
         )}
       >
