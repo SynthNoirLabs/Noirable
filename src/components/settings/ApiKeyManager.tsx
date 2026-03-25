@@ -49,8 +49,9 @@ function ApiKeyInput({ label, value, onChange, onTest, placeholder }: ApiKeyInpu
           <button
             type="button"
             onClick={() => setShowKey(!showKey)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-text)] transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-text)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] rounded-sm"
             aria-label={showKey ? "Hide key" : "Show key"}
+            title={showKey ? "Hide key" : "Show key"}
           >
             {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -60,8 +61,15 @@ function ApiKeyInput({ label, value, onChange, onTest, placeholder }: ApiKeyInpu
             type="button"
             onClick={handleTest}
             disabled={!value || testStatus === "testing"}
+            title={
+              !value
+                ? "Please enter an API key first"
+                : testStatus === "testing"
+                  ? "Testing..."
+                  : "Test connection"
+            }
             className={cn(
-              "px-3 py-2 text-xs font-mono border rounded-sm transition-colors flex items-center gap-1.5 min-w-[80px] justify-center",
+              "px-3 py-2 text-xs font-mono border rounded-sm transition-colors flex items-center gap-1.5 min-w-[80px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               testStatus === "success" && "border-green-500 text-green-500 bg-green-500/10",
               testStatus === "error" &&
                 "border-[var(--aesthetic-error)] text-[var(--aesthetic-error)] bg-[var(--aesthetic-error)]/10",
@@ -150,7 +158,8 @@ export function ApiKeyManager() {
         <button
           type="button"
           onClick={() => updateSettings({ apiKeys: {} })}
-          className="w-full px-3 py-2 text-xs font-mono text-[var(--aesthetic-error)] border border-[var(--aesthetic-error)]/30 rounded-sm hover:bg-[var(--aesthetic-error)]/10 transition-colors"
+          className="w-full px-3 py-2 text-xs font-mono text-[var(--aesthetic-error)] border border-[var(--aesthetic-error)]/30 rounded-sm hover:bg-[var(--aesthetic-error)]/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-error)]"
+          title="Remove all API keys"
         >
           Clear All Keys
         </button>
