@@ -75,7 +75,11 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
 
       {/* Search */}
       <div className="p-3 border-b border-[var(--aesthetic-border)]/20">
+        <label htmlFor="template-search" className="sr-only">
+          Search templates
+        </label>
         <input
+          id="template-search"
           type="text"
           placeholder="Search templates..."
           value={searchQuery}
@@ -105,6 +109,9 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       </div>
 
       {/* Template List */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {filteredTemplates.length} template{filteredTemplates.length !== 1 ? "s" : ""} found
+      </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {filteredTemplates.length === 0 ? (
           <div className="text-center py-8 text-[var(--aesthetic-text)]/50 font-typewriter text-xs uppercase tracking-wider">
