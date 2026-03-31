@@ -67,7 +67,9 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+          aria-label="Close template library"
+          title="Close template library"
+          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
         >
           <X className="w-4 h-4" />
         </button>
@@ -77,6 +79,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       <div className="p-3 border-b border-[var(--aesthetic-border)]/20">
         <input
           type="text"
+          aria-label="Search templates"
           placeholder="Search templates..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
