@@ -80,10 +80,13 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
 
         <div className="relative">
           <button
+            role="combobox"
+            aria-expanded={activeDropdown === "provider"}
+            aria-controls="provider-listbox"
             onClick={() => setActiveDropdown(activeDropdown === "provider" ? null : "provider")}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
-              "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
+              "bg-[var(--aesthetic-surface)]/50 border rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
               activeDropdown === "provider"
                 ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
                 : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text)] hover:border-[var(--aesthetic-border)]/60 hover:bg-[var(--aesthetic-text)]/5"
@@ -101,6 +104,8 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
           <AnimatePresence>
             {activeDropdown === "provider" && (
               <motion.div
+                id="provider-listbox"
+                role="listbox"
                 initial={{ opacity: 0, y: -5, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -5, scale: 0.98 }}
@@ -111,9 +116,11 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                   {PROVIDERS.map((provider) => (
                     <button
                       key={provider.id}
+                      role="option"
+                      aria-selected={modelConfig.provider === provider.id}
                       onClick={() => handleProviderChange(provider.id)}
                       className={cn(
-                        "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
+                        "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                         modelConfig.provider === provider.id
                           ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)] border-l-2 border-l-[var(--aesthetic-accent)] pl-[10px]"
                           : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)] border-l-2 border-l-transparent"
@@ -160,10 +167,13 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
         ) : (
           <div className="relative">
             <button
+              role="combobox"
+              aria-expanded={activeDropdown === "model"}
+              aria-controls="model-listbox"
               onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
-                "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
+                "bg-[var(--aesthetic-surface)]/50 border rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                 activeDropdown === "model"
                   ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
                   : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text)] hover:border-[var(--aesthetic-border)]/60 hover:bg-[var(--aesthetic-text)]/5"
@@ -181,6 +191,8 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
             <AnimatePresence>
               {activeDropdown === "model" && (
                 <motion.div
+                  id="model-listbox"
+                  role="listbox"
                   initial={{ opacity: 0, y: -5, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -5, scale: 0.98 }}
@@ -192,9 +204,11 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                       availableModels.map((model) => (
                         <button
                           key={model}
+                          role="option"
+                          aria-selected={modelConfig.model === model}
                           onClick={() => handleModelChange(model)}
                           className={cn(
-                            "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
+                            "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                             modelConfig.model === model
                               ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)] border-l-2 border-l-[var(--aesthetic-accent)] pl-[10px]"
                               : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)] border-l-2 border-l-transparent"
