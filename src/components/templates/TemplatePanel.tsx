@@ -67,7 +67,8 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
+          aria-label="Close templates panel"
         >
           <X className="w-4 h-4" />
         </button>
@@ -92,7 +93,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
             type="button"
             onClick={() => setSelectedCategory(cat)}
             className={cn(
-              "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap",
+              "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
               selectedCategory === cat
                 ? "bg-[var(--aesthetic-accent)]/20 text-[var(--aesthetic-accent)] border border-[var(--aesthetic-accent)]/40"
                 : "text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] border border-transparent"
@@ -116,7 +117,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
               key={template.id}
               type="button"
               onClick={() => onSelect(template.data)}
-              className="w-full text-left p-3 bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/30 rounded-sm hover:border-[var(--aesthetic-accent)]/50 hover:bg-[var(--aesthetic-background)]/50 transition-colors group"
+              className="w-full text-left p-3 bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/30 rounded-sm hover:border-[var(--aesthetic-accent)]/50 hover:bg-[var(--aesthetic-background)]/50 transition-colors group focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
