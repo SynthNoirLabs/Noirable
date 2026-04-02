@@ -67,6 +67,8 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         <button
           type="button"
           onClick={onClose}
+          aria-label="Close templates"
+          title="Close templates"
           className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
         >
           <X className="w-4 h-4" />
@@ -74,7 +76,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-[var(--aesthetic-border)]/20">
+      <div className="p-3 border-b border-[var(--aesthetic-border)]/20 relative">
         <input
           type="text"
           placeholder="Search templates..."
@@ -82,6 +84,10 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full px-3 py-2 bg-[var(--aesthetic-background)]/40 border border-[var(--aesthetic-border)]/40 rounded-sm text-[var(--aesthetic-text)]/90 text-xs font-mono placeholder:text-[var(--aesthetic-text)]/40 focus:outline-none focus:border-[var(--aesthetic-accent)]/60 transition-colors"
         />
+        <div className="sr-only" role="status" aria-live="polite">
+          {filteredTemplates.length} {filteredTemplates.length === 1 ? "template" : "templates"}{" "}
+          found
+        </div>
       </div>
 
       {/* Category Tabs */}
