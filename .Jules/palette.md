@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2025-05-24 - Accessible Disabled Button Feedback
+
+**Learning:** Disabled interactive elements provide poor UX when they don't explain _why_ they are disabled. Users might think the interface is broken if a button simply does nothing when clicked or hovered.
+**Action:** When disabling interactive elements like buttons, always add a descriptive `title` attribute explaining the reason (e.g., "Wait for response", "Enter a command to send") and use the `disabled:cursor-not-allowed` class for immediate visual feedback. Ensure they still have proper focus rings for keyboard navigation.
