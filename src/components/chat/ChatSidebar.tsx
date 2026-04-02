@@ -442,7 +442,14 @@ export function ChatSidebar({
                     disabled={
                       !ttsSetting || elevenLabsConfigured === false || ttsLoadingId === m.id
                     }
-                    title={ttsDisabledReason}
+                    title={
+                      ttsDisabledReason ??
+                      (ttsPlayingId === m.id
+                        ? "Stop voice playback"
+                        : ttsLoadingId === m.id
+                          ? "Loading voice playback"
+                          : "Play voice")
+                    }
                     aria-label={
                       ttsPlayingId === m.id
                         ? "Stop voice playback"
@@ -508,6 +515,13 @@ export function ChatSidebar({
           <button
             type="submit"
             disabled={isLoading || !localInput.trim()}
+            title={
+              isLoading
+                ? "Sending message..."
+                : !localInput.trim()
+                  ? "Type a command to send"
+                  : "Send message"
+            }
             aria-label={isLoading ? "Sending message..." : "Send message"}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
           >
