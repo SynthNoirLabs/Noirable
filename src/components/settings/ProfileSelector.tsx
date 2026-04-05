@@ -248,7 +248,10 @@ export function ProfileSelector() {
                 <button
                   onClick={handleCreateProfile}
                   disabled={!newProfileName.trim()}
-                  className="flex-1 px-3 py-2 text-xs font-mono bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] rounded-sm hover:bg-[var(--aesthetic-accent)]/90 transition-colors disabled:opacity-50"
+                  title={
+                    !newProfileName.trim() ? "Enter a profile name to create" : "Create new profile"
+                  }
+                  className="flex-1 px-3 py-2 text-xs font-mono bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] rounded-sm hover:bg-[var(--aesthetic-accent)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create
                 </button>
