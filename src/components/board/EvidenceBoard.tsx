@@ -92,6 +92,7 @@ export function EvidenceBoard({
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
+                title="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text)]/40 hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               >
                 <X className="w-3 h-3" />
@@ -104,6 +105,7 @@ export function EvidenceBoard({
               type="button"
               onClick={() => setView("grid")}
               aria-pressed={view === "grid"}
+              title="Grid view"
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "grid"
@@ -117,6 +119,7 @@ export function EvidenceBoard({
               type="button"
               onClick={() => setView("list")}
               aria-pressed={view === "list"}
+              title="List view"
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "list"
@@ -130,6 +133,7 @@ export function EvidenceBoard({
               type="button"
               onClick={() => setView("timeline")}
               aria-pressed={view === "timeline"}
+              title="Timeline view"
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "timeline"
