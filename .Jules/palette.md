@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2025-05-24 - Keyboard Accessible Layout Controls
+
+**Learning:** Layout toggle buttons (like those for hiding/showing sidebars or panels) are frequent interaction points. Without explicit keyboard focus indicators, keyboard-only users cannot easily navigate the layout structure.
+**Action:** Always add `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]` to interactive layout controls so keyboard focus is clearly indicated.
