@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2024-04-11 - Custom Dropdown Inline Actions Accessibility
+
+**Learning:** When implementing inline actions (like clone or delete buttons) inside custom dropdowns or listbox options, keyboard accessibility is often missed because the actions only appear on mouse hover.
+**Action:** Always apply the `focus-within:opacity-100` class to the container of the inline actions, so when a user navigates to the option and then tabs into the actions, they become visible and accessible. Ensure the buttons themselves have `focus-visible` ring styling.
