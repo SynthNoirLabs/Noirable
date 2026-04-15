@@ -67,7 +67,9 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+          aria-label="Close template library"
+          title="Close"
+          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
         >
           <X className="w-4 h-4" />
         </button>
@@ -78,6 +80,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         <input
           type="text"
           placeholder="Search templates..."
+          aria-label="Search templates"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full px-3 py-2 bg-[var(--aesthetic-background)]/40 border border-[var(--aesthetic-border)]/40 rounded-sm text-[var(--aesthetic-text)]/90 text-xs font-mono placeholder:text-[var(--aesthetic-text)]/40 focus:outline-none focus:border-[var(--aesthetic-accent)]/60 transition-colors"
@@ -85,14 +88,20 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-1 p-2 border-b border-[var(--aesthetic-border)]/20 overflow-x-auto">
+      <div
+        role="tablist"
+        aria-label="Template categories"
+        className="flex gap-1 p-2 border-b border-[var(--aesthetic-border)]/20 overflow-x-auto"
+      >
         {categories.map((cat) => (
           <button
             key={cat}
             type="button"
+            role="tab"
+            aria-selected={selectedCategory === cat}
             onClick={() => setSelectedCategory(cat)}
             className={cn(
-              "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap",
+              "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               selectedCategory === cat
                 ? "bg-[var(--aesthetic-accent)]/20 text-[var(--aesthetic-accent)] border border-[var(--aesthetic-accent)]/40"
                 : "text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] border border-transparent"
