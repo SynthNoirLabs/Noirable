@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2024-04-16 - Custom Dropdowns Need ARIA Listbox Roles
+
+**Learning:** Custom interactive dropdown components built with divs and buttons (like ModelSelector) are completely opaque to screen readers without specific ARIA patterns. When building custom selects, you cannot just rely on visual layout.
+**Action:** Always implement the ARIA combobox/listbox pattern for custom dropdowns: `role="combobox"` on the trigger button with `aria-expanded` and `aria-controls`, `role="listbox"` on the dropdown container, and `role="option"` with `aria-selected` on the items. Link the trigger and listbox to their visible label using `aria-labelledby`.
