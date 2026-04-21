@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2024-05-25 - Combobox Accessibility & Focus Management
+
+**Learning:** Custom dropdowns like comboboxes or listboxes fail screen reader accessibility without specific ARIA roles, and inline hover actions (like clone/delete) become invisible traps for keyboard users unless they appear on focus.
+**Action:** Always implement the full ARIA combobox/listbox pattern (`role="combobox"`, `aria-expanded`, `aria-controls`, `role="listbox"`, `role="option"`, `aria-selected`). For hover actions in list items, use `focus-within:opacity-100` alongside hover states so keyboard users can discover and interact with them.
