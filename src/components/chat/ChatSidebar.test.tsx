@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ChatSidebar } from "./ChatSidebar";
 
 const mockSendMessage = vi.fn();
@@ -9,15 +9,24 @@ const mockMessages = [
 ];
 
 describe("ChatSidebar", () => {
+  beforeEach(() => {
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ configured: true }),
+    } as Response);
+  });
+
   it("renders messages", async () => {
-    render(
-      <ChatSidebar
-        messages={mockMessages}
-        sendMessage={mockSendMessage}
-        isLoading={false}
-        typewriterSpeed={0}
-      />
-    );
+    await act(async () => {
+      render(
+        <ChatSidebar
+          messages={mockMessages}
+          sendMessage={mockSendMessage}
+          isLoading={false}
+          typewriterSpeed={0}
+        />
+      );
+    });
     expect(screen.getByText("Hello")).toBeInTheDocument();
     // Use regex to match text ignoring the cursor suffix if present
     // Note: TypewriterText renders duplicates for a11y (sr-only + aria-hidden)
@@ -25,14 +34,18 @@ describe("ChatSidebar", () => {
     expect(elements.length).toBeGreaterThan(0);
   });
 
-  it("renders input field", () => {
-    render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={false} />);
+  it("renders input field", async () => {
+    await act(async () => {
+      render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={false} />);
+    });
     expect(screen.getByPlaceholderText(/Type your command/i)).toBeInTheDocument();
     expect(screen.getByAltText("Search icon")).toBeInTheDocument();
   });
 
-  it("submits message on enter", () => {
-    render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={false} />);
+  it("submits message on enter", async () => {
+    await act(async () => {
+      render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={false} />);
+    });
     const input = screen.getByPlaceholderText(/Type your command/i);
     fireEvent.change(input, { target: { value: "Hello" } });
     fireEvent.submit(input);
@@ -43,29 +56,37 @@ describe("ChatSidebar", () => {
     );
   });
 
-  it("shows typing indicator when loading", () => {
-    render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={true} />);
+  it("shows typing indicator when loading", async () => {
+    await act(async () => {
+      render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={true} />);
+    });
     expect(screen.getByText(/Processing Evidence/i)).toBeInTheDocument();
   });
 
-  it("renders detective avatar badge", () => {
-    render(<ChatSidebar messages={mockMessages} sendMessage={mockSendMessage} isLoading={false} />);
+  it("renders detective avatar badge", async () => {
+    await act(async () => {
+      render(
+        <ChatSidebar messages={mockMessages} sendMessage={mockSendMessage} isLoading={false} />
+      );
+    });
     expect(screen.getByAltText("Detective avatar")).toBeInTheDocument();
   });
 
-  it("shows settings toggle when onUpdateSettings is provided", () => {
+  it("shows settings toggle when onUpdateSettings is provided", async () => {
     const onUpdateSettings = vi.fn();
-    render(
-      <ChatSidebar
-        messages={[]}
-        sendMessage={mockSendMessage}
-        isLoading={false}
-        onUpdateSettings={onUpdateSettings}
-      />
-    );
+    await act(async () => {
+      render(
+        <ChatSidebar
+          messages={[]}
+          sendMessage={mockSendMessage}
+          isLoading={false}
+          onUpdateSettings={onUpdateSettings}
+        />
+      );
+    });
 
     // Find settings button (by title "Configuration")
-    const settingsBtn = screen.getByTitle("Configuration");
+    const settingsBtn = screen.getByTitle(/Configuration/i);
     expect(settingsBtn).toBeInTheDocument();
 
     // Open settings
@@ -81,34 +102,38 @@ describe("ChatSidebar", () => {
     expect(onUpdateSettings).toHaveBeenCalledWith({ typewriterSpeed: 0 });
   });
 
-  it("toggles sound effects from settings", () => {
+  it("toggles sound effects from settings", async () => {
     const onUpdateSettings = vi.fn();
-    render(
-      <ChatSidebar
-        messages={[]}
-        sendMessage={mockSendMessage}
-        isLoading={false}
-        onUpdateSettings={onUpdateSettings}
-        soundEnabled={true}
-      />
-    );
+    await act(async () => {
+      render(
+        <ChatSidebar
+          messages={[]}
+          sendMessage={mockSendMessage}
+          isLoading={false}
+          onUpdateSettings={onUpdateSettings}
+          soundEnabled={true}
+        />
+      );
+    });
 
-    fireEvent.click(screen.getByTitle("Configuration"));
+    fireEvent.click(screen.getByTitle(/Configuration/i));
 
     fireEvent.click(screen.getByRole("button", { name: /toggle sound effects/i }));
     expect(onUpdateSettings).toHaveBeenCalledWith({ soundEnabled: false });
   });
 
-  it("renders a collapse button when onToggleCollapse is provided and calls it", () => {
+  it("renders a collapse button when onToggleCollapse is provided and calls it", async () => {
     const onToggleCollapse = vi.fn();
-    render(
-      <ChatSidebar
-        messages={mockMessages}
-        sendMessage={mockSendMessage}
-        isLoading={false}
-        onToggleCollapse={onToggleCollapse}
-      />
-    );
+    await act(async () => {
+      render(
+        <ChatSidebar
+          messages={mockMessages}
+          sendMessage={mockSendMessage}
+          isLoading={false}
+          onToggleCollapse={onToggleCollapse}
+        />
+      );
+    });
 
     const collapseBtn = screen.getByRole("button", {
       name: /collapse sidebar/i,
@@ -117,26 +142,28 @@ describe("ChatSidebar", () => {
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
 
-  it("updates ambient toggles via settings controls", () => {
+  it("updates ambient toggles via settings controls", async () => {
     const onUpdateSettings = vi.fn();
-    render(
-      <ChatSidebar
-        messages={[]}
-        sendMessage={mockSendMessage}
-        isLoading={false}
-        onUpdateSettings={onUpdateSettings}
-        ambient={{
-          rainEnabled: true,
-          rainVolume: 1,
-          fogEnabled: false,
-          intensity: "medium",
-          crackleEnabled: false,
-          crackleVolume: 0.35,
-        }}
-      />
-    );
+    await act(async () => {
+      render(
+        <ChatSidebar
+          messages={[]}
+          sendMessage={mockSendMessage}
+          isLoading={false}
+          onUpdateSettings={onUpdateSettings}
+          ambient={{
+            rainEnabled: true,
+            rainVolume: 1,
+            fogEnabled: false,
+            intensity: "medium",
+            crackleEnabled: false,
+            crackleVolume: 0.35,
+          }}
+        />
+      );
+    });
 
-    fireEvent.click(screen.getByTitle("Configuration"));
+    fireEvent.click(screen.getByTitle(/Configuration/i));
 
     fireEvent.click(screen.getByRole("button", { name: /toggle rain/i }));
     expect(onUpdateSettings).toHaveBeenCalledWith({ ambient: { rainEnabled: false } });
@@ -148,52 +175,56 @@ describe("ChatSidebar", () => {
     expect(onUpdateSettings).toHaveBeenCalledWith({ ambient: { crackleEnabled: true } });
   });
 
-  it("updates crackle volume when the slider changes", () => {
+  it("updates crackle volume when the slider changes", async () => {
     const onUpdateSettings = vi.fn();
-    render(
-      <ChatSidebar
-        messages={[]}
-        sendMessage={mockSendMessage}
-        isLoading={false}
-        onUpdateSettings={onUpdateSettings}
-        ambient={{
-          rainEnabled: true,
-          rainVolume: 1,
-          fogEnabled: true,
-          intensity: "medium",
-          crackleEnabled: true,
-          crackleVolume: 0.2,
-        }}
-      />
-    );
+    await act(async () => {
+      render(
+        <ChatSidebar
+          messages={[]}
+          sendMessage={mockSendMessage}
+          isLoading={false}
+          onUpdateSettings={onUpdateSettings}
+          ambient={{
+            rainEnabled: true,
+            rainVolume: 1,
+            fogEnabled: true,
+            intensity: "medium",
+            crackleEnabled: true,
+            crackleVolume: 0.2,
+          }}
+        />
+      );
+    });
 
-    fireEvent.click(screen.getByTitle("Configuration"));
+    fireEvent.click(screen.getByTitle(/Configuration/i));
 
     const slider = screen.getByLabelText(/crackle volume/i);
     fireEvent.change(slider, { target: { value: "70" } });
     expect(onUpdateSettings).toHaveBeenCalledWith({ ambient: { crackleVolume: 0.7 } });
   });
 
-  it("updates rain volume when the slider changes", () => {
+  it("updates rain volume when the slider changes", async () => {
     const onUpdateSettings = vi.fn();
-    render(
-      <ChatSidebar
-        messages={[]}
-        sendMessage={mockSendMessage}
-        isLoading={false}
-        onUpdateSettings={onUpdateSettings}
-        ambient={{
-          rainEnabled: true,
-          rainVolume: 0.25,
-          fogEnabled: true,
-          intensity: "medium",
-          crackleEnabled: false,
-          crackleVolume: 0.35,
-        }}
-      />
-    );
+    await act(async () => {
+      render(
+        <ChatSidebar
+          messages={[]}
+          sendMessage={mockSendMessage}
+          isLoading={false}
+          onUpdateSettings={onUpdateSettings}
+          ambient={{
+            rainEnabled: true,
+            rainVolume: 0.25,
+            fogEnabled: true,
+            intensity: "medium",
+            crackleEnabled: false,
+            crackleVolume: 0.35,
+          }}
+        />
+      );
+    });
 
-    fireEvent.click(screen.getByTitle("Configuration"));
+    fireEvent.click(screen.getByTitle(/Configuration/i));
 
     const slider = screen.getByLabelText(/rain volume/i);
     fireEvent.change(slider, { target: { value: "55" } });

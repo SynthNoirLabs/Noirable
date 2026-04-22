@@ -101,6 +101,18 @@ export function ChatSidebar({
   }, [messages]);
 
   useEffect(() => {
+    const handleSettingsShortcut = (e: KeyboardEvent) => {
+      if (!onUpdateSettings) return;
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        setShowSettings((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleSettingsShortcut);
+    return () => window.removeEventListener("keydown", handleSettingsShortcut);
+  }, [onUpdateSettings]);
+
+  useEffect(() => {
     let isMounted = true;
     const fetchStatus = async () => {
       try {
@@ -297,7 +309,7 @@ export function ChatSidebar({
               type="button"
               onClick={() => setShowSettings(!showSettings)}
               className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
-              title="Configuration"
+              title={`Configuration (${formatShortcut(["mod", ","])})`}
               aria-label="Open settings"
             >
               <SettingsIcon className="w-4 h-4" />
