@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2026-04-25 - Dynamic Disabled Button Feedback
+
+**Learning:** When buttons have complex or dynamic states (e.g., loading, missing input, default state), simple `opacity` adjustments are insufficient. Users need explicit tooltips explaining _why_ a button is disabled, and visual feedback that it isn't clickable.
+**Action:** For buttons with dynamic states, ensure the `title` attribute dynamically updates to match the current function or disabled reason (e.g., "Sending message...", "Type a message to send"). Additionally, apply `disabled:cursor-not-allowed` to reinforce the unclickable state.
