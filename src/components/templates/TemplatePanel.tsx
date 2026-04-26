@@ -75,8 +75,13 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
 
       {/* Search */}
       <div className="p-3 border-b border-[var(--aesthetic-border)]/20">
+        <label htmlFor="template-search" className="sr-only">
+          Search templates
+        </label>
         <input
-          type="text"
+          id="template-search"
+          type="search"
+          aria-label="Search templates"
           placeholder="Search templates..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
