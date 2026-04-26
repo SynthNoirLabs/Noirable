@@ -35,12 +35,16 @@ export async function POST(request: Request) {
     body = null;
   }
 
-  const rawText = body?.text?.trim() ?? "";
-  if (!rawText) {
+  // Strip ASCII control characters except common whitespace (\t, \n, \r) and
+  // the DEL byte. Leaves regular printable text and unicode unchanged.
+  // eslint-disable-next-line no-control-regex
+  const sanitized = (body?.text ?? "").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+  if (!sanitized) {
     return Response.json({ error: "Missing text" }, { status: 400 });
   }
 
-  const text = rawText.length > MAX_TTS_CHARS ? `${rawText.slice(0, MAX_TTS_CHARS)}...` : rawText;
+  const text =
+    sanitized.length > MAX_TTS_CHARS ? `${sanitized.slice(0, MAX_TTS_CHARS)}...` : sanitized;
 
   const voiceId = body?.voiceSettings?.voiceId ?? ELEVENLABS_CONFIG.voiceId;
   const stability = body?.voiceSettings?.stability ?? ELEVENLABS_CONFIG.stability;

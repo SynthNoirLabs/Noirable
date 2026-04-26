@@ -5,6 +5,7 @@ import os from "os";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { AVAILABLE_MODELS } from "./model-registry";
 
 export type AIProviderInstance =
   | ReturnType<typeof createOpenAI>
@@ -81,10 +82,26 @@ export interface ModelOverride {
 }
 
 /**
+ * Validate that a client-specified model is known for the given provider.
+ * "auto" and "openai-compatible" intentionally allow any model id since the
+ * upstream is user-configured.
+ */
+function assertModelAllowed(provider: ModelOverride["provider"], model: string | undefined): void {
+  if (!model) return;
+  if (!provider || provider === "auto" || provider === "openai-compatible") return;
+  const allowed = AVAILABLE_MODELS[provider];
+  if (allowed && allowed.length > 0 && !allowed.includes(model)) {
+    throw new Error(`Unknown model "${model}" for provider "${provider}"`);
+  }
+}
+
+/**
  * Get AI provider with optional client-specified overrides.
  * Priority: override provider/model > env vars > auth.json > mock fallback
  */
 export function getProviderWithOverrides(override?: ModelOverride): ProviderResult {
+  assertModelAllowed(override?.provider, override?.model);
+
   if (!override || override.provider === "auto" || !override.provider) {
     const result = getProvider();
     if (override?.model && result.type !== "mock") {

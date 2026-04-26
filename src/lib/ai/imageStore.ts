@@ -17,6 +17,7 @@ const EXT_TO_MEDIA_TYPE: Record<string, string> = {
 };
 
 const FILENAME_PATTERN = /^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp)$/;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MiB cap for stored generated images
 
 export function getImageStoreDir() {
   return process.env.A2UI_IMAGE_DIR ?? path.join(process.cwd(), ".data", "images");
@@ -33,6 +34,18 @@ export async function saveImageBase64(input: {
   const ext = MEDIA_TYPE_TO_EXT[input.mediaType];
   if (!ext) return null;
 
+  const buffer = Buffer.from(input.base64, "base64");
+  if (buffer.byteLength === 0 || buffer.byteLength > MAX_IMAGE_BYTES) {
+    console.warn(
+      "[imageStore] refusing to write image: size",
+      buffer.byteLength,
+      "bytes (cap",
+      MAX_IMAGE_BYTES,
+      ")"
+    );
+    return null;
+  }
+
   const dir = getImageStoreDir();
   await fs.mkdir(dir, { recursive: true });
 
@@ -40,7 +53,6 @@ export async function saveImageBase64(input: {
   const fileName = `${id}.${ext}`;
   const filePath = path.join(dir, fileName);
 
-  const buffer = Buffer.from(input.base64, "base64");
   await fs.writeFile(filePath, buffer);
 
   return { url: `/api/images/${fileName}`, filePath };
@@ -54,7 +66,14 @@ export async function readImageFile(fileName: string): Promise<{
 
   const dir = getImageStoreDir();
   const filePath = path.join(dir, fileName);
-  const data = await fs.readFile(filePath).catch(() => null);
+  const data = await fs.readFile(filePath).catch((err: unknown) => {
+    // ENOENT is expected for missing files; anything else is a real problem.
+    const code = (err as { code?: string } | null)?.code;
+    if (code !== "ENOENT") {
+      console.warn("[imageStore] read failed", fileName, err);
+    }
+    return null;
+  });
   if (!data) return null;
 
   const ext = path.extname(fileName).toLowerCase();

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getProvider, _resetAuthCache } from "./factory";
+import { getProvider, getProviderWithOverrides, _resetAuthCache } from "./factory";
 import fs from "fs";
 
 vi.mock("server-only", () => ({}));
@@ -80,5 +80,28 @@ describe("ProviderFactory", () => {
     vi.stubEnv("NODE_ENV", "production");
 
     expect(() => getProvider()).toThrow(/No valid API key found/);
+  });
+
+  it("rejects unknown override.model for a known provider", () => {
+    process.env.OPENAI_API_KEY = "env-key";
+    expect(() =>
+      getProviderWithOverrides({ provider: "openai", model: "totally-fake-model" })
+    ).toThrow(/Unknown model/);
+  });
+
+  it("accepts a registered model id for a known provider", () => {
+    process.env.OPENAI_API_KEY = "env-key";
+    const result = getProviderWithOverrides({ provider: "openai", model: "gpt-4o" });
+    expect(result.model).toBe("gpt-4o");
+  });
+
+  it("does not validate model when provider is openai-compatible", () => {
+    process.env.OPENAI_BASE_URL = "http://localhost:1234";
+    process.env.OPENAI_API_KEY = "env-key";
+    const result = getProviderWithOverrides({
+      provider: "openai-compatible",
+      model: "any-custom-model",
+    });
+    expect(result.model).toBe("any-custom-model");
   });
 });
