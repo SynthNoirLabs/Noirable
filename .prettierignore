@@ -10,3 +10,6 @@ test-results/**
 
 # Lockfile is managed by pnpm
 pnpm-lock.yaml
+
+# Plain-text legal file (no prettier parser)
+LICENSE

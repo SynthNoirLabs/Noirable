@@ -63,11 +63,19 @@ export function buildNoirImagePrompt(prompt: string): string {
   return `${prompt}. Style: ${stylePrompt}.`;
 }
 
+// Fallback SVG palette. The SVG is encoded as a data URL so it has no CSS
+// context — theme tokens can't apply. Named constants keep the palette in one
+// place so future themes can fork this file deliberately.
+const FALLBACK_BG = "#0f0f0f";
+const FALLBACK_PANEL = "#1a1a1a";
+const FALLBACK_BORDER = "#2a2a2a";
+const FALLBACK_TEXT = "#e0e0e0";
+
 function fallbackSvgDataUrl(message: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
-  <rect width="512" height="320" fill="#0f0f0f"/>
-  <rect x="24" y="24" width="464" height="272" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="2"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="14">
+  <rect width="512" height="320" fill="${FALLBACK_BG}"/>
+  <rect x="24" y="24" width="464" height="272" fill="${FALLBACK_PANEL}" stroke="${FALLBACK_BORDER}" stroke-width="2"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="${FALLBACK_TEXT}" font-family="monospace" font-size="14">
     ${message}
   </text>
   </svg>`;
