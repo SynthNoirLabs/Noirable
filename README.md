@@ -78,6 +78,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=         # Google Gemini
 # Optional overrides
 AI_MODEL=                             # Default chat model
 AI_IMAGE_MODEL=                       # Default image model
+ELEVENLABS_VOICE_ID=                  # ElevenLabs voice ID for TTS (optional, has default)
 ```
 
 ## Project Structure

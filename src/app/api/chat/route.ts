@@ -11,6 +11,7 @@ import { tools } from "@/lib/ai/tools";
 import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import type { AestheticId } from "@/lib/aesthetic/types";
 import { apiSecurityCheck } from "@/lib/api/security";
+import { logChatRequest } from "@/lib/api/logger";
 
 type ChatRequestBody = {
   messages: UIMessage[];
@@ -234,9 +235,7 @@ export async function POST(req: Request) {
 
   try {
     const json = (await req.json()) as ChatRequestBody;
-    if (process.env.NODE_ENV !== "production") {
-      console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
-    }
+    logChatRequest(json);
 
     const { messages, evidence, modelConfig, aestheticId } = json;
 
