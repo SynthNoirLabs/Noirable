@@ -89,7 +89,7 @@ function formatSSE(data: unknown): string {
  * - [DONE] sentinel
  */
 export async function POST(req: NextRequest): Promise<Response> {
-  const securityError = apiSecurityCheck(req);
+  const securityError = await apiSecurityCheck(req);
   if (securityError) return securityError;
 
   // Parse request body

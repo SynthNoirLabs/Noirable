@@ -230,7 +230,7 @@ function createMockUIResponse(messages: UIMessage[]): Response {
 }
 
 export async function POST(req: Request) {
-  const securityError = apiSecurityCheck(req);
+  const securityError = await apiSecurityCheck(req);
   if (securityError) return securityError;
 
   try {
@@ -253,7 +253,10 @@ export async function POST(req: Request) {
       });
     }
 
-    if (auth.type === "mock" || process.env.E2E === "1") {
+    if (
+      auth.type === "mock" ||
+      (process.env.NODE_ENV !== "production" && process.env.E2E === "1")
+    ) {
       return createMockUIResponse(messages);
     }
 

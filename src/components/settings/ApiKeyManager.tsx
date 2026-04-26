@@ -122,6 +122,17 @@ export function ApiKeyManager() {
     }
   };
 
+  const testOpenAI = async (): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/openai/status", {
+        headers: apiKeys.openai ? { "x-openai-api-key": apiKeys.openai } : {},
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 p-3 bg-[var(--aesthetic-accent)]/5 border border-[var(--aesthetic-accent)]/20 rounded-sm">
@@ -143,6 +154,7 @@ export function ApiKeyManager() {
         label="OpenAI API Key (Optional)"
         value={apiKeys.openai}
         onChange={handleOpenAIChange}
+        onTest={testOpenAI}
         placeholder="sk-..."
       />
 

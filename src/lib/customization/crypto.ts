@@ -49,7 +49,8 @@ export async function encryptValue(plaintext: string): Promise<string> {
 
 /**
  * Decrypt a base64-encoded ciphertext (IV + data) back to plaintext.
- * Returns null if decryption fails (e.g. key rotated between sessions).
+ * Returns null if decryption fails (e.g. key rotated between sessions, garbage input).
+ * Failure reason is logged via console.warn so silent data loss is observable.
  */
 export async function decryptValue(encoded: string): Promise<string | null> {
   try {
@@ -62,7 +63,9 @@ export async function decryptValue(encoded: string): Promise<string | null> {
     const decrypted = await crypto.subtle.decrypt({ name: ALGORITHM, iv }, key, ciphertext);
 
     return new TextDecoder().decode(decrypted);
-  } catch {
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.warn("[crypto] decryptValue failed — stored value will be dropped:", reason);
     return null;
   }
 }

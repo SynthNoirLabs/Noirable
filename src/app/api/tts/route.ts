@@ -17,7 +17,7 @@ interface TTSRequest {
 }
 
 export async function POST(request: Request) {
-  const securityError = apiSecurityCheck(request);
+  const securityError = await apiSecurityCheck(request);
   if (securityError) return securityError;
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
