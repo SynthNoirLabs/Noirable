@@ -47,7 +47,7 @@ function resolveDynamic(value: unknown, resolve: (path: string) => unknown): unk
 
 // Layout: Row
 function RowRenderer({ component }: ComponentProps) {
-  const { getComponent, theme } = useSurfaceContext();
+  const { getComponent } = useSurfaceContext();
   const row = component as SurfaceComponent & { component: "Row"; children?: string[] };
 
   const childIds = Array.isArray(row.children) ? row.children : [];
@@ -242,7 +242,7 @@ function IconRenderer({ component }: ComponentProps) {
 
 // Input: Button
 function ButtonRenderer({ component }: ComponentProps) {
-  const { getComponent, resolveBinding } = useSurfaceContext();
+  const { getComponent } = useSurfaceContext();
   const btn = component as SurfaceComponent & {
     component: "Button";
     child?: string;
@@ -251,19 +251,32 @@ function ButtonRenderer({ component }: ComponentProps) {
   };
 
   const childComponent = btn.child ? getComponent(btn.child) : null;
+  const hasAction = btn.action != null;
 
   const handleClick = () => {
-    // TODO: dispatch btn.action when action system is implemented
+    if (!hasAction) return;
+    // Action dispatch is wired through src/lib/a2ui/events/dispatch.
+    // The v0.9 action schema is still being finalized upstream — until the
+    // shape is locked in we forward the raw action payload as a custom event
+    // so apps embedding SurfaceRenderer can listen via window.addEventListener.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("a2ui:action", { detail: { componentId: btn.id, action: btn.action } })
+      );
+    }
   };
 
   return (
     <button
       onClick={handleClick}
+      disabled={!hasAction}
+      title={hasAction ? undefined : "No action wired"}
       className={cn(
         "px-4 py-2 font-mono text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
         btn.variant === "borderless"
           ? "text-[var(--aesthetic-accent)] hover:text-[var(--aesthetic-accent)]/80"
-          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-sm"
+          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-sm",
+        !hasAction && "opacity-60 cursor-not-allowed"
       )}
     >
       {childComponent ? <ComponentRenderer component={childComponent} /> : btn.id}
