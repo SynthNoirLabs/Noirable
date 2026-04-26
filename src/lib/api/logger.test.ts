@@ -107,6 +107,11 @@ describe("summarizeChatRequest", () => {
     // The summary must not leak the actual text
     expect(JSON.stringify(result)).not.toContain("secret");
     expect(JSON.stringify(result)).not.toContain("1234");
+    // Shape must still be correct
+    expect(result.messageCount).toBe(1);
+    expect(result.lastMessageRole).toBe("user");
+    expect(typeof result.lastMessageChars).toBe("number");
+    expect(result.hasEvidence).toBe(false);
   });
 });
 

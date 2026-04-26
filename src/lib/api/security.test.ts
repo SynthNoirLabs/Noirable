@@ -148,7 +148,8 @@ describe("Upstash REST adapter", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://example.upstash.io/pipeline");
     expect(init.headers).toMatchObject({ Authorization: "Bearer tkn" });
-    const body = JSON.parse(init.body as string) as unknown[][];
+    type PipelineCommand = [command: string, ...args: (string | number)[]];
+    const body = JSON.parse(init.body as string) as PipelineCommand[];
     expect(body[0][0]).toBe("INCR");
     expect(body[1][0]).toBe("EXPIRE");
     expect(body[2][0]).toBe("PTTL");
