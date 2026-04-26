@@ -42,9 +42,9 @@ describe("in-memory rate limiter", () => {
     expect(other.allowed).toBe(true);
   });
 
-  it("evicts expired entries when at capacity", async () => {
-    // Fill below cap with stale-able entries, then advance time and ensure
-    // a fresh identifier still works (eviction triggered by size pressure).
+  it("resets window after TTL expires", async () => {
+    // Fill entries, advance time past the window, and confirm a fresh request
+    // is allowed (window has reset).
     vi.useFakeTimers();
     try {
       for (let i = 0; i < 5; i++) await checkRateLimit(`pre-${i}`);
@@ -113,6 +113,48 @@ describe("Upstash REST adapter", () => {
     expect(warnSpy).toHaveBeenCalled();
 
     warnSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("fails open when fetch throws a network error", async () => {
+    process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "tkn";
+    _resetAdapterCache();
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network failure")));
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await checkRateLimit("ip-w");
+    expect(result.allowed).toBe(true);
+    expect(warnSpy).toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("sends the correct pipeline body to Upstash", async () => {
+    process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "tkn";
+    _resetAdapterCache();
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ result: 1 }, { result: 1 }, { result: 60_000 }],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await checkRateLimit("ip-pipeline");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://example.upstash.io/pipeline");
+    expect(init.headers).toMatchObject({ Authorization: "Bearer tkn" });
+    const body = JSON.parse(init.body as string) as unknown[][];
+    expect(body[0][0]).toBe("INCR");
+    expect(body[1][0]).toBe("EXPIRE");
+    expect(body[2][0]).toBe("PTTL");
+    // EXPIRE NX flag must be present
+    expect(body[1]).toContain("NX");
+
     vi.unstubAllGlobals();
   });
 });
