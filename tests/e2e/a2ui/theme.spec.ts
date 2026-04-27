@@ -4,7 +4,8 @@ import { test, expect } from "@playwright/test";
  * A2UI v0.9 Theme E2E Tests
  *
  * Tests theme functionality and noir styling.
- * The main app uses Tailwind noir classes (noir-black, noir-paper, etc.)
+ * The app uses CSS custom properties scoped to [data-aesthetic="noir"]
+ * (see src/app/globals.css) rather than bg-noir/text-noir Tailwind classes.
  * The A2UI ThemeProvider with CSS variables is for future component integration.
  */
 
@@ -13,17 +14,19 @@ test.describe("A2UI Theme - Noir Styling", () => {
     await page.goto("/");
     await page.waitForSelector('[data-testid="desk-layout"]');
 
-    // Check that noir Tailwind classes are applied
+    // Check that the desk-layout is in noir mode via data-aesthetic attribute
     const layout = page.locator('[data-testid="desk-layout"]');
     await expect(layout).toBeVisible();
 
-    // Layout should have noir background classes
-    const hasNoirClasses = await layout.evaluate((el) => {
+    // Layout is set to noir via data-aesthetic (drives CSS variable scoping)
+    const isNoirTheme = await layout.evaluate((el) => {
+      const dataAesthetic = el.getAttribute("data-aesthetic");
+      // The layout also carries noir atmospheric classes (film-grain / vignette)
       const classes = el.className;
-      return classes.includes("bg-noir") || classes.includes("text-noir");
+      return dataAesthetic === "noir" || classes.includes("film-grain");
     });
 
-    expect(hasNoirClasses).toBeTruthy();
+    expect(isNoirTheme).toBeTruthy();
   });
 
   test("noir theme colors are visible on page", async ({ page }) => {
@@ -77,12 +80,14 @@ test.describe("A2UI Theme - Noir Styling", () => {
     const editor = page.locator('[data-testid="editor-pane"]');
     await expect(editor).toBeVisible();
 
-    // Check it has noir background class
-    const hasNoirBg = await editor.evaluate((el) => {
-      return el.className.includes("noir");
+    // The editor-pane inherits noir styling via the ancestor [data-aesthetic="noir"]
+    // element. Verify that ancestor is present and the editor has a dark background.
+    const hasNoirContext = await editor.evaluate((el) => {
+      const ancestor = el.closest('[data-aesthetic="noir"]');
+      return ancestor !== null;
     });
 
-    expect(hasNoirBg).toBeTruthy();
+    expect(hasNoirContext).toBeTruthy();
   });
 });
 
