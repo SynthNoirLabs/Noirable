@@ -92,6 +92,7 @@ export function EvidenceBoard({
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
+                title="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text)]/40 hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               >
                 <X className="w-3 h-3" />

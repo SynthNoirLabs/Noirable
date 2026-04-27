@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2026-04-27 - Icon-only Buttons & Dynamic Tooltips
+
+**Learning:** Providing an `aria-label` makes an icon button accessible to screen readers, but sighted mouse users are left guessing its function if the icon isn't universally understood. Similarly, disabled buttons without tooltips leave users confused about why an action is blocked.
+**Action:** Always provide a `title` attribute alongside `aria-label` for icon-only buttons. For dynamic buttons (like "Send" vs "Sending..."), update the `title` dynamically. For disabled buttons, use `disabled:cursor-not-allowed` and use the `title` to explain the disabled reason.

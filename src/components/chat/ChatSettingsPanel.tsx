@@ -149,7 +149,7 @@ export function ChatSettingsPanel({
               type="button"
               onClick={action}
               disabled={!soundEnabled || elevenLabsConfigured === false}
-              title={sfxDisabledReason}
+              title={sfxDisabledReason || label}
               className={cn(
                 "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 soundEnabled
