@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2026-04-28 - Dynamic Titles for Stateful Buttons
+
+**Learning:** Users often hover over icon-only buttons with dynamic states (like TTS or Send) expecting the tooltip to reflect the current state (e.g., 'Stop' instead of 'Play'). Static titles on dynamic buttons cause confusion.
+**Action:** Use dynamic `title` attributes that mirror the `aria-label` state for buttons with multiple interactive phases.
