@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2025-05-24 - Dynamic Tooltips for Disabled States
+
+**Learning:** When buttons are disabled due to specific conditions (like empty inputs or missing configuration), a static tooltip or lack of a tooltip leaves users confused about why they can't interact with the element. Furthermore, standard disabled buttons don't communicate their unclickable nature effectively without a `cursor-not-allowed` style.
+**Action:** When disabling interactive elements, provide a dynamic `title` attribute that explains the exact reason it is disabled, and ensure the element uses the `disabled:cursor-not-allowed` Tailwind class to provide immediate visual feedback.
