@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2024-05-25 - Accessible Inline Actions
+
+**Learning:** Inline action buttons (like delete or copy) that are only visible on hover (`opacity-0 group-hover:opacity-100`) are invisible to keyboard users who tab to them.
+**Action:** Always add `focus-within:opacity-100` alongside hover classes to ensure inline actions become visible when a keyboard user focuses on them.
