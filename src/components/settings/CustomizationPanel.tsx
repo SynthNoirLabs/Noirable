@@ -62,6 +62,7 @@ export function CustomizationPanel({ isOpen, onClose }: CustomizationPanelProps)
                 onClick={onClose}
                 className="p-1.5 rounded-sm hover:bg-[var(--aesthetic-surface)] transition-colors text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-text)]"
                 aria-label="Close panel"
+                title="Close panel"
               >
                 <X className="w-4 h-4" />
               </button>

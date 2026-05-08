@@ -51,6 +51,7 @@ function ApiKeyInput({ label, value, onChange, onTest, placeholder }: ApiKeyInpu
             onClick={() => setShowKey(!showKey)}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-text)] transition-colors"
             aria-label={showKey ? "Hide key" : "Show key"}
+            title={showKey ? "Hide key" : "Show key"}
           >
             {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>

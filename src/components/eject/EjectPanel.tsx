@@ -98,6 +98,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               onClick={onClose}
               className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
               aria-label="Close eject panel"
+              title="Close eject panel"
             >
               <X className="w-4 h-4" />
             </button>
@@ -138,6 +139,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
               onClick={onClose}
               className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
               aria-label="Close eject panel"
+              title="Close eject panel"
             >
               <X className="w-4 h-4" />
             </button>
@@ -220,6 +222,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
                   onClick={activeTab === "multifile" ? handleDownloadZip : handleDownloadSingle}
                   className="flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all bg-[var(--aesthetic-surface)]/80 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
                   aria-label={activeTab === "multifile" ? "Download ZIP" : "Download file"}
+                  title={activeTab === "multifile" ? "Download ZIP" : "Download file"}
                 >
                   <Download className="w-3 h-3" />
                   {activeTab === "multifile" ? "ZIP" : "File"}
@@ -235,6 +238,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
                     : "bg-[var(--aesthetic-surface)]/80 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
                 )}
                 aria-label={copied ? "Copied!" : "Copy to clipboard"}
+                title={copied ? "Copied!" : "Copy to clipboard"}
               >
                 {copied ? (
                   <>
