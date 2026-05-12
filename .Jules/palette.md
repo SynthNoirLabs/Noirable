@@ -17,3 +17,8 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2024-05-25 - Combobox Keyboard Navigation
+
+**Learning:** When adding `role="option"` to wrapper elements (like `div`s) to make custom dropdowns accessible to screen readers, do not add `tabIndex={-1}` to the interactive child elements (e.g. `button`) if you are relying on native tab-based keyboard navigation. Doing so removes them from the document tab order, breaking keyboard accessibility entirely.
+**Action:** Unless implementing custom arrow-key navigation on the parent container (where focus is programmatically managed), leave the interactive child elements in the natural tab order (no negative `tabIndex`) to maintain keyboard accessibility, and ensure the parent correctly acts as the `role="option"`.

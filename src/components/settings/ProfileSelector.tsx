@@ -103,6 +103,10 @@ export function ProfileSelector() {
 
       <div className="relative">
         <button
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls="profile-listbox"
+          aria-haspopup="listbox"
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "w-full flex items-center justify-between px-3 py-2.5 text-sm font-mono transition-all",
@@ -125,7 +129,7 @@ export function ProfileSelector() {
               transition={{ duration: 0.15 }}
               className="absolute top-full left-0 right-0 mt-1 z-50 rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md overflow-hidden"
             >
-              <div className="max-h-[280px] overflow-y-auto">
+              <div id="profile-listbox" role="listbox" className="max-h-[280px] overflow-y-auto">
                 {/* Built-in profiles */}
                 <div className="px-2 py-1.5 text-[10px] font-mono text-[var(--aesthetic-text-muted)]/60 uppercase tracking-wider border-b border-[var(--aesthetic-border)]/10">
                   Built-in
@@ -133,6 +137,8 @@ export function ProfileSelector() {
                 {BUILT_IN_PROFILES.map((profile) => (
                   <button
                     key={profile.id}
+                    role="option"
+                    aria-selected={currentAestheticId === profile.id}
                     onClick={() => handleSelectProfile(profile.id)}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group",
@@ -157,6 +163,8 @@ export function ProfileSelector() {
                     {customProfiles.map((profile) => (
                       <div
                         key={profile.id}
+                        role="option"
+                        aria-selected={currentAestheticId === profile.id}
                         className={cn(
                           "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group",
                           currentAestheticId === profile.id
