@@ -83,6 +83,7 @@ export function ChatSettingsPanel({
         <span className="text-[var(--aesthetic-text)]/70">A2UI v0.9</span>
         <button
           onClick={() => onUpdateSettings({ useA2UIv09: !useA2UIv09 })}
+          title="Toggle A2UI v0.9 mode"
           className={cn(
             "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
             useA2UIv09
@@ -143,25 +144,28 @@ export function ChatSettingsPanel({
               },
               { icon: Phone, action: () => sfxControls?.playPhoneRing(), label: "Play phone ring" },
             ] as const
-          ).map(({ icon: Icon, action, label }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={action}
-              disabled={!soundEnabled || elevenLabsConfigured === false}
-              title={sfxDisabledReason}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
-                soundEnabled
-                  ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
-                  : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
-                (!soundEnabled || elevenLabsConfigured === false) && "opacity-50 cursor-not-allowed"
-              )}
-              aria-label={label}
-            >
-              <Icon className="w-3.5 h-3.5" />
-            </button>
-          ))}
+          ).map(({ icon: Icon, action, label }) => {
+            const isDisabled = !soundEnabled || elevenLabsConfigured === false;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={action}
+                disabled={isDisabled}
+                title={isDisabled ? sfxDisabledReason : label}
+                className={cn(
+                  "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                  soundEnabled
+                    ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
+                    : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
+                  isDisabled && "opacity-50 disabled:cursor-not-allowed"
+                )}
+                aria-label={label}
+              >
+                <Icon className="w-3.5 h-3.5" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -265,7 +269,7 @@ function ToggleRow({
           active
             ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
             : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]",
-          disabled && "opacity-50 cursor-not-allowed"
+          disabled && "opacity-50 disabled:cursor-not-allowed"
         )}
         aria-label={ariaLabel}
         aria-pressed={active}
