@@ -208,6 +208,7 @@ export function VoiceCustomization() {
             <button
               onClick={() => !isLoading && setIsDropdownOpen(!isDropdownOpen)}
               disabled={isLoading}
+              title={isLoading ? "Loading voices..." : undefined}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
                 "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
@@ -331,6 +332,13 @@ export function VoiceCustomization() {
         <button
           onClick={handlePreview}
           disabled={isPlaying || !currentVoiceId}
+          title={
+            isPlaying
+              ? "Synthesizing voice..."
+              : !currentVoiceId
+                ? "Select a voice to preview"
+                : undefined
+          }
           className={cn(
             "w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider transition-all duration-300 rounded-sm border",
             isPlaying

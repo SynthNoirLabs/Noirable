@@ -60,6 +60,13 @@ function ApiKeyInput({ label, value, onChange, onTest, placeholder }: ApiKeyInpu
             type="button"
             onClick={handleTest}
             disabled={!value || testStatus === "testing"}
+            title={
+              !value
+                ? "Enter an API key to test"
+                : testStatus === "testing"
+                  ? "Testing API key..."
+                  : undefined
+            }
             className={cn(
               "px-3 py-2 text-xs font-mono border rounded-sm transition-colors flex items-center gap-1.5 min-w-[80px] justify-center",
               testStatus === "success" && "border-green-500 text-green-500 bg-green-500/10",
