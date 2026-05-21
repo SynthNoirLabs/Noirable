@@ -67,7 +67,8 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+          aria-label="Close template library"
+          className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
         >
           <X className="w-4 h-4" />
         </button>
@@ -75,24 +76,34 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
 
       {/* Search */}
       <div className="p-3 border-b border-[var(--aesthetic-border)]/20">
+        <label htmlFor="template-search" className="sr-only">
+          Search templates
+        </label>
         <input
-          type="text"
+          id="template-search"
+          type="search"
           placeholder="Search templates..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 bg-[var(--aesthetic-background)]/40 border border-[var(--aesthetic-border)]/40 rounded-sm text-[var(--aesthetic-text)]/90 text-xs font-mono placeholder:text-[var(--aesthetic-text)]/40 focus:outline-none focus:border-[var(--aesthetic-accent)]/60 transition-colors"
+          className="w-full px-3 py-2 bg-[var(--aesthetic-background)]/40 border border-[var(--aesthetic-border)]/40 rounded-sm text-[var(--aesthetic-text)]/90 text-xs font-mono placeholder:text-[var(--aesthetic-text)]/40 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none focus:border-[var(--aesthetic-accent)]/60 transition-colors"
         />
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-1 p-2 border-b border-[var(--aesthetic-border)]/20 overflow-x-auto">
+      <div
+        className="flex gap-1 p-2 border-b border-[var(--aesthetic-border)]/20 overflow-x-auto"
+        role="tablist"
+        aria-label="Template categories"
+      >
         {categories.map((cat) => (
           <button
             key={cat}
             type="button"
+            role="tab"
+            aria-selected={selectedCategory === cat}
             onClick={() => setSelectedCategory(cat)}
             className={cn(
-              "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap",
+              "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
               selectedCategory === cat
                 ? "bg-[var(--aesthetic-accent)]/20 text-[var(--aesthetic-accent)] border border-[var(--aesthetic-accent)]/40"
                 : "text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] border border-transparent"
@@ -116,7 +127,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
               key={template.id}
               type="button"
               onClick={() => onSelect(template.data)}
-              className="w-full text-left p-3 bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/30 rounded-sm hover:border-[var(--aesthetic-accent)]/50 hover:bg-[var(--aesthetic-background)]/50 transition-colors group"
+              className="w-full text-left p-3 bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/30 rounded-sm hover:border-[var(--aesthetic-accent)]/50 hover:bg-[var(--aesthetic-background)]/50 transition-colors group focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -143,8 +154,13 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
 
       {/* Footer */}
       <div className="p-3 border-t border-[var(--aesthetic-border)]/20 text-[10px] font-mono text-[var(--aesthetic-text)]/40 text-center">
-        {filteredTemplates.length} template
-        {filteredTemplates.length !== 1 ? "s" : ""} available
+        <span className="sr-only" role="status" aria-live="polite">
+          Found {filteredTemplates.length} template{filteredTemplates.length !== 1 ? "s" : ""}
+        </span>
+        <span aria-hidden="true">
+          {filteredTemplates.length} template
+          {filteredTemplates.length !== 1 ? "s" : ""} available
+        </span>
       </div>
     </div>
   );
