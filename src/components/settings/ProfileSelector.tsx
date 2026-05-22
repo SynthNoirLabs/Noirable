@@ -104,8 +104,12 @@ export function ProfileSelector() {
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
+          aria-label="Select active profile"
+          aria-expanded={isOpen}
+          role="combobox"
+          aria-controls="profile-listbox"
           className={cn(
-            "w-full flex items-center justify-between px-3 py-2.5 text-sm font-mono transition-all",
+            "w-full flex items-center justify-between px-3 py-2.5 text-sm font-mono transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
             "bg-[var(--aesthetic-surface)]/50 border rounded-sm",
             isOpen
               ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)]"
@@ -125,7 +129,7 @@ export function ProfileSelector() {
               transition={{ duration: 0.15 }}
               className="absolute top-full left-0 right-0 mt-1 z-50 rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md overflow-hidden"
             >
-              <div className="max-h-[280px] overflow-y-auto">
+              <div className="max-h-[280px] overflow-y-auto" role="listbox" id="profile-listbox">
                 {/* Built-in profiles */}
                 <div className="px-2 py-1.5 text-[10px] font-mono text-[var(--aesthetic-text-muted)]/60 uppercase tracking-wider border-b border-[var(--aesthetic-border)]/10">
                   Built-in
@@ -134,8 +138,10 @@ export function ProfileSelector() {
                   <button
                     key={profile.id}
                     onClick={() => handleSelectProfile(profile.id)}
+                    role="option"
+                    aria-selected={currentAestheticId === profile.id}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group",
+                      "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group focus-visible:outline-none focus-visible:bg-[var(--aesthetic-text)]/10",
                       currentAestheticId === profile.id
                         ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)]"
                         : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5"
@@ -157,6 +163,8 @@ export function ProfileSelector() {
                     {customProfiles.map((profile) => (
                       <div
                         key={profile.id}
+                        role="option"
+                        aria-selected={currentAestheticId === profile.id}
                         className={cn(
                           "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group",
                           currentAestheticId === profile.id
@@ -166,22 +174,25 @@ export function ProfileSelector() {
                       >
                         <button
                           onClick={() => handleSelectProfile(profile.id)}
-                          className="flex-1 text-left truncate mr-2 focus:outline-none"
+                          aria-label={`Select profile ${profile.name}`}
+                          className="flex-1 text-left truncate mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] rounded-sm"
                         >
                           {profile.name}
                         </button>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => handleCloneProfile(profile.id, e)}
-                            className="p-1 hover:text-[var(--aesthetic-accent)]"
-                            title="Clone profile"
+                            className="p-1 hover:text-[var(--aesthetic-accent)] focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none rounded-sm"
+                            aria-label={`Clone profile ${profile.name}`}
+                            title={`Clone profile ${profile.name}`}
                           >
                             <Copy className="w-3 h-3" />
                           </button>
                           <button
                             onClick={(e) => handleDeleteProfile(profile.id, e)}
-                            className="p-1 hover:text-[var(--aesthetic-error)]"
-                            title="Delete profile"
+                            className="p-1 hover:text-[var(--aesthetic-error)] focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-error)] focus-visible:outline-none rounded-sm"
+                            aria-label={`Delete profile ${profile.name}`}
+                            title={`Delete profile ${profile.name}`}
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
