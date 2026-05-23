@@ -73,10 +73,22 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
         </button>
       </div>
 
+      {/* Search status for screen readers */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {searchQuery.trim() || selectedCategory !== "all"
+          ? filteredTemplates.length === 0
+            ? "No templates found"
+            : `Found ${filteredTemplates.length} template${
+                filteredTemplates.length === 1 ? "" : "s"
+              }`
+          : ""}
+      </div>
+
       {/* Search */}
       <div className="p-3 border-b border-[var(--aesthetic-border)]/20">
         <input
-          type="text"
+          type="search"
+          aria-label="Search templates"
           placeholder="Search templates..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -85,11 +97,18 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-1 p-2 border-b border-[var(--aesthetic-border)]/20 overflow-x-auto">
+      <div
+        className="flex gap-1 p-2 border-b border-[var(--aesthetic-border)]/20 overflow-x-auto"
+        role="tablist"
+        aria-label="Template categories"
+      >
         {categories.map((cat) => (
           <button
             key={cat}
             type="button"
+            role="tab"
+            aria-selected={selectedCategory === cat}
+            aria-controls="template-list"
             onClick={() => setSelectedCategory(cat)}
             className={cn(
               "flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded-sm transition-colors whitespace-nowrap",
@@ -105,7 +124,7 @@ export function TemplatePanel({ onSelect, onClose }: TemplatePanelProps) {
       </div>
 
       {/* Template List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div id="template-list" role="tabpanel" className="flex-1 overflow-y-auto p-3 space-y-2">
         {filteredTemplates.length === 0 ? (
           <div className="text-center py-8 text-[var(--aesthetic-text)]/50 font-typewriter text-xs uppercase tracking-wider">
             No templates found

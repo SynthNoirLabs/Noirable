@@ -80,7 +80,7 @@ export function EvidenceBoard({
             <input
               id="evidence-search"
               name="evidence-search"
-              type="text"
+              type="search"
               aria-label="Search evidence"
               placeholder="Search evidence..."
               value={searchQuery}
