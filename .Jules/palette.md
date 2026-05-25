@@ -17,3 +17,5 @@
 
 **Learning:** Custom resize handles (`role="separator"`) are not keyboard accessible by default. Users relying on keyboards cannot adjust panel sizes without explicit `tabIndex` and `onKeyDown` handlers.
 **Action:** Ensure all interactive separators have `tabIndex={0}`, handle `ArrowLeft`/`ArrowRight` for adjustment, and `Home`/`End` for min/max snapping. Add visible focus indicators (`focus-visible:ring`) to guide keyboard users.
+
+## 2025-05-25 - Accessible Filter Search\n**Learning:** Users relying on screen readers need to know what they are searching for. When using an input designed for filtering lists, use `type="search"`, hide decorative icons with `aria-hidden="true"`, and include a visually hidden label.\n**Action:** Apply `type="search"`, a visually hidden label (`sr-only`), and `aria-hidden` on decorative icons to ensure search inputs are fully accessible.
