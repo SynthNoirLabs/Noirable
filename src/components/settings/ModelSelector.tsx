@@ -73,13 +73,21 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
       </div>
 
       <div className="space-y-1.5 relative">
-        <label className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5">
-          <Server className="w-3 h-3 text-[var(--aesthetic-accent)]/70" />
+        <label
+          id="provider-label"
+          className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5"
+        >
+          <Server className="w-3 h-3 text-[var(--aesthetic-accent)]/70" aria-hidden="true" />
           Provider Protocol
         </label>
 
         <div className="relative">
           <button
+            id="provider-trigger"
+            role="combobox"
+            aria-expanded={activeDropdown === "provider"}
+            aria-controls={activeDropdown === "provider" ? "provider-listbox" : undefined}
+            aria-labelledby="provider-label provider-trigger"
             onClick={() => setActiveDropdown(activeDropdown === "provider" ? null : "provider")}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
@@ -91,6 +99,7 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
           >
             <span className="truncate">{currentProviderLabel}</span>
             <ChevronDown
+              aria-hidden="true"
               className={cn(
                 "w-3 h-3 transition-transform duration-200 opacity-70",
                 activeDropdown === "provider" && "rotate-180 text-[var(--aesthetic-accent)]"
@@ -107,10 +116,17 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                 transition={{ duration: 0.15, ease: "circOut" }}
                 className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md"
               >
-                <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20">
+                <div
+                  id="provider-listbox"
+                  role="listbox"
+                  aria-labelledby="provider-label"
+                  className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20"
+                >
                   {PROVIDERS.map((provider) => (
                     <button
                       key={provider.id}
+                      role="option"
+                      aria-selected={modelConfig.provider === provider.id}
                       onClick={() => handleProviderChange(provider.id)}
                       className={cn(
                         "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
@@ -121,7 +137,10 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                     >
                       <span>{provider.label}</span>
                       {modelConfig.provider === provider.id && (
-                        <Check className="w-3 h-3 text-[var(--aesthetic-accent)]" />
+                        <Check
+                          aria-hidden="true"
+                          className="w-3 h-3 text-[var(--aesthetic-accent)]"
+                        />
                       )}
                     </button>
                   ))}
@@ -133,8 +152,11 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
       </div>
 
       <div className="space-y-1.5 relative">
-        <label className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5">
-          <Cpu className="w-3 h-3 text-[var(--aesthetic-accent)]/70" />
+        <label
+          id="model-label"
+          className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5"
+        >
+          <Cpu className="w-3 h-3 text-[var(--aesthetic-accent)]/70" aria-hidden="true" />
           Model Architecture
         </label>
 
@@ -160,6 +182,11 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
         ) : (
           <div className="relative">
             <button
+              id="model-trigger"
+              role="combobox"
+              aria-expanded={activeDropdown === "model"}
+              aria-controls={activeDropdown === "model" ? "model-listbox" : undefined}
+              aria-labelledby="model-label model-trigger"
               onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
@@ -171,6 +198,7 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
             >
               <span className="truncate">{modelConfig.model || "Select Model..."}</span>
               <ChevronDown
+                aria-hidden="true"
                 className={cn(
                   "w-3 h-3 transition-transform duration-200 opacity-70",
                   activeDropdown === "model" && "rotate-180 text-[var(--aesthetic-accent)]"
@@ -187,11 +215,18 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                   transition={{ duration: 0.15, ease: "circOut" }}
                   className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md"
                 >
-                  <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20">
+                  <div
+                    id="model-listbox"
+                    role="listbox"
+                    aria-labelledby="model-label"
+                    className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20"
+                  >
                     {availableModels.length > 0 ? (
                       availableModels.map((model) => (
                         <button
                           key={model}
+                          role="option"
+                          aria-selected={modelConfig.model === model}
                           onClick={() => handleModelChange(model)}
                           className={cn(
                             "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
@@ -202,7 +237,10 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                         >
                           <span className="truncate">{model}</span>
                           {modelConfig.model === model && (
-                            <Check className="w-3 h-3 text-[var(--aesthetic-accent)]" />
+                            <Check
+                              aria-hidden="true"
+                              className="w-3 h-3 text-[var(--aesthetic-accent)]"
+                            />
                           )}
                         </button>
                       ))
