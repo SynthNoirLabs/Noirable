@@ -149,13 +149,14 @@ export function ChatSettingsPanel({
               type="button"
               onClick={action}
               disabled={!soundEnabled || elevenLabsConfigured === false}
-              title={sfxDisabledReason}
+              title={sfxDisabledReason || label}
               className={cn(
                 "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 soundEnabled
                   ? "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50"
                   : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)]",
-                (!soundEnabled || elevenLabsConfigured === false) && "opacity-50 cursor-not-allowed"
+                (!soundEnabled || elevenLabsConfigured === false) &&
+                  "opacity-50 disabled:cursor-not-allowed"
               )}
               aria-label={label}
             >

@@ -442,7 +442,14 @@ export function ChatSidebar({
                     disabled={
                       !ttsSetting || elevenLabsConfigured === false || ttsLoadingId === m.id
                     }
-                    title={ttsDisabledReason}
+                    title={
+                      ttsDisabledReason ||
+                      (ttsPlayingId === m.id
+                        ? "Stop voice playback"
+                        : ttsLoadingId === m.id
+                          ? "Loading voice playback"
+                          : "Play voice")
+                    }
                     aria-label={
                       ttsPlayingId === m.id
                         ? "Stop voice playback"
@@ -456,7 +463,7 @@ export function ChatSidebar({
                       "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
                       "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                       (!ttsSetting || elevenLabsConfigured === false) &&
-                        "opacity-40 cursor-not-allowed"
+                        "opacity-40 disabled:cursor-not-allowed"
                     )}
                   >
                     {ttsLoadingId === m.id ? (
@@ -509,7 +516,14 @@ export function ChatSidebar({
             type="submit"
             disabled={isLoading || !localInput.trim()}
             aria-label={isLoading ? "Sending message..." : "Send message"}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+            title={
+              isLoading
+                ? "Sending message..."
+                : !localInput.trim()
+                  ? "Type a message to send"
+                  : "Send message"
+            }
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
