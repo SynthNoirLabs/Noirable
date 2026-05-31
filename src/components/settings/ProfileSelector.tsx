@@ -105,7 +105,7 @@ export function ProfileSelector() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "w-full flex items-center justify-between px-3 py-2.5 text-sm font-mono transition-all",
+            "w-full flex items-center justify-between px-3 py-2.5 text-sm font-mono transition-all focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
             "bg-[var(--aesthetic-surface)]/50 border rounded-sm",
             isOpen
               ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)]"
@@ -135,7 +135,7 @@ export function ProfileSelector() {
                     key={profile.id}
                     onClick={() => handleSelectProfile(profile.id)}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group",
+                      "w-full flex items-center justify-between px-3 py-2 text-sm font-mono transition-colors group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                       currentAestheticId === profile.id
                         ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)]"
                         : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5"
@@ -166,22 +166,24 @@ export function ProfileSelector() {
                       >
                         <button
                           onClick={() => handleSelectProfile(profile.id)}
-                          className="flex-1 text-left truncate mr-2 focus:outline-none"
+                          className="flex-1 text-left truncate mr-2 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none rounded-sm"
                         >
                           {profile.name}
                         </button>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => handleCloneProfile(profile.id, e)}
-                            className="p-1 hover:text-[var(--aesthetic-accent)]"
+                            className="p-1 hover:text-[var(--aesthetic-accent)] focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none rounded-sm"
                             title="Clone profile"
+                            aria-label={`Clone profile ${profile.name}`}
                           >
                             <Copy className="w-3 h-3" />
                           </button>
                           <button
                             onClick={(e) => handleDeleteProfile(profile.id, e)}
-                            className="p-1 hover:text-[var(--aesthetic-error)]"
+                            className="p-1 hover:text-[var(--aesthetic-error)] focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none rounded-sm"
                             title="Delete profile"
+                            aria-label={`Delete profile ${profile.name}`}
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -199,7 +201,7 @@ export function ProfileSelector() {
               <div className="border-t border-[var(--aesthetic-border)]/20 p-2">
                 <button
                   onClick={() => setShowNewProfileDialog(true)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono text-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-accent)]/10 rounded-sm transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono text-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-accent)]/10 rounded-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Create New Profile
@@ -241,14 +243,14 @@ export function ProfileSelector() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowNewProfileDialog(false)}
-                  className="flex-1 px-3 py-2 text-xs font-mono border border-[var(--aesthetic-border)]/30 rounded-sm text-[var(--aesthetic-text-muted)] hover:bg-[var(--aesthetic-surface)] transition-colors"
+                  className="flex-1 px-3 py-2 text-xs font-mono border border-[var(--aesthetic-border)]/30 rounded-sm text-[var(--aesthetic-text-muted)] hover:bg-[var(--aesthetic-surface)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateProfile}
                   disabled={!newProfileName.trim()}
-                  className="flex-1 px-3 py-2 text-xs font-mono bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] rounded-sm hover:bg-[var(--aesthetic-accent)]/90 transition-colors disabled:opacity-50"
+                  className="flex-1 px-3 py-2 text-xs font-mono bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] rounded-sm hover:bg-[var(--aesthetic-accent)]/90 transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none"
                 >
                   Create
                 </button>
