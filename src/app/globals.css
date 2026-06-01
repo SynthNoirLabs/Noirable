@@ -206,3 +206,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #ffbf00; /* noir-amber */
 }
+
+/* Hide native clear button on search inputs to avoid duplicating custom buttons */
+input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+}
