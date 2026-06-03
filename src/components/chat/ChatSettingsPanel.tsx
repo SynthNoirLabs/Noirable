@@ -83,6 +83,7 @@ export function ChatSettingsPanel({
         <span className="text-[var(--aesthetic-text)]/70">A2UI v0.9</span>
         <button
           onClick={() => onUpdateSettings({ useA2UIv09: !useA2UIv09 })}
+          title="Toggle A2UI v0.9 mode"
           className={cn(
             "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
             useA2UIv09
@@ -153,7 +154,7 @@ export function ChatSettingsPanel({
               type="button"
               onClick={action}
               disabled={!soundEnabled || elevenLabsConfigured === false}
-              title={sfxDisabledReason}
+              title={sfxDisabledReason ?? label}
               className={cn(
                 "w-8 h-8 flex items-center justify-center rounded-sm border transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 soundEnabled

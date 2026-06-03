@@ -45,7 +45,7 @@ export const Slider: React.FC<ComponentRendererProps<SliderType>> = ({
         value={currentValue}
         onChange={handleChange}
         className={cn(
-          "w-full h-1 bg-[var(--aesthetic-surface-alt)]/30 rounded-lg appearance-none cursor-pointer accent-[var(--aesthetic-text)]",
+          "w-full h-1 bg-[var(--aesthetic-surface-alt)]/30 rounded-lg appearance-none cursor-pointer accent-[var(--aesthetic-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
           error && "accent-[var(--aesthetic-error)]"
         )}
       />

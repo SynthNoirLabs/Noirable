@@ -208,6 +208,10 @@ export function VoiceCustomization() {
             <button
               onClick={() => !isLoading && setIsDropdownOpen(!isDropdownOpen)}
               disabled={isLoading}
+              aria-haspopup="listbox"
+              aria-expanded={isDropdownOpen}
+              aria-controls="voice-listbox"
+              title={isLoading ? "Loading voices..." : undefined}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
                 "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
@@ -237,6 +241,8 @@ export function VoiceCustomization() {
             <AnimatePresence>
               {isDropdownOpen && (
                 <motion.div
+                  id="voice-listbox"
+                  role="listbox"
                   initial={{ opacity: 0, y: -5, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -5, scale: 0.98 }}
@@ -245,6 +251,8 @@ export function VoiceCustomization() {
                 >
                   <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20">
                     <button
+                      role="option"
+                      aria-selected={currentVoiceId === "custom"}
                       onClick={() => handleVoiceSelect("custom")}
                       className="w-full text-left px-3 py-2 text-xs font-mono text-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-accent)]/10 border-b border-[var(--aesthetic-border)]/10"
                     >
@@ -253,6 +261,8 @@ export function VoiceCustomization() {
                     {voices.map((voice) => (
                       <button
                         key={voice.id}
+                        role="option"
+                        aria-selected={currentVoiceId === voice.id}
                         onClick={() => handleVoiceSelect(voice.id)}
                         className={cn(
                           "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
@@ -331,6 +341,13 @@ export function VoiceCustomization() {
         <button
           onClick={handlePreview}
           disabled={isPlaying || !currentVoiceId}
+          title={
+            isPlaying
+              ? "Synthesizing voice..."
+              : !currentVoiceId
+                ? "Select a voice to preview"
+                : undefined
+          }
           className={cn(
             "w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider transition-all duration-300 rounded-sm border",
             isPlaying
