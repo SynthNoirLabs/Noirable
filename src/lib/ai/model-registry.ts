@@ -185,9 +185,9 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
     },
   },
 
-  "gemini-3-pro-preview": {
-    id: "gemini-3-pro-preview",
-    name: "Gemini 3 Pro Preview",
+  "gemini-3.5-flash": {
+    id: "gemini-3.5-flash",
+    name: "Gemini 3.5 Flash",
     provider: "google",
     capabilities: {
       chat: true,
@@ -196,12 +196,26 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       streaming: true,
       tools: true,
       contextWindow: 1048576,
-      maxOutput: 65535,
+      maxOutput: 65536,
     },
   },
-  "gemini-3-flash-preview": {
-    id: "gemini-3-flash-preview",
-    name: "Gemini 3 Flash Preview",
+  "gemini-3.1-pro": {
+    id: "gemini-3.1-pro",
+    name: "Gemini 3.1 Pro",
+    provider: "google",
+    capabilities: {
+      chat: true,
+      vision: true,
+      imageGen: false,
+      streaming: true,
+      tools: true,
+      contextWindow: 1048576,
+      maxOutput: 65536,
+    },
+  },
+  "gemini-3-flash": {
+    id: "gemini-3-flash",
+    name: "Gemini 3 Flash",
     provider: "google",
     capabilities: {
       chat: true,
@@ -241,9 +255,9 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       maxOutput: 65536,
     },
   },
-  "gemini-2.5-flash-image": {
-    id: "gemini-2.5-flash-image",
-    name: "Gemini 2.5 Flash Image",
+  "gemini-3-pro-image": {
+    id: "gemini-3-pro-image",
+    name: "Gemini 3 Pro Image (Nano Banana Pro)",
     provider: "google",
     capabilities: {
       chat: true,
@@ -252,13 +266,13 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGenMethod: "generateText",
       streaming: true,
       tools: true,
-      contextWindow: 1048576,
-      maxOutput: 65536,
+      contextWindow: 65536,
+      maxOutput: 32768,
     },
   },
-  "gemini-3-pro-image-preview": {
-    id: "gemini-3-pro-image-preview",
-    name: "Gemini 3 Pro Image Preview",
+  "gemini-3.1-flash-image": {
+    id: "gemini-3.1-flash-image",
+    name: "Gemini 3.1 Flash Image (Nano Banana 2)",
     provider: "google",
     capabilities: {
       chat: true,
@@ -267,8 +281,8 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGenMethod: "generateText",
       streaming: true,
       tools: true,
-      contextWindow: 1048576,
-      maxOutput: 65536,
+      contextWindow: 131072,
+      maxOutput: 32768,
     },
   },
   "imagen-4.0-generate-001": {

@@ -114,7 +114,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createOpenAI(providerOptions),
-        model: override.model || process.env.AI_MODEL || "gpt-4o",
+        model: override.model || process.env.AI_MODEL || "gpt-5.2",
         type: baseUrl ? "openai-compatible" : "openai",
       };
     }
@@ -128,7 +128,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createAnthropic({ apiKey }),
-        model: override.model || process.env.AI_MODEL || "claude-3-5-sonnet-latest",
+        model: override.model || process.env.AI_MODEL || "claude-opus-4.5-20251201",
         type: "anthropic",
       };
     }
@@ -145,7 +145,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createGoogleGenerativeAI({ apiKey }),
-        model: override.model || process.env.AI_MODEL || "gemini-1.5-pro",
+        model: override.model || process.env.AI_MODEL || "gemini-3.5-flash",
         type: "google",
       };
     }
@@ -181,7 +181,7 @@ export function getProvider(): ProviderResult {
   if (openAIKey) {
     return {
       provider: createOpenAI({ apiKey: openAIKey }),
-      model: process.env.AI_MODEL || "gpt-4o",
+      model: process.env.AI_MODEL || "gpt-5.2",
       type: "openai",
     };
   }
@@ -191,7 +191,7 @@ export function getProvider(): ProviderResult {
   if (anthropicKey) {
     return {
       provider: createAnthropic({ apiKey: anthropicKey }),
-      model: process.env.AI_MODEL || "claude-3-5-sonnet-latest",
+      model: process.env.AI_MODEL || "claude-opus-4.5-20251201",
       type: "anthropic",
     };
   }
@@ -204,7 +204,7 @@ export function getProvider(): ProviderResult {
   if (googleKey) {
     return {
       provider: createGoogleGenerativeAI({ apiKey: googleKey }),
-      model: process.env.AI_MODEL || "gemini-1.5-pro",
+      model: process.env.AI_MODEL || "gemini-3.5-flash",
       type: "google",
     };
   }
