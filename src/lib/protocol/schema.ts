@@ -328,6 +328,126 @@ export function normalizeA2UI(input: unknown): unknown {
     normalized = { ...normalized, content: normalized.text };
   }
 
+  // Models often emit `card` as a generic container with a `children` array
+  // (sometimes alongside a title/description). The legacy `card` has no
+  // `children` field and only renders title/description, which would drop the
+  // nested content. Reinterpret any card-with-children as a `container`, lifting
+  // a title/description into leading heading + text nodes so nothing is lost.
+  if (type === "card" && Array.isArray(normalized.children)) {
+    const lead: Record<string, unknown>[] = [];
+    if (typeof normalized.title === "string") {
+      lead.push({ type: "heading", text: normalized.title, level: 3 });
+    }
+    if (typeof normalized.description === "string") {
+      lead.push({ type: "paragraph", text: normalized.description });
+    }
+    const rest = { ...normalized };
+    delete (rest as Record<string, unknown>).title;
+    delete (rest as Record<string, unknown>).description;
+    delete (rest as Record<string, unknown>).status;
+    normalized = {
+      ...rest,
+      type: "container",
+      children: [...lead, ...(normalized.children as unknown[])],
+    };
+  }
+
+  // Clamp `variant` to the supported token set. Models invent values like
+  // "warning", "success", "info", "error" — map the common ones to the nearest
+  // supported token and drop anything else so one stray value doesn't fail the
+  // whole tree.
+  if (typeof normalized.variant === "string") {
+    const VARIANTS = new Set(["primary", "secondary", "ghost", "danger"]);
+    if (!VARIANTS.has(normalized.variant)) {
+      const VARIANT_ALIASES: Record<string, string> = {
+        warning: "danger",
+        error: "danger",
+        destructive: "danger",
+        critical: "danger",
+        success: "secondary",
+        info: "secondary",
+        muted: "ghost",
+        outline: "ghost",
+        default: "primary",
+      };
+      const mapped = VARIANT_ALIASES[normalized.variant.toLowerCase()];
+      if (mapped) {
+        normalized = { ...normalized, variant: mapped };
+      } else {
+        const next = { ...normalized };
+        delete (next as Record<string, unknown>).variant;
+        normalized = next;
+      }
+    }
+  }
+
+  // Grid: models use `cols` instead of `columns`, and/or a number instead of the
+  // "2"|"3"|"4" string enum. Coerce both, clamp to range, and ensure children.
+  if (type === "grid") {
+    const rawCols = normalized.columns ?? normalized.cols;
+    const next = { ...normalized };
+    delete (next as Record<string, unknown>).cols;
+    if (rawCols !== undefined) {
+      const n = Math.min(4, Math.max(2, Number(rawCols) || 2));
+      next.columns = String(n);
+    }
+    if (!Array.isArray(next.children)) {
+      next.children = [];
+    }
+    normalized = next;
+  }
+
+  // Layout/container types require a `children` array; default to empty if the
+  // model omitted it so a childless container doesn't fail the whole tree.
+  if (
+    (type === "container" || type === "row" || type === "column") &&
+    !Array.isArray(normalized.children)
+  ) {
+    normalized = { ...normalized, children: [] };
+  }
+
+  // Types that require a string `label` — default to "" (or lift `text`/`content`)
+  // when the model omits it, so one bare node doesn't fail the whole tree.
+  const LABEL_REQUIRED = new Set([
+    "badge",
+    "stat",
+    "input",
+    "textarea",
+    "select",
+    "checkbox",
+    "button",
+  ]);
+  if (
+    typeof type === "string" &&
+    LABEL_REQUIRED.has(type) &&
+    typeof normalized.label !== "string"
+  ) {
+    const lifted =
+      typeof normalized.text === "string"
+        ? normalized.text
+        : typeof normalized.content === "string"
+          ? normalized.content
+          : "";
+    normalized = { ...normalized, label: lifted };
+  }
+
+  // `select` requires a non-empty `options` string array.
+  if (type === "select" && !Array.isArray(normalized.options)) {
+    normalized = { ...normalized, options: [] };
+  }
+  if (type === "select" && Array.isArray(normalized.options) && normalized.options.length === 0) {
+    normalized = { ...normalized, options: ["Option"] };
+  }
+
+  // `stat` also requires a string `value`.
+  if (type === "stat" && typeof normalized.value !== "string") {
+    normalized = {
+      ...normalized,
+      value:
+        normalized.value === undefined || normalized.value === null ? "" : String(normalized.value),
+    };
+  }
+
   if (type === "badge" && typeof normalized.label !== "string") {
     const badgeLabel =
       typeof normalized.text === "string"

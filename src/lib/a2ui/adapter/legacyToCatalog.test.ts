@@ -101,4 +101,37 @@ describe("flattenLegacyToCatalog", () => {
     expect(components).toHaveLength(1);
     expect(components[0]).toMatchObject({ id: rootId, component: "Text" });
   });
+
+  // --- Tolerant normalization (real LLM output variations) -------------------
+  // These shapes are exactly what models (Gemini) emit and previously rendered
+  // as "Unrenderable component".
+
+  it("renders a card with children (card-as-container) without dropping content", () => {
+    const { components } = flattenLegacyToCatalog({
+      type: "card",
+      title: "CASE FILE",
+      description: "Missing person",
+      children: [{ type: "text", content: "Body" }],
+    });
+    // Not the single Unrenderable fallback.
+    expect(components.length).toBeGreaterThan(1);
+    expect(components.some((c) => c.component === "Text" && c.text === "Body")).toBe(true);
+  });
+
+  it("accepts a badge with an unsupported variant (clamped, not rejected)", () => {
+    const { components } = flattenLegacyToCatalog({
+      type: "container",
+      children: [{ type: "badge", text: "CRITICAL", variant: "warning" }],
+    });
+    expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
+  });
+
+  it("accepts a grid with numeric columns and a stat missing its value", () => {
+    const { components } = flattenLegacyToCatalog({
+      type: "grid",
+      columns: 2,
+      children: [{ type: "stat", label: "Age" }],
+    });
+    expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
+  });
 });

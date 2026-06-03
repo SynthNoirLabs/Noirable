@@ -1,4 +1,4 @@
-import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
+import { a2uiInputSchema, normalizeA2UI, type A2UIInput } from "@/lib/protocol/schema";
 import type { SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
 
 /**
@@ -228,7 +228,10 @@ export function flattenLegacyToCatalog(
     nextId: () => `${prefix}-${counter++}`,
   };
 
-  const parsed = a2uiInputSchema.safeParse(node);
+  // Normalize common LLM output variations (badge text→label, card-as-container,
+  // text/content, image alt) before strict validation so reasonable model
+  // output isn't rejected outright.
+  const parsed = a2uiInputSchema.safeParse(normalizeA2UI(node));
   if (!parsed.success) {
     builder.components.push({
       id: rootId,

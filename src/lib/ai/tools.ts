@@ -24,14 +24,54 @@ export interface SetAestheticResult {
   message: string;
 }
 
+/**
+ * Coerce the model-supplied `component` argument into a plain object.
+ *
+ * The tool accepts the A2UI tree as a JSON STRING (see `generate_ui` below):
+ * a single string field is far more reliable for models — especially Gemini —
+ * than a deep recursive object schema, which they tend to mangle (emitting a
+ * number, a fragment like `"{type:"`, or an empty `{}`). This also tolerates a
+ * already-object input (some models/SDKs hand back a parsed object) and the
+ * loose unquoted-key JS-object notation models sometimes produce.
+ */
+export function coerceComponentInput(raw: unknown): unknown {
+  if (raw && typeof raw === "object") return raw;
+  if (typeof raw !== "string") return raw;
+
+  const text = raw.trim();
+  // 1. Strict JSON.
+  try {
+    return JSON.parse(text);
+  } catch {
+    // 2. Tolerant pass for unquoted object keys and single quotes
+    //    (e.g. `{type: 'card', title: "X"}`).
+    try {
+      const repaired = text
+        .replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:/g, '$1"$2":')
+        .replace(/'/g, '"');
+      return JSON.parse(repaired);
+    } catch {
+      return raw;
+    }
+  }
+}
+
 export const tools = {
   generate_ui: tool({
-    description: "Submit a generated A2UI component for rendering.",
+    // The component tree is passed as a JSON STRING, not a structured object.
+    // The full `a2uiInputSchema` is a deep, 50-branch recursive discriminated
+    // union; converted to a tool/function-declaration JSON Schema it is complex
+    // enough that some models (notably Gemini) fail to fill it and emit garbage
+    // (a number, an empty object, or a stringified fragment). Asking for a single
+    // JSON string sidesteps that entirely — models reliably emit one string field
+    // — and we parse + validate server-side via `a2uiInputSchema`.
+    description:
+      'Submit a generated A2UI component tree for rendering. Pass `component` as a JSON string encoding a nested A2UI object: a root node with a `type` (one of: container, row, column, grid, card, tabs, heading, paragraph, text, callout, badge, divider, list, table, stat, image, input, textarea, select, checkbox, button) plus type-specific fields, and for layout types a `children` array of further nodes. Example: \'{"type":"card","title":"Suspect","description":"Wanted"}\'.',
     inputSchema: z.object({
-      component: a2uiInputSchema.describe("The A2UI component to render"),
+      component: z.string().describe("The A2UI component tree, encoded as a JSON string."),
     }),
     execute: async ({ component }) => {
-      const parsed = a2uiInputSchema.parse(component);
+      const parsed = a2uiInputSchema.parse(coerceComponentInput(component));
       const resolved = await resolveA2UIImagePrompts(parsed);
       return a2uiSchema.parse(resolved);
     },
