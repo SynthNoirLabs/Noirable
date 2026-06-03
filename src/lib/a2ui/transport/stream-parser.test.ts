@@ -217,4 +217,27 @@ describe("createStreamParser", () => {
     expect(onMessage).toHaveBeenNthCalledWith(1, { partial: true });
     expect(onMessage).toHaveBeenNthCalledWith(2, { complete: true });
   });
+
+  it("flushes a buffered final line without a trailing newline on close", () => {
+    const parser = createStreamParser(options);
+    parser.connect();
+
+    // Final message arrives with no trailing "\n" before the stream ends.
+    parser.feed('data: {"last":true}');
+    expect(onMessage).not.toHaveBeenCalled();
+
+    parser.close();
+    expect(onMessage).toHaveBeenCalledTimes(1);
+    expect(onMessage).toHaveBeenCalledWith({ last: true });
+  });
+
+  it("does not emit a spurious message when buffer ends on [DONE]", () => {
+    const parser = createStreamParser(options);
+    parser.connect();
+
+    parser.feed("data: [DONE]");
+    parser.close();
+
+    expect(onMessage).not.toHaveBeenCalled();
+  });
 });

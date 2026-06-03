@@ -19,14 +19,15 @@ export type SurfaceConfig = {
 };
 
 /**
- * Base structure for surface components
+ * Base structure for surface components.
  *
- * Components have at minimum an id and type.
+ * Per the A2UI v0.9 standard catalog, every component is identified by an `id`
+ * and a `component` type discriminator (e.g. "Text", "Card", "Button").
  * Additional properties are component-specific.
  */
 export type SurfaceComponent = {
   id: string;
-  type: string;
+  component: string;
   [key: string]: unknown;
 };
 
