@@ -17,6 +17,34 @@ export interface ModelInfo {
 }
 
 export const MODEL_REGISTRY: Record<string, ModelInfo> = {
+  "gpt-5.5": {
+    id: "gpt-5.5",
+    name: "GPT 5.5",
+    provider: "openai",
+    capabilities: {
+      chat: true,
+      vision: true,
+      imageGen: false,
+      streaming: true,
+      tools: true,
+      contextWindow: 1000000,
+      maxOutput: 128000,
+    },
+  },
+  "gpt-5.4-mini": {
+    id: "gpt-5.4-mini",
+    name: "GPT 5.4 Mini",
+    provider: "openai",
+    capabilities: {
+      chat: true,
+      vision: true,
+      imageGen: false,
+      streaming: true,
+      tools: true,
+      contextWindow: 400000,
+      maxOutput: 128000,
+    },
+  },
   "gpt-5.2": {
     id: "gpt-5.2",
     name: "GPT 5.2",
@@ -29,20 +57,6 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       tools: true,
       contextWindow: 272000,
       maxOutput: 128000,
-    },
-  },
-  "gpt-5.2-mini": {
-    id: "gpt-5.2-mini",
-    name: "GPT 5.2 Mini",
-    provider: "openai",
-    capabilities: {
-      chat: true,
-      vision: true,
-      imageGen: false,
-      streaming: true,
-      tools: true,
-      contextWindow: 128000,
-      maxOutput: 64000,
     },
   },
   "gpt-5": {
@@ -142,9 +156,9 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
     },
   },
 
-  "claude-opus-4.5-20251201": {
-    id: "claude-opus-4.5-20251201",
-    name: "Claude Opus 4.5",
+  "claude-opus-4-8": {
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4.8",
     provider: "anthropic",
     capabilities: {
       chat: true,
@@ -152,13 +166,13 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGen: false,
       streaming: true,
       tools: true,
-      contextWindow: 200000,
-      maxOutput: 32000,
+      contextWindow: 1000000,
+      maxOutput: 128000,
     },
   },
-  "claude-sonnet-4-20250514": {
-    id: "claude-sonnet-4-20250514",
-    name: "Claude Sonnet 4",
+  "claude-sonnet-4-6": {
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
     provider: "anthropic",
     capabilities: {
       chat: true,
@@ -166,13 +180,13 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGen: false,
       streaming: true,
       tools: true,
-      contextWindow: 200000,
+      contextWindow: 1000000,
       maxOutput: 64000,
     },
   },
-  "claude-3-5-haiku-latest": {
-    id: "claude-3-5-haiku-latest",
-    name: "Claude 3.5 Haiku",
+  "claude-haiku-4-5-20251001": {
+    id: "claude-haiku-4-5-20251001",
+    name: "Claude Haiku 4.5",
     provider: "anthropic",
     capabilities: {
       chat: true,

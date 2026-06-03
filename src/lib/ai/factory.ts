@@ -114,7 +114,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createOpenAI(providerOptions),
-        model: override.model || process.env.AI_MODEL || "gpt-5.2",
+        model: override.model || process.env.AI_MODEL || "gpt-5.5",
         type: baseUrl ? "openai-compatible" : "openai",
       };
     }
@@ -128,7 +128,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createAnthropic({ apiKey }),
-        model: override.model || process.env.AI_MODEL || "claude-opus-4.5-20251201",
+        model: override.model || process.env.AI_MODEL || "claude-sonnet-4-6",
         type: "anthropic",
       };
     }
@@ -171,7 +171,7 @@ export function getProvider(): ProviderResult {
         baseURL: openAIBaseUrl,
         apiKey: compatKey || "dummy",
       }),
-      model: process.env.AI_MODEL || "gpt-5.2(medium)",
+      model: process.env.AI_MODEL || "gpt-5.5",
       type: "openai",
     };
   }
@@ -181,7 +181,7 @@ export function getProvider(): ProviderResult {
   if (openAIKey) {
     return {
       provider: createOpenAI({ apiKey: openAIKey }),
-      model: process.env.AI_MODEL || "gpt-5.2",
+      model: process.env.AI_MODEL || "gpt-5.5",
       type: "openai",
     };
   }
@@ -191,7 +191,7 @@ export function getProvider(): ProviderResult {
   if (anthropicKey) {
     return {
       provider: createAnthropic({ apiKey: anthropicKey }),
-      model: process.env.AI_MODEL || "claude-opus-4.5-20251201",
+      model: process.env.AI_MODEL || "claude-sonnet-4-6",
       type: "anthropic",
     };
   }
