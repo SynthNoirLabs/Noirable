@@ -149,6 +149,50 @@ describe("exportA2UI", () => {
     expect(output).toContain("Witnesses");
   });
 
+  it("gives each tabs group its own state variable", () => {
+    const data: A2UIInput = {
+      type: "container",
+      children: [
+        {
+          type: "tabs",
+          tabs: [
+            { label: "A1", content: { type: "text", content: "a1", priority: "normal" } },
+            { label: "A2", content: { type: "text", content: "a2", priority: "normal" } },
+          ],
+        },
+        {
+          type: "tabs",
+          tabs: [
+            { label: "B1", content: { type: "text", content: "b1", priority: "normal" } },
+            { label: "B2", content: { type: "text", content: "b2", priority: "normal" } },
+          ],
+        },
+      ],
+    };
+
+    const output = exportA2UI(data);
+    // Two distinct state hooks, not one shared activeTab.
+    expect(output).toContain("const [activeTab, setActiveTab] = useState(0);");
+    expect(output).toContain("const [activeTab1, setActiveTab1] = useState(0);");
+    expect(output).toContain("setActiveTab1(");
+    expect(output).toContain("activeTab1 === ");
+  });
+
+  it("exports a modal with open/close state", () => {
+    const data: A2UIInput = {
+      type: "modal",
+      trigger: { type: "button", label: "Open", variant: "primary" },
+      content: { type: "text", content: "Secret evidence", priority: "high" },
+    };
+
+    const output = exportA2UI(data);
+    expect(output).toContain("const [modalOpen0, setModalOpen0] = useState(false);");
+    expect(output).toContain("setModalOpen0(true)");
+    expect(output).toContain("setModalOpen0(false)");
+    expect(output).toContain("Open");
+    expect(output).toContain("Secret evidence");
+  });
+
   it("exports an image", () => {
     const data: A2UIInput = {
       type: "image",

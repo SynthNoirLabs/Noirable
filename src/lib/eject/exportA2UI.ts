@@ -37,7 +37,16 @@ function jsxString(value: string): string {
   return JSON.stringify(value);
 }
 
-function renderNode(node: A2UIInput, depth: number = 0): string {
+/**
+ * Mutable allocators threaded through the render so each stateful node (tabs,
+ * modal) gets its own React state variable instead of sharing one.
+ */
+interface RenderContext {
+  tab: number;
+  modal: number;
+}
+
+function renderNode(node: A2UIInput, depth: number = 0, ctx: RenderContext): string {
   const ind = "  ".repeat(depth);
   const indChild = "  ".repeat(depth + 1);
 
@@ -60,7 +69,7 @@ ${node.description ? `${indChild}<p className="text-zinc-400 text-sm">{${jsxStri
 
     case "container": {
       const classes = buildClassList(["flex flex-col", styleToClasses(node.style)]);
-      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      const children = node.children.map((child) => renderNode(child, depth + 1, ctx)).join("\n");
       return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
@@ -68,7 +77,7 @@ ${ind}</div>`;
 
     case "row": {
       const classes = buildClassList(["flex flex-row flex-wrap", styleToClasses(node.style)]);
-      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      const children = node.children.map((child) => renderNode(child, depth + 1, ctx)).join("\n");
       return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
@@ -76,7 +85,7 @@ ${ind}</div>`;
 
     case "column": {
       const classes = buildClassList(["flex flex-col", styleToClasses(node.style)]);
-      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      const children = node.children.map((child) => renderNode(child, depth + 1, ctx)).join("\n");
       return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
@@ -85,7 +94,7 @@ ${ind}</div>`;
     case "grid": {
       const colClass = node.columns ? gridColsClasses[node.columns] : "grid-cols-2";
       const classes = buildClassList(["grid", colClass, styleToClasses(node.style)]);
-      const children = node.children.map((child) => renderNode(child, depth + 1)).join("\n");
+      const children = node.children.map((child) => renderNode(child, depth + 1, ctx)).join("\n");
       return `${ind}<div className={${jsxString(classes)}}>
 ${children}
 ${ind}</div>`;
@@ -125,9 +134,11 @@ ${ind}</div>`;
     }
 
     case "badge": {
-      const variantClass = node.variant ? variantClasses[node.variant] : "border-zinc-700/40";
+      const variantClass = node.variant
+        ? variantClasses[node.variant]
+        : "bg-zinc-900/40 border-zinc-700/40";
       const classes = buildClassList([
-        "inline-flex items-center gap-2 px-2 py-1 text-xs uppercase tracking-widest border rounded-sm",
+        "inline-flex items-center gap-2 px-2 py-1 text-xs uppercase tracking-widest border rounded-sm transition-colors hover:border-amber-500/70 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)]",
         variantClass,
         node.style?.className,
       ]);
@@ -222,6 +233,11 @@ ${node.helper ? `${indChild}<div className="text-xs text-zinc-500 mt-1">{${jsxSt
     }
 
     case "tabs": {
+      // Each tabs node owns a distinct state variable so multiple tab groups
+      // in one export don't share (and clobber) a single activeTab.
+      const tabIndex = ctx.tab++;
+      const stateVar = tabIndex === 0 ? "activeTab" : `activeTab${tabIndex}`;
+      const setStateVar = tabIndex === 0 ? "setActiveTab" : `setActiveTab${tabIndex}`;
       const classes = buildClassList([
         "w-full border border-zinc-700/40 bg-zinc-900/35 rounded-sm",
         node.style?.width ? widthClasses[node.style.width] : null,
@@ -232,8 +248,8 @@ ${node.helper ? `${indChild}<div className="text-xs text-zinc-500 mt-1">{${jsxSt
           (tab, i) =>
             `${indChild}    <button
 ${indChild}      type="button"
-${indChild}      onClick={() => setActiveTab(${i})}
-${indChild}      className={\`px-3 py-2 text-xs uppercase tracking-widest border-b-2 transition-colors \${activeTab === ${i} ? "text-amber-500 border-amber-500" : "text-zinc-400 border-transparent hover:text-zinc-100"}\`}
+${indChild}      onClick={() => ${setStateVar}(${i})}
+${indChild}      className={\`px-3 py-2 text-xs uppercase tracking-widest border-b-2 transition-colors \${${stateVar} === ${i} ? "text-amber-500 border-amber-500" : "text-zinc-400 border-transparent hover:text-zinc-100"}\`}
 ${indChild}    >
 ${indChild}      {${jsxString(tab.label)}}
 ${indChild}    </button>`
@@ -242,12 +258,12 @@ ${indChild}    </button>`
       const tabPanels = node.tabs
         .map(
           (tab, i) =>
-            `${indChild}  {activeTab === ${i} && (
-${renderNode(tab.content, depth + 3)}
+            `${indChild}  {${stateVar} === ${i} && (
+${renderNode(tab.content, depth + 3, ctx)}
 ${indChild}  )}`
         )
         .join("\n");
-      return `${ind}{/* Tabs - requires useState for activeTab */}
+      return `${ind}{/* Tabs - requires useState for ${stateVar} */}
 ${ind}<div className={${jsxString(classes)}}>
 ${indChild}<div className="flex gap-2 border-b border-zinc-700/30 px-2">
 ${tabButtons}
@@ -255,6 +271,28 @@ ${indChild}</div>
 ${indChild}<div className="p-4">
 ${tabPanels}
 ${indChild}</div>
+${ind}</div>`;
+    }
+
+    case "modal": {
+      // Each modal node owns a distinct open/close state variable.
+      const modalIndex = ctx.modal++;
+      const stateVar = `modalOpen${modalIndex}`;
+      const setStateVar = `setModalOpen${modalIndex}`;
+      const trigger = renderNode(node.trigger, depth + 2, ctx);
+      const content = renderNode(node.content, depth + 3, ctx);
+      return `${ind}{/* Modal - requires useState for ${stateVar} */}
+${ind}<div>
+${indChild}<div onClick={() => ${setStateVar}(true)} className="inline-block cursor-pointer">
+${trigger}
+${indChild}</div>
+${indChild}{${stateVar} && (
+${indChild}  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => ${setStateVar}(false)}>
+${indChild}    <div className="max-w-lg rounded-sm border border-zinc-700/40 bg-zinc-900 p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+${content}
+${indChild}    </div>
+${indChild}  </div>
+${indChild})}
 ${ind}</div>`;
     }
 
@@ -367,44 +405,73 @@ ${ind}</label>`;
   }
 }
 
-function detectHooks(node: A2UIInput): string[] {
-  const hooks: string[] = [];
+/**
+ * Count the stateful nodes (tabs, modal) in the tree. Each one needs its own
+ * React state variable, so counts (not a boolean) drive code generation.
+ */
+function countStatefulNodes(node: A2UIInput): { tabs: number; modals: number } {
+  let tabs = 0;
+  let modals = 0;
 
   function traverse(n: A2UIInput) {
     if (n.type === "tabs") {
-      hooks.push("useState");
+      tabs++;
+      n.tabs.forEach((tab) => traverse(tab.content));
+    }
+    if (n.type === "modal") {
+      modals++;
+      traverse(n.trigger);
+      traverse(n.content);
     }
     if ("children" in n && Array.isArray(n.children)) {
       n.children.forEach(traverse);
     }
-    if (n.type === "tabs") {
-      n.tabs.forEach((tab) => traverse(tab.content));
-    }
   }
 
   traverse(node);
-  return [...new Set(hooks)];
+  return { tabs, modals };
+}
+
+/**
+ * Build the import line and `useState` declarations for a tree, plus a fresh
+ * render of the body. The render-time counters are seeded from a fresh context
+ * so the declared variable names line up exactly with the emitted JSX.
+ */
+function buildComponentBody(component: A2UIInput): { importLine: string; body: string } {
+  const { tabs, modals } = countStatefulNodes(component);
+  const hasState = tabs > 0 || modals > 0;
+
+  const declarations: string[] = [];
+  for (let i = 0; i < tabs; i++) {
+    const stateVar = i === 0 ? "activeTab" : `activeTab${i}`;
+    const setStateVar = i === 0 ? "setActiveTab" : `setActiveTab${i}`;
+    declarations.push(`  const [${stateVar}, ${setStateVar}] = useState(0);`);
+  }
+  for (let i = 0; i < modals; i++) {
+    declarations.push(`  const [modalOpen${i}, setModalOpen${i}] = useState(false);`);
+  }
+
+  const importLine = hasState
+    ? 'import React, { useState } from "react";'
+    : 'import React from "react";';
+  const stateBlock = declarations.length > 0 ? `\n${declarations.join("\n")}\n` : "";
+  const rendered = renderNode(component, 2, { tab: 0, modal: 0 });
+
+  return {
+    importLine,
+    body: `${stateBlock}
+  return (
+${rendered}
+  );`,
+  };
 }
 
 export function exportA2UI(component: A2UIInput): string {
-  const hooks = detectHooks(component);
-  const hasState = hooks.includes("useState");
+  const { importLine, body } = buildComponentBody(component);
 
-  const imports = ['import React from "react";'];
-  if (hasState) {
-    imports[0] = 'import React, { useState } from "react";';
-  }
+  return `${importLine}
 
-  const stateDeclarations = hasState ? "\n  const [activeTab, setActiveTab] = useState(0);\n" : "";
-
-  const rendered = renderNode(component, 2);
-
-  return `${imports.join("\n")}
-
-export function EvidenceComponent() {${stateDeclarations}
-  return (
-${rendered}
-  );
+export function EvidenceComponent() {${body}
 }
 `;
 }
@@ -423,25 +490,13 @@ export function exportA2UIMultiFile(
   componentName: string = "Evidence"
 ): ExportFile[] {
   const files: ExportFile[] = [];
-  const hooks = detectHooks(component);
-  const hasState = hooks.includes("useState");
 
   // Main component file
-  const imports = ['import React from "react";'];
-  if (hasState) {
-    imports[0] = 'import React, { useState } from "react";';
-  }
+  const { importLine, body } = buildComponentBody(component);
 
-  const stateDeclarations = hasState ? "\n  const [activeTab, setActiveTab] = useState(0);\n" : "";
+  const mainComponent = `${importLine}
 
-  const rendered = renderNode(component, 2);
-
-  const mainComponent = `${imports.join("\n")}
-
-export function ${componentName}() {${stateDeclarations}
-  return (
-${rendered}
-  );
+export function ${componentName}() {${body}
 }
 `;
 

@@ -45,7 +45,9 @@ interface CreateSurfacePayload {
   type: "createSurface";
   surfaceId: string;
   catalogId: string;
-  theme?: Record<string, unknown>;
+  // Theme is an optional identifier/parameters bag; the surface renderer
+  // currently themes via CSS variables, so it is stored but not interpreted.
+  theme?: string | Record<string, unknown>;
 }
 
 interface UpdateComponentsPayload {
@@ -95,7 +97,7 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentSurfaceIdRef = useRef<string | null>(null);
 
-  const { createSurface, updateComponents, setDataModel, deleteSurface } = useSurfaceStore();
+  const { createSurface, updateComponents, setDataModel, deleteSurface, clear } = useSurfaceStore();
 
   const handleMessage = useCallback(
     (data: unknown) => {
@@ -109,7 +111,10 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
           createSurface({
             surfaceId: data.surfaceId,
             catalogId: data.catalogId,
-            theme: data.theme ? String(data.theme) : undefined,
+            // Only forward a string theme identifier; object themes (v0.9
+            // theme parameters) are not consumed by the CSS-variable renderer,
+            // so they are dropped rather than stringified to "[object Object]".
+            theme: typeof data.theme === "string" ? data.theme : undefined,
           });
           currentSurfaceIdRef.current = data.surfaceId;
           break;
@@ -143,6 +148,10 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
       currentSurfaceIdRef.current = null;
+
+      // Start each prompt from a clean slate so the preview always reflects the
+      // latest generation and surfaces don't accumulate across prompts.
+      clear();
 
       setIsStreaming(true);
       setError(null);
@@ -210,7 +219,7 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
         }
       }
     },
-    [endpoint, handleMessage, onComplete, onError]
+    [clear, endpoint, handleMessage, onComplete, onError]
   );
 
   const clearError = useCallback(() => {

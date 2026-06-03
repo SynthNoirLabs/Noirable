@@ -178,6 +178,23 @@ export function createStreamParser(options: StreamParserOptions = {}): StreamPar
   let connected = false;
   let buffer = "";
 
+  function emitLine(line: string): void {
+    // Handle CRLF
+    const cleanLine = line.endsWith("\r") ? line.slice(0, -1) : line;
+
+    const result = parseSSELine(cleanLine);
+
+    if (result === null) {
+      return;
+    }
+
+    if (result.success) {
+      onMessage?.(result.data);
+    } else {
+      onError?.(result.error);
+    }
+  }
+
   function processBuffer(): void {
     // Find complete lines in buffer
     let newlineIndex: number;
@@ -185,21 +202,16 @@ export function createStreamParser(options: StreamParserOptions = {}): StreamPar
     while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
       const line = buffer.slice(0, newlineIndex);
       buffer = buffer.slice(newlineIndex + 1);
+      emitLine(line);
+    }
+  }
 
-      // Handle CRLF
-      const cleanLine = line.endsWith("\r") ? line.slice(0, -1) : line;
-
-      const result = parseSSELine(cleanLine);
-
-      if (result === null) {
-        continue;
-      }
-
-      if (result.success) {
-        onMessage?.(result.data);
-      } else {
-        onError?.(result.error);
-      }
+  /** Flush any buffered trailing data that arrived without a final newline. */
+  function flushBuffer(): void {
+    if (buffer.length > 0) {
+      const remaining = buffer;
+      buffer = "";
+      emitLine(remaining);
     }
   }
 
@@ -214,6 +226,9 @@ export function createStreamParser(options: StreamParserOptions = {}): StreamPar
 
     close(): void {
       if (connected) {
+        // Flush the final partial line (e.g. a message with no trailing "\n")
+        // before tearing down so the last message is never lost.
+        flushBuffer();
         connected = false;
         buffer = "";
         onDisconnect?.({ reason: "closed" });

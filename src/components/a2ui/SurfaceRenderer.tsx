@@ -34,12 +34,19 @@ interface ComponentProps {
   component: SurfaceComponent;
 }
 
-// Helper to resolve dynamic values
+// Helper to resolve dynamic values.
+//
+// Per the A2UI v0.9 catalog, a data binding is the explicit object form
+// `{ path: "/json/pointer" }`; a bare string is always a literal. This avoids
+// the ambiguity where a literal value that happens to start with "/" (e.g. a
+// URL path or "/home") would be mistaken for a pointer.
 function resolveDynamic(value: unknown, resolve: (path: string) => unknown): unknown {
-  if (typeof value === "string" && value.startsWith("/")) {
-    return resolve(value);
-  }
-  if (value && typeof value === "object" && "path" in value) {
+  if (
+    value &&
+    typeof value === "object" &&
+    "path" in value &&
+    typeof (value as { path: unknown }).path === "string"
+  ) {
     return resolve((value as { path: string }).path);
   }
   return value;
@@ -339,7 +346,7 @@ function MissingComponent({ id }: { id: string }) {
 function UnknownComponent({ component }: ComponentProps) {
   return (
     <div className="bg-[var(--aesthetic-error)]/10 border border-[var(--aesthetic-error)]/50 p-2 text-[var(--aesthetic-error)] text-xs font-mono">
-      [Unknown: {component.type}]
+      [Unknown: {component.component ?? "undefined"}]
     </div>
   );
 }
@@ -363,7 +370,7 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
 };
 
 function ComponentRenderer({ component }: ComponentProps) {
-  const Renderer = COMPONENT_MAP[component.type];
+  const Renderer = COMPONENT_MAP[component.component];
   if (!Renderer) {
     return <UnknownComponent component={component} />;
   }

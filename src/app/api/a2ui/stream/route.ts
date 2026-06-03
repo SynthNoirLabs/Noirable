@@ -6,6 +6,7 @@ import { getProviderWithOverrides } from "@/lib/ai/factory";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { tools } from "@/lib/ai/tools";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
+import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
 import { apiSecurityCheck } from "@/lib/api/security";
 
 /**
@@ -39,37 +40,69 @@ function generateComponentId(): string {
 }
 
 /**
- * Create a mock component for testing without AI provider
+ * Create mock catalog components for testing without an AI provider.
+ *
+ * Returns a flat adjacency list with a `root` component so the surface
+ * renderer always has a valid entry point.
  */
-function createMockComponent(prompt: string): Record<string, unknown> {
-  const id = `text-${Date.now()}`;
+function createMockComponents(prompt: string): Record<string, unknown>[] {
   const normalizedPrompt = prompt.toLowerCase();
 
-  // Generate different mock components based on prompt keywords
   if (normalizedPrompt.includes("button")) {
-    return {
-      id: `button-${Date.now()}`,
-      component: "Button",
-      child: id,
-      variant: "primary",
-      action: { event: { name: "submit" } },
-    };
+    const labelId = "mock-label";
+    return [
+      {
+        id: "root",
+        component: "Button",
+        child: labelId,
+        variant: "primary",
+        action: { event: { name: "submit" } },
+      },
+      { id: labelId, component: "Text", text: "Submit" },
+    ];
   }
 
   if (normalizedPrompt.includes("card")) {
-    return {
-      id: `card-${Date.now()}`,
-      component: "Card",
-      child: id,
-    };
+    const textId = "mock-card-text";
+    return [
+      { id: "root", component: "Card", child: textId },
+      { id: textId, component: "Text", text: `Generated from: ${prompt}` },
+    ];
   }
 
-  // Default to Text component
-  return {
-    id,
-    component: "Text",
-    text: `Generated from: ${prompt}`,
-  };
+  // Default to a single Text component.
+  return [{ id: "root", component: "Text", text: `Generated from: ${prompt}` }];
+}
+
+/**
+ * Normalize a component emitted by the `generate_ui` tool into a flat catalog
+ * component list for the surface renderer.
+ *
+ * - Already-catalog-shaped components (carry a `component` discriminator) are
+ *   passed through, with an id ensured.
+ * - Legacy-shaped components (carry a lowercase `type`) are flattened into the
+ *   catalog adjacency list via the adapter. The first such tree owns the
+ *   `root` id.
+ */
+function toCatalogComponents(
+  component: Record<string, unknown>,
+  isFirstTree: boolean,
+  callIndex: number
+): Record<string, unknown>[] {
+  if (typeof component.component === "string") {
+    // Clone so we never mutate the upstream SDK tool-call object in place.
+    const normalized = { ...component };
+    if (!normalized.id) {
+      normalized.id = generateComponentId();
+    }
+    return [normalized];
+  }
+
+  const { components } = flattenLegacyToCatalog(component, {
+    idPrefix: `gen-${callIndex}`,
+    rootId: isFirstTree ? "root" : `gen-${callIndex}-root`,
+  });
+  return components;
 }
 
 /**
@@ -120,7 +153,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // Handle mock provider or E2E mode
   if (auth.type === "mock" || process.env.E2E === "1") {
-    const mockComponent = createMockComponent(prompt);
+    const mockComponents = createMockComponents(prompt);
 
     const stream = new ReadableStream({
       start(controller) {
@@ -132,11 +165,11 @@ export async function POST(req: NextRequest): Promise<Response> {
         };
         controller.enqueue(encoder.encode(formatSSE(createSurfaceMsg)));
 
-        // 2. Send updateComponents with mock component
+        // 2. Send updateComponents with the mock catalog components
         const updateMsg: UpdateComponentsMessage = {
           type: "updateComponents",
           surfaceId,
-          components: [mockComponent as UpdateComponentsMessage["components"][number]],
+          components: mockComponents as UpdateComponentsMessage["components"],
         };
         controller.enqueue(encoder.encode(formatSSE(updateMsg)));
 
@@ -170,7 +203,10 @@ export async function POST(req: NextRequest): Promise<Response> {
           tools,
         });
 
-        // Process the stream — emit updateComponents incrementally
+        // Process the stream — emit updateComponents incrementally.
+        // The first tool call owns the surface "root"; subsequent calls are
+        // namespaced so their ids never collide.
+        let callIndex = 0;
         for await (const chunk of result.fullStream) {
           if (chunk.type === "tool-call" && chunk.toolName === "generate_ui") {
             // fullStream uses 'input' instead of 'args' for tool calls
@@ -179,15 +215,15 @@ export async function POST(req: NextRequest): Promise<Response> {
               | Record<string, unknown>
               | undefined;
             if (component) {
-              // Ensure component has an id
-              if (!component.id) {
-                component.id = generateComponentId();
-              }
-              // 3. Send updateComponents immediately for each component
+              // Flatten/normalize into catalog components (with a "root").
+              const components = toCatalogComponents(component, callIndex === 0, callIndex);
+              callIndex++;
+
+              // 3. Send updateComponents immediately for each tool call
               const updateMsg: UpdateComponentsMessage = {
                 type: "updateComponents",
                 surfaceId,
-                components: [component] as UpdateComponentsMessage["components"],
+                components: components as UpdateComponentsMessage["components"],
               };
               controller.enqueue(encoder.encode(formatSSE(updateMsg)));
             }
