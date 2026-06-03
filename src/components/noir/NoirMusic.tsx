@@ -108,7 +108,8 @@ export function NoirMusic({ enabled, soundEnabled = true, volume, musicConfig }:
     attemptPlayRef.current = attemptPlay;
   }, [attemptPlay]);
 
-  // Initialize audio element once
+  // Initialize (or re-create) the audio element. Re-creates when the source
+  // changes (e.g. an aesthetic switch) so the old decoded buffer is released.
   useEffect(() => {
     if (typeof window === "undefined" || typeof Audio === "undefined") {
       return;
@@ -118,8 +119,16 @@ export function NoirMusic({ enabled, soundEnabled = true, volume, musicConfig }:
       return;
     }
 
-    if (audioRef.current) {
-      return;
+    const existing = audioRef.current;
+    if (existing) {
+      const currentSrc = existing.getAttribute("src");
+      if (currentSrc === musicSrc) {
+        return;
+      }
+      // Source changed — tear down the stale element before replacing it.
+      existing.pause();
+      existing.removeAttribute("src");
+      existing.load();
     }
 
     const audio = new Audio(musicSrc);
@@ -142,6 +151,13 @@ export function NoirMusic({ enabled, soundEnabled = true, volume, musicConfig }:
           audio.currentTime = 0;
         } catch {
           // Ignore unsupported media API in non-browser environments.
+        }
+        // Release the element so its decoded audio buffer is freed while the
+        // feature is off. The init effect lazily recreates it on re-enable.
+        if (audioRef.current === audio) {
+          audio.removeAttribute("src");
+          audio.load();
+          audioRef.current = null;
         }
       });
       detachResumeListeners();

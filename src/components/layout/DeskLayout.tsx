@@ -120,6 +120,12 @@ export function DeskLayout({
         } as React.CSSProperties
       }
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--aesthetic-background)] focus:border focus:border-[var(--aesthetic-accent)] focus:text-[var(--aesthetic-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--aesthetic-accent)] font-typewriter text-sm uppercase tracking-widest rounded-sm"
+      >
+        Skip to main content
+      </a>
       <NoirEffects
         ambient={ambientSettings}
         soundEnabled={soundSetting}
@@ -128,12 +134,33 @@ export function DeskLayout({
       />
       <div
         data-testid="noir-rain-bg"
-        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-top opacity-15 grayscale contrast-125 pointer-events-none z-0"
+        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-top opacity-40 contrast-110 saturate-[0.85] brightness-90 pointer-events-none z-0"
         aria-hidden="true"
       />
+      {/* Vertical readability gradient: dark header + lit mid-field + dark
+          lower gutter. color-mix keeps it theme-aware (works in the light
+          "minimal" aesthetic too). */}
       <div
-        className="absolute inset-0 bg-[var(--aesthetic-surface)]/80 pointer-events-none z-0"
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 92%, transparent) 0%, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 45%, transparent) 38%, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 42%, transparent) 62%, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 88%, transparent) 100%)",
+        }}
         aria-hidden="true"
+      />
+      {/* Warm desk-lamp rim glow, biased toward the evidence-board side so it
+          reads in the default 3-pane layout. */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        aria-hidden="true"
+        style={{
+          background:
+            "radial-gradient(60% 50% at 38% 90%, rgba(255,191,0,0.10), rgba(255,191,0,0.04) 40%, transparent 72%)",
+        }}
       />
       {!isEditorVisible && onToggleEditor && (
         <button
@@ -141,7 +168,7 @@ export function DeskLayout({
           onClick={onToggleEditor}
           aria-label="Show editor"
           title="Show editor"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
         >
           <PanelLeftOpen className="w-4 h-4" />
         </button>
@@ -152,7 +179,7 @@ export function DeskLayout({
           onClick={onToggleSidebar}
           aria-label="Show sidebar"
           title="Show sidebar"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[var(--aesthetic-background)]/70 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50 transition-colors p-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
         >
           <PanelRightOpen className="w-4 h-4" />
         </button>
@@ -189,7 +216,7 @@ export function DeskLayout({
                   onClick={onToggleEditor}
                   aria-label="Hide editor"
                   title="Hide editor"
-                  className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors p-1"
+                  className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors p-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
                 >
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
@@ -208,8 +235,10 @@ export function DeskLayout({
       )}
 
       <div
+        id="main-content"
         data-testid="evidence-board"
         className="bg-venetian relative flex flex-col min-h-screen z-10"
+        tabIndex={-1}
       >
         <div className="sticky top-0 z-20 px-6 py-3 bg-[var(--aesthetic-background)]/30 border-b border-[var(--aesthetic-border)]/20 backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3">
@@ -224,7 +253,7 @@ export function DeskLayout({
                   aria-label={showTraining ? "Hide training data" : "Show training data"}
                   title={showTraining ? "Hide training data" : "Training data archive"}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                     showTraining
                       ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
                       : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
@@ -241,7 +270,7 @@ export function DeskLayout({
                   aria-label={showTemplates ? "Hide templates" : "Show templates"}
                   title={showTemplates ? "Hide templates" : "Browse templates"}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                     showTemplates
                       ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
                       : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
@@ -258,7 +287,7 @@ export function DeskLayout({
                   aria-label={showEject ? "Hide code export" : "Show code export"}
                   title={showEject ? "Hide code export" : `Export to code (${ejectShortcut})`}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                     showEject
                       ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
                       : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"

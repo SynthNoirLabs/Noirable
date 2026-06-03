@@ -7,7 +7,7 @@ import { saveImageBase64 } from "@/lib/ai/imageStore";
 import { getImageGenerationModels, getModelInfo, type ModelInfo } from "@/lib/ai/model-registry";
 
 const NOIR_STYLE_PROMPT =
-  "noir cinematic, rain-slicked streets, moody low-key lighting, high contrast, film grain, 35mm photography, neon glow, deep shadows, light fog, desaturated palette";
+  "shot as a 1940s detective's evidence photograph, noir cinematic, rain-slicked streets, moody low-key lighting, hard chiaroscuro contrast, heavy film grain, 35mm black-and-white photography, deep shadows, light fog, desaturated palette, no bright saturated color, no text or watermark";
 
 function selectImageModel(): {
   model: ModelInfo;
@@ -64,10 +64,19 @@ export function buildNoirImagePrompt(prompt: string): string {
 }
 
 function fallbackSvgDataUrl(message: string) {
+  // An in-world "darkroom" placeholder rather than a plain gray box: an
+  // evidence photo still developing in the tray. Warm amber compensates for the
+  // sepia/grayscale filters the Image renderer applies on top.
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
-  <rect width="512" height="320" fill="#0f0f0f"/>
-  <rect x="24" y="24" width="464" height="272" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="2"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#e0e0e0" font-family="monospace" font-size="14">
+  <rect width="512" height="320" fill="#0a0a0a"/>
+  <rect x="18" y="18" width="476" height="284" fill="#141210" stroke="#3a3424" stroke-width="2"/>
+  <rect x="18" y="18" width="476" height="284" fill="none" stroke="#3a3424" stroke-width="1" stroke-dasharray="2 6" opacity="0.5"/>
+  <circle cx="256" cy="132" r="34" fill="none" stroke="#cbb957" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="256" cy="132" r="20" fill="none" stroke="#cbb957" stroke-width="1" opacity="0.3"/>
+  <text x="50%" y="205" dominant-baseline="middle" text-anchor="middle" fill="#cbb957" font-family="monospace" font-size="15" letter-spacing="4" opacity="0.85">
+    DARKROOM // DEVELOPING
+  </text>
+  <text x="50%" y="232" dominant-baseline="middle" text-anchor="middle" fill="#8a8170" font-family="monospace" font-size="11" letter-spacing="2">
     ${message}
   </text>
   </svg>`;

@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { TypewriterText } from "./TypewriterText";
+import { noirCardClass } from "./Surface";
 
 interface DossierCardProps {
   title: string;
@@ -18,8 +19,9 @@ export function DossierCard({
   return (
     <div
       className={cn(
-        "bg-paper p-6 relative border border-[var(--aesthetic-border)]/20 rotate-[-1deg] max-w-md transition-transform hover:rotate-0 hover:scale-[1.01] duration-300",
-        "shadow-[0_10px_30px_rgba(0,0,0,0.3),inset_0_0_40px_rgba(112,66,20,0.05)]", // worn edges
+        noirCardClass,
+        // Dossier-specific physicality: tilt + lift on hover.
+        "rotate-[-1deg] max-w-md transition-transform hover:rotate-0 hover:scale-[1.01] duration-300",
         className
       )}
     >
@@ -44,6 +46,7 @@ export function DossierCard({
       <div className="border-b-2 border-[var(--aesthetic-border)]/10 pb-4 mb-4">
         <TypewriterText
           content={title}
+          glow={false}
           className="text-2xl font-bold text-[var(--aesthetic-border)]"
         />
       </div>
@@ -52,6 +55,7 @@ export function DossierCard({
         <TypewriterText
           content={description}
           priority="low"
+          glow={false}
           className="text-sm leading-relaxed text-[var(--aesthetic-border)]/80"
         />
       )}

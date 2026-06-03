@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useMemo } from "react";
 import type { SurfaceState, SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
 import { resolvePointer } from "@/lib/a2ui/binding/pointer";
+import { PaperFrame } from "@/components/noir/Surface";
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -34,12 +35,19 @@ interface ComponentProps {
   component: SurfaceComponent;
 }
 
-// Helper to resolve dynamic values
+// Helper to resolve dynamic values.
+//
+// Per the A2UI v0.9 catalog, a data binding is the explicit object form
+// `{ path: "/json/pointer" }`; a bare string is always a literal. This avoids
+// the ambiguity where a literal value that happens to start with "/" (e.g. a
+// URL path or "/home") would be mistaken for a pointer.
 function resolveDynamic(value: unknown, resolve: (path: string) => unknown): unknown {
-  if (typeof value === "string" && value.startsWith("/")) {
-    return resolve(value);
-  }
-  if (value && typeof value === "object" && "path" in value) {
+  if (
+    value &&
+    typeof value === "object" &&
+    "path" in value &&
+    typeof (value as { path: unknown }).path === "string"
+  ) {
     return resolve((value as { path: string }).path);
   }
   return value;
@@ -100,18 +108,25 @@ function ColumnRenderer({ component }: ComponentProps) {
 
 // Layout: Card
 function CardRenderer({ component }: ComponentProps) {
-  const { getComponent } = useSurfaceContext();
+  const { getComponent, theme } = useSurfaceContext();
   const card = component as SurfaceComponent & { component: "Card"; child?: string };
 
   const childComponent = card.child ? getComponent(card.child) : null;
+  const body = childComponent ? (
+    <ComponentRenderer component={childComponent} />
+  ) : (
+    <MissingComponent id={card.child || "unknown"} />
+  );
+
+  // In the noir theme, give cards the aged-paper dossier frame so they match
+  // the legacy DossierCard; the standard theme keeps a clean elevated box.
+  if (theme === "noir") {
+    return <PaperFrame>{body}</PaperFrame>;
+  }
 
   return (
     <div className="bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm p-4 shadow-lg">
-      {childComponent ? (
-        <ComponentRenderer component={childComponent} />
-      ) : (
-        <MissingComponent id={card.child || "unknown"} />
-      )}
+      {body}
     </div>
   );
 }
@@ -214,7 +229,19 @@ function ImageRenderer({ component }: ComponentProps) {
     header: "w-full h-48",
   };
 
-  return (
+  // Small inline variants (icon/avatar) render bare; everything else gets the
+  // evidence-photo frame to match the legacy renderer.
+  const isInline = img.variant === "icon" || img.variant === "avatar";
+
+  if (!url) {
+    return (
+      <div className="border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3 rounded-sm text-xs font-mono text-[var(--aesthetic-text)]/70">
+        IMAGE PENDING
+      </div>
+    );
+  }
+
+  const image = (
     <img
       src={url}
       alt={alt}
@@ -222,9 +249,26 @@ function ImageRenderer({ component }: ComponentProps) {
         "object-cover",
         img.fit === "contain" && "object-contain",
         img.fit === "fill" && "object-fill",
-        sizeClasses[img.variant as keyof typeof sizeClasses] || "max-w-full"
+        isInline
+          ? sizeClasses[img.variant as keyof typeof sizeClasses]
+          : "block w-full max-w-full sepia-[0.15]"
       )}
     />
+  );
+
+  if (isInline) {
+    return image;
+  }
+
+  return (
+    <figure className="inline-block bg-[#0d0d0d] p-2 pb-7 border border-[var(--aesthetic-border)]/50 rounded-sm rotate-[-0.6deg] shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
+      {image}
+      {Boolean(imgWithAccess.accessibility?.label) && (
+        <figcaption className="mt-2 px-1 font-typewriter text-[10px] uppercase tracking-[0.25em] text-[var(--aesthetic-text)]/60">
+          Exhibit — {alt}
+        </figcaption>
+      )}
+    </figure>
   );
 }
 
@@ -339,7 +383,7 @@ function MissingComponent({ id }: { id: string }) {
 function UnknownComponent({ component }: ComponentProps) {
   return (
     <div className="bg-[var(--aesthetic-error)]/10 border border-[var(--aesthetic-error)]/50 p-2 text-[var(--aesthetic-error)] text-xs font-mono">
-      [Unknown: {component.type}]
+      [Unknown: {component.component ?? "undefined"}]
     </div>
   );
 }
@@ -363,7 +407,7 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
 };
 
 function ComponentRenderer({ component }: ComponentProps) {
-  const Renderer = COMPONENT_MAP[component.type];
+  const Renderer = COMPONENT_MAP[component.component];
   if (!Renderer) {
     return <UnknownComponent component={component} />;
   }

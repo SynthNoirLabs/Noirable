@@ -65,6 +65,23 @@ describe("useSurfaceStore", () => {
 
       expect(() => deleteSurface("non-existent")).toThrow('Surface "non-existent" not found');
     });
+
+    it("evicts the oldest surface instead of throwing at the limit", () => {
+      const { createSurface, hasSurface, getSurfaceCount } = useSurfaceStore.getState();
+
+      // Fill to the MAX_SURFACES ceiling (10), stamping increasing createdAt.
+      for (let i = 0; i < 10; i++) {
+        createSurface({ surfaceId: `surface-${i}`, catalogId: "standard" });
+        const s = useSurfaceStore.getState().getSurface(`surface-${i}`);
+        if (s) s.createdAt = i; // deterministic ordering for the test
+      }
+
+      // The 11th creation should succeed by evicting the oldest (surface-0).
+      expect(() => createSurface({ surfaceId: "surface-10", catalogId: "standard" })).not.toThrow();
+      expect(getSurfaceCount()).toBe(10);
+      expect(hasSurface("surface-0")).toBe(false);
+      expect(hasSurface("surface-10")).toBe(true);
+    });
   });
 
   describe("surface isolation", () => {
@@ -101,9 +118,13 @@ describe("useSurfaceStore", () => {
       createSurface({ surfaceId: "surface-1", catalogId: "standard" });
       createSurface({ surfaceId: "surface-2", catalogId: "standard" });
 
-      const components1: SurfaceComponent[] = [{ id: "btn-1", type: "button", label: "Button 1" }];
+      const components1: SurfaceComponent[] = [
+        { id: "btn-1", component: "Button", label: "Button 1" },
+      ];
 
-      const components2: SurfaceComponent[] = [{ id: "btn-2", type: "button", label: "Button 2" }];
+      const components2: SurfaceComponent[] = [
+        { id: "btn-2", component: "Button", label: "Button 2" },
+      ];
 
       updateComponents("surface-1", components1);
       updateComponents("surface-2", components2);
@@ -146,8 +167,8 @@ describe("useSurfaceStore", () => {
       const { updateComponents, getSurface } = useSurfaceStore.getState();
 
       const components: SurfaceComponent[] = [
-        { id: "btn-1", type: "button", label: "Click me" },
-        { id: "text-1", type: "text", content: "Hello" },
+        { id: "btn-1", component: "Button", label: "Click me" },
+        { id: "text-1", component: "Text", content: "Hello" },
       ];
 
       updateComponents("test-surface", components);
@@ -161,9 +182,13 @@ describe("useSurfaceStore", () => {
     it("merges components by ID", () => {
       const { updateComponents, getSurface } = useSurfaceStore.getState();
 
-      const components1: SurfaceComponent[] = [{ id: "btn-1", type: "button", label: "Original" }];
+      const components1: SurfaceComponent[] = [
+        { id: "btn-1", component: "Button", label: "Original" },
+      ];
 
-      const components2: SurfaceComponent[] = [{ id: "btn-1", type: "button", label: "Updated" }];
+      const components2: SurfaceComponent[] = [
+        { id: "btn-1", component: "Button", label: "Updated" },
+      ];
 
       updateComponents("test-surface", components1);
       updateComponents("test-surface", components2);
@@ -176,7 +201,7 @@ describe("useSurfaceStore", () => {
     it("throws error when updating components on non-existent surface", () => {
       const { updateComponents } = useSurfaceStore.getState();
 
-      const components: SurfaceComponent[] = [{ id: "btn-1", type: "button" }];
+      const components: SurfaceComponent[] = [{ id: "btn-1", component: "Button" }];
 
       expect(() => updateComponents("non-existent", components)).toThrow(
         'Surface "non-existent" not found'
@@ -277,6 +302,35 @@ describe("useSurfaceStore", () => {
         items: ["first", "second"],
       });
     });
+
+    it("replaces the whole model at root path", () => {
+      const { setDataModel, getDataModel } = useSurfaceStore.getState();
+
+      setDataModel("test-surface", "/user/name", "Alice");
+      setDataModel("test-surface", "/", { fresh: true });
+
+      // Root replacement drops stale keys (v0.9 upsert semantics).
+      expect(getDataModel("test-surface")).toEqual({ fresh: true });
+    });
+
+    it("deletes a key when value is undefined", () => {
+      const { setDataModel, getDataModel } = useSurfaceStore.getState();
+
+      setDataModel("test-surface", "/user/name", "Alice");
+      setDataModel("test-surface", "/user/age", 30);
+      setDataModel("test-surface", "/user/name", undefined);
+
+      expect(getDataModel("test-surface")).toEqual({ user: { age: 30 } });
+    });
+
+    it("ignores prototype-polluting pointer keys", () => {
+      const { setDataModel, getDataModel } = useSurfaceStore.getState();
+
+      setDataModel("test-surface", "/__proto__/polluted", true);
+
+      expect(getDataModel("test-surface")).toEqual({});
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
   });
 
   describe("surface queries", () => {
@@ -357,7 +411,7 @@ describe("useSurfaceStore", () => {
         renderCount++;
       });
 
-      updateComponents("test-surface", [{ id: "btn-1", type: "button" }]);
+      updateComponents("test-surface", [{ id: "btn-1", component: "Button" }]);
 
       expect(renderCount).toBe(1);
 

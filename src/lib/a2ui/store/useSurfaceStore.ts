@@ -108,39 +108,75 @@ const MAX_SURFACES = 10;
  * @param path - JSON Pointer path (e.g., "/user/name")
  * @param value - Value to set at the path
  */
-function setAtPath(obj: Record<string, unknown>, path: string, value: unknown): void {
-  // Handle root path
+/** Keys that must never be written through a JSON Pointer (prototype pollution). */
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+/** Decode a JSON Pointer token per RFC 6901 (~1 → "/", ~0 → "~"). */
+function decodeToken(token: string): string {
+  return token.replace(/~1/g, "/").replace(/~0/g, "~");
+}
+
+/**
+ * Sets (or deletes) a value in an object at a JSON Pointer path.
+ *
+ * Implements the A2UI v0.9 upsert semantics:
+ * - Root path ("/" or "") replaces the entire data model.
+ * - An `undefined` value removes the key at the target path.
+ * - Tokens are RFC 6901 decoded; prototype-polluting keys are rejected.
+ *
+ * @returns The (possibly new) root object to assign back.
+ */
+function setAtPath(
+  obj: Record<string, unknown>,
+  path: string,
+  value: unknown
+): Record<string, unknown> {
+  // Handle root path — replace the whole model.
   if (path === "/" || path === "") {
-    if (typeof value === "object" && value !== null) {
-      Object.assign(obj, value);
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      return { ...(value as Record<string, unknown>) };
     }
-    return;
+    // A non-object root value is not representable as a data model; ignore.
+    return obj;
   }
 
-  // Remove leading slash and split path
-  const parts = path.replace(/^\//, "").split("/");
+  // Remove leading slash, split, and RFC 6901 decode each token.
+  const parts = path.replace(/^\//, "").split("/").map(decodeToken);
+
+  if (parts.some((part) => UNSAFE_KEYS.has(part))) {
+    return obj;
+  }
 
   let current: Record<string, unknown> = obj;
 
-  // Navigate to the parent of the target
+  // Navigate to the parent of the target, creating containers as needed.
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
-
-    // Check if next part is a number (array index)
     const nextPart = parts[i + 1];
     const isNextArray = /^\d+$/.test(nextPart);
 
-    if (!(part in current)) {
-      // Create array or object based on next part
+    const existing = current[part];
+    if (existing === null || typeof existing !== "object") {
       current[part] = isNextArray ? [] : {};
     }
 
     current = current[part] as Record<string, unknown>;
   }
 
-  // Set the final value
   const lastPart = parts[parts.length - 1];
+
+  // An omitted value deletes the key (v0.9 delete semantics).
+  if (value === undefined) {
+    if (Array.isArray(current) && /^\d+$/.test(lastPart)) {
+      current.splice(Number(lastPart), 1);
+    } else {
+      delete current[lastPart];
+    }
+    return obj;
+  }
+
   current[lastPart] = value;
+  return obj;
 }
 
 /**
@@ -177,13 +213,6 @@ export const useSurfaceStore = create<SurfaceStoreState>((set, get) => ({
       throw new Error(`Surface "${surfaceId}" already exists`);
     }
 
-    // Check for maximum surfaces limit
-    if (get().surfaces.size >= MAX_SURFACES) {
-      throw new Error(
-        `Maximum of ${MAX_SURFACES} surfaces reached. Delete a surface before creating a new one.`
-      );
-    }
-
     // Create new surface state
     const state: SurfaceState = {
       config,
@@ -194,6 +223,23 @@ export const useSurfaceStore = create<SurfaceStoreState>((set, get) => ({
 
     set((prev) => {
       const newSurfaces = new Map(prev.surfaces);
+
+      // Enforce the surface ceiling by evicting the oldest surface(s) rather
+      // than throwing — long-lived sessions accumulate surfaces and a thrown
+      // error would otherwise break the next prompt.
+      while (newSurfaces.size >= MAX_SURFACES) {
+        let oldestId: string | null = null;
+        let oldestAt = Infinity;
+        for (const [id, surface] of newSurfaces) {
+          if (surface.createdAt < oldestAt) {
+            oldestAt = surface.createdAt;
+            oldestId = id;
+          }
+        }
+        if (oldestId === null) break;
+        newSurfaces.delete(oldestId);
+      }
+
       newSurfaces.set(surfaceId, state);
       return { surfaces: newSurfaces };
     });
@@ -254,9 +300,9 @@ export const useSurfaceStore = create<SurfaceStoreState>((set, get) => ({
       const newSurfaces = new Map(prev.surfaces);
       const updatedSurface = { ...surface };
 
-      // Create new data model with update
-      const newDataModel = { ...surface.dataModel };
-      setAtPath(newDataModel, path, value);
+      // Create new data model with update (setAtPath may return a fresh root,
+      // e.g. for a root-path replacement).
+      const newDataModel = setAtPath({ ...surface.dataModel }, path, value);
 
       updatedSurface.dataModel = newDataModel;
       newSurfaces.set(surfaceId, updatedSurface);

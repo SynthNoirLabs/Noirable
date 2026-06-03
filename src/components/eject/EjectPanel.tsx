@@ -96,8 +96,9 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             <button
               type="button"
               onClick={onClose}
-              className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+              className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               aria-label="Close eject panel"
+              title="Close eject panel"
             >
               <X className="w-4 h-4" />
             </button>
@@ -136,8 +137,9 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             <button
               type="button"
               onClick={onClose}
-              className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors"
+              className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-accent)] transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               aria-label="Close eject panel"
+              title="Close eject panel"
             >
               <X className="w-4 h-4" />
             </button>
@@ -149,7 +151,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             type="button"
             onClick={() => setActiveTab("react")}
             className={cn(
-              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
+              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               activeTab === "react"
                 ? "bg-[var(--aesthetic-surface)] border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-accent)]"
                 : "bg-transparent border-transparent text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-text)]"
@@ -162,7 +164,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             type="button"
             onClick={() => setActiveTab("json")}
             className={cn(
-              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
+              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               activeTab === "json"
                 ? "bg-[var(--aesthetic-surface)] border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-accent)]"
                 : "bg-transparent border-transparent text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-text)]"
@@ -175,7 +177,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             type="button"
             onClick={() => setActiveTab("multifile")}
             className={cn(
-              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
+              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               activeTab === "multifile"
                 ? "bg-[var(--aesthetic-surface)] border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-accent)]"
                 : "bg-transparent border-transparent text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-text)]"
@@ -188,7 +190,7 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
             type="button"
             onClick={() => setActiveTab("sandbox")}
             className={cn(
-              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors",
+              "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest font-typewriter rounded-t-sm border border-b-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               activeTab === "sandbox"
                 ? "bg-[var(--aesthetic-surface)] border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-accent)]"
                 : "bg-transparent border-transparent text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-text)]"
@@ -218,8 +220,9 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
                 <button
                   type="button"
                   onClick={activeTab === "multifile" ? handleDownloadZip : handleDownloadSingle}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all bg-[var(--aesthetic-surface)]/80 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all bg-[var(--aesthetic-surface)]/80 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
                   aria-label={activeTab === "multifile" ? "Download ZIP" : "Download file"}
+                  title={activeTab === "multifile" ? "Download ZIP" : "Download file"}
                 >
                   <Download className="w-3 h-3" />
                   {activeTab === "multifile" ? "ZIP" : "File"}
@@ -229,12 +232,13 @@ export function EjectPanel({ evidence, onClose, className }: EjectPanelProps) {
                 type="button"
                 onClick={handleCopy}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all",
+                  "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                   copied
                     ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
                     : "bg-[var(--aesthetic-surface)]/80 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/70 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
                 )}
                 aria-label={copied ? "Copied!" : "Copy to clipboard"}
+                title={copied ? "Copied!" : "Copy to clipboard"}
               >
                 {copied ? (
                   <>

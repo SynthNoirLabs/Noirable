@@ -149,8 +149,8 @@ describe("SurfaceManager", () => {
 
     it("adds new components to surface", () => {
       const components: SurfaceComponent[] = [
-        { id: "btn-1", type: "button", label: "Submit" },
-        { id: "card-1", type: "card", title: "Evidence" },
+        { id: "btn-1", component: "Button", label: "Submit" },
+        { id: "card-1", component: "Card", title: "Evidence" },
       ];
 
       manager.updateComponents("main-surface", components);
@@ -159,34 +159,36 @@ describe("SurfaceManager", () => {
       expect(surface?.components.size).toBe(2);
       expect(surface?.components.get("btn-1")).toEqual({
         id: "btn-1",
-        type: "button",
+        component: "Button",
         label: "Submit",
       });
     });
 
     it("updates existing components", () => {
-      manager.updateComponents("main-surface", [{ id: "btn-1", type: "button", label: "Submit" }]);
+      manager.updateComponents("main-surface", [
+        { id: "btn-1", component: "Button", label: "Submit" },
+      ]);
 
       // Update the button
       manager.updateComponents("main-surface", [
-        { id: "btn-1", type: "button", label: "Updated Label" },
+        { id: "btn-1", component: "Button", label: "Updated Label" },
       ]);
 
       const surface = manager.getSurface("main-surface");
       expect(surface?.components.get("btn-1")).toEqual({
         id: "btn-1",
-        type: "button",
+        component: "Button",
         label: "Updated Label",
       });
     });
 
     it("merges new components with existing ones", () => {
       manager.updateComponents("main-surface", [
-        { id: "btn-1", type: "button", label: "Button 1" },
+        { id: "btn-1", component: "Button", label: "Button 1" },
       ]);
 
       manager.updateComponents("main-surface", [
-        { id: "btn-2", type: "button", label: "Button 2" },
+        { id: "btn-2", component: "Button", label: "Button 2" },
       ]);
 
       const surface = manager.getSurface("main-surface");
@@ -228,8 +230,8 @@ describe("SurfaceManager", () => {
         catalogId: "standard",
       });
       manager.updateComponents("main-surface", [
-        { id: "btn-1", type: "button" },
-        { id: "card-1", type: "card" },
+        { id: "btn-1", component: "Button" },
+        { id: "card-1", component: "Card" },
       ]);
 
       manager.deleteSurface("main-surface");
@@ -276,22 +278,22 @@ describe("SurfaceManager", () => {
 
     it("returns true when component id matches surfaceId", () => {
       manager.updateComponents("main-surface", [
-        { id: "main-surface", type: "container", children: [] },
+        { id: "main-surface", component: "Column", children: [] },
       ]);
 
       expect(manager.hasRoot("main-surface")).toBe(true);
     });
 
     it("returns true when component has special 'root' id", () => {
-      manager.updateComponents("main-surface", [{ id: "root", type: "container", children: [] }]);
+      manager.updateComponents("main-surface", [{ id: "root", component: "Column", children: [] }]);
 
       expect(manager.hasRoot("main-surface")).toBe(true);
     });
 
     it("returns false when no root-like component exists", () => {
       manager.updateComponents("main-surface", [
-        { id: "btn-1", type: "button" },
-        { id: "card-1", type: "card" },
+        { id: "btn-1", component: "Button" },
+        { id: "card-1", component: "Card" },
       ]);
 
       expect(manager.hasRoot("main-surface")).toBe(false);
