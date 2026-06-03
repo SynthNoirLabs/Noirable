@@ -250,7 +250,7 @@ describe("/api/a2ui/stream", () => {
         };
       };
       return { fullStream: createFullStream() };
-    }) as typeof streamText);
+    }) as unknown as typeof streamText);
 
     const { POST } = await import("./route");
 

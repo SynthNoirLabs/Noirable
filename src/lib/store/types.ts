@@ -1,6 +1,5 @@
 import type { A2UIInput } from "@/lib/protocol/schema";
 import type { AIProviderType } from "@/lib/ai/model-registry";
-import type { TrainingExample } from "@/lib/training";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
 export type { AIProviderType };

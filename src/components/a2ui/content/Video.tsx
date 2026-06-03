@@ -10,7 +10,7 @@ const resolveText = (text: unknown): string => {
   return "";
 };
 
-export const Video: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }) => {
+export const Video: React.FC<ComponentRendererProps> = ({ node }) => {
   const videoNode = node as unknown as VideoNode;
   const nodeAsRecord = node as unknown as Record<string, unknown>;
   const src = resolveText(videoNode.url);

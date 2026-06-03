@@ -11,7 +11,7 @@ const resolveText = (text: unknown): string => {
   return ""; // Handle objects/bindings gracefully or fallback
 };
 
-export const Text: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }) => {
+export const Text: React.FC<ComponentRendererProps> = ({ node }) => {
   const textNode = node as unknown as TextNode;
   const nodeAsRecord = node as unknown as Record<string, unknown>;
 

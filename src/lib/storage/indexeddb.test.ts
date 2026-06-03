@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import type { EvidenceEntry } from "@/lib/store/types";
 import type { TrainingExample } from "@/lib/training";
 
@@ -100,7 +100,7 @@ class MockIDBDatabase {
     return store;
   }
 
-  transaction(_storeNames: string | string[], _mode?: string): MockTransaction {
+  transaction(): MockTransaction {
     return new MockTransaction(this.stores);
   }
 }
@@ -111,7 +111,7 @@ class MockIDBOpenDBRequest extends MockIDBRequest<MockIDBDatabase> {
 
 function createMockIndexedDB() {
   return {
-    open: (_name: string, _version?: number): MockIDBOpenDBRequest => {
+    open: (): MockIDBOpenDBRequest => {
       const req = new MockIDBOpenDBRequest();
       const db = new MockIDBDatabase();
       req.result = db;
@@ -152,7 +152,7 @@ function makeEvidence(id: string): EvidenceEntry {
     id,
     createdAt: Date.now(),
     label: `Evidence ${id}`,
-    data: { version: "0.9" as const, components: [] },
+    data: { type: "text", content: `Evidence ${id}`, priority: "normal" },
   };
 }
 
@@ -160,7 +160,7 @@ function makeTraining(id: string): TrainingExample {
   return {
     id,
     prompt: `prompt-${id}`,
-    output: { version: "0.9" as const, components: [] },
+    output: { type: "text", content: `output-${id}`, priority: "normal" },
     metadata: {
       category: "layout" as const,
       complexity: "simple" as const,

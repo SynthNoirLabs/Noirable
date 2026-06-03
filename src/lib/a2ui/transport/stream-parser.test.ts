@@ -4,6 +4,8 @@ import {
   parseSSEStream,
   createStreamParser,
   type StreamParserOptions,
+  type ParseError,
+  type DisconnectInfo,
 } from "./stream-parser";
 
 describe("parseSSELine", () => {
@@ -111,17 +113,17 @@ describe("parseSSEStream", () => {
 });
 
 describe("createStreamParser", () => {
-  let onMessage: ReturnType<typeof vi.fn>;
-  let onError: ReturnType<typeof vi.fn>;
-  let onConnect: ReturnType<typeof vi.fn>;
-  let onDisconnect: ReturnType<typeof vi.fn>;
+  let onMessage: ReturnType<typeof vi.fn<(data: unknown) => void>>;
+  let onError: ReturnType<typeof vi.fn<(error: ParseError) => void>>;
+  let onConnect: ReturnType<typeof vi.fn<() => void>>;
+  let onDisconnect: ReturnType<typeof vi.fn<(info: DisconnectInfo) => void>>;
   let options: StreamParserOptions;
 
   beforeEach(() => {
-    onMessage = vi.fn();
-    onError = vi.fn();
-    onConnect = vi.fn();
-    onDisconnect = vi.fn();
+    onMessage = vi.fn<(data: unknown) => void>();
+    onError = vi.fn<(error: ParseError) => void>();
+    onConnect = vi.fn<() => void>();
+    onDisconnect = vi.fn<(info: DisconnectInfo) => void>();
     options = { onMessage, onError, onConnect, onDisconnect };
   });
 

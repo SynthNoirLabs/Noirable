@@ -12,6 +12,7 @@ import {
   type FormValueRegistry,
   type FormSubmitHandler,
 } from "./form";
+import { type SendFn } from "./dispatch";
 
 describe("collectFormValues", () => {
   it("collects values from registry", () => {
@@ -113,11 +114,11 @@ describe("collectFormValues", () => {
 });
 
 describe("createFormSubmitHandler", () => {
-  let mockSendFn: ReturnType<typeof vi.fn>;
+  let mockSendFn: ReturnType<typeof vi.fn<SendFn>>;
   let handler: FormSubmitHandler;
 
   beforeEach(() => {
-    mockSendFn = vi.fn();
+    mockSendFn = vi.fn<SendFn>();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-01T12:00:00Z"));
     handler = createFormSubmitHandler({

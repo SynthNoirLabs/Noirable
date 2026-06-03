@@ -200,8 +200,8 @@ describe("inferCategory", () => {
     const input: A2UIInput = {
       type: "container",
       children: [
-        { type: "card", title: "Card 1" },
-        { type: "card", title: "Card 2" },
+        { type: "card", title: "Card 1", status: "active" },
+        { type: "card", title: "Card 2", status: "active" },
       ],
     };
     expect(inferCategory(input)).toBe("card");
@@ -230,7 +230,7 @@ describe("inferCategory", () => {
     const input: A2UIInput = {
       type: "container",
       children: [
-        { type: "card", title: "Card" },
+        { type: "card", title: "Card", status: "active" },
         { type: "input", label: "Name", placeholder: "Enter" },
         { type: "table", columns: ["Col"], rows: [] },
       ],

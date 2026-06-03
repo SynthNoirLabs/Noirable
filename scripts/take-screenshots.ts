@@ -19,7 +19,7 @@ async function sendChat(page: import("playwright").Page, message: string) {
 }
 
 /** Wait for n assistant messages to appear in the chat sidebar. */
-async function waitForAssistantMessages(page: import("playwright").Page, count: number) {
+async function waitForAssistantMessages(page: import("playwright").Page) {
   // The evidence stamp appears once a component renders on the board
   await page.waitForSelector('[data-testid="evidence-stamp"]', { timeout: 10_000 });
   // Give the UI a moment to finish animations
@@ -52,7 +52,7 @@ async function main() {
 
   // 1. Send an image prompt so the board shows a suspect photo
   await sendChat(page, "Generate a photo of the suspect last seen near the docks");
-  await waitForAssistantMessages(page, 1);
+  await waitForAssistantMessages(page);
 
   // Capture workspace with generated component visible
   await page.screenshot({ path: path.join(OUT_DIR, "workspace.png"), fullPage: false });

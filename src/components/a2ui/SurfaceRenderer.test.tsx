@@ -181,7 +181,9 @@ describe("SurfaceRenderer", () => {
       },
       { id: "lbl", component: "Text", text: "File it" },
     ]);
-    render(<SurfaceRenderer surface={surface} theme="noir" onAction={onAction} />);
+    render(
+      <SurfaceRenderer surface={surface} theme="noir" onAction={onAction} actionEndpoint={null} />
+    );
     fireEvent.click(screen.getByText("File it"));
 
     expect(onAction).toHaveBeenCalledTimes(1);
@@ -231,5 +233,134 @@ describe("SurfaceRenderer", () => {
     const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
     const wrapper = container.querySelector("[style]") as HTMLElement | null;
     expect(wrapper?.style.getPropertyValue("--aesthetic-accent")).toBe("rgb(0, 191, 255)");
+  });
+
+  // --------------------------------------------------------------------------
+  // Function-call data bindings
+  // --------------------------------------------------------------------------
+
+  it("resolves a functionCall binding (concat) in Text", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "Text",
+          text: { call: "concat", args: { values: [{ path: "/first" }, " ", { path: "/last" }] } },
+        },
+      ],
+      { first: "Sam", last: "Spade" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Sam Spade")).toBeInTheDocument();
+  });
+
+  it("resolves a nested/uppercase functionCall binding", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "Text",
+          text: { call: "uppercase", args: { v: { path: "/name" } } },
+        },
+      ],
+      { name: "redacted" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("REDACTED")).toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Template children (dynamic child lists)
+  // --------------------------------------------------------------------------
+
+  it("expands a template child list over an array with per-item scope", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "Column",
+          children: { componentId: "itemTpl", path: "/suspects" },
+        },
+        // Relative pointer "name" (no leading slash) resolves against each
+        // scoped array element; absolute "/..." would hit the surface root.
+        { id: "itemTpl", component: "Text", text: { path: "name" } },
+      ],
+      { suspects: [{ name: "Brigid" }, { name: "Joel" }, { name: "Wilmer" }] }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Brigid")).toBeInTheDocument();
+    expect(screen.getByText("Joel")).toBeInTheDocument();
+    expect(screen.getByText("Wilmer")).toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Validation (checks)
+  // --------------------------------------------------------------------------
+
+  it("shows a validation error after an invalid edit and clears it when fixed", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "TextField",
+          label: "Email",
+          value: { path: "/email" },
+          checks: [{ call: "email", message: "Bad email, gumshoe." }],
+        },
+      ],
+      { email: "" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const input = screen.getByLabelText("Email");
+
+    // No error before the field is touched.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "not-an-email" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Bad email, gumshoe.");
+
+    fireEvent.change(input, { target: { value: "sam@spade.io" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Server action round-trip (HTTP back-channel)
+  // --------------------------------------------------------------------------
+
+  it("posts a server event to the action endpoint and applies returned messages", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        messages: [{ type: "updateDataModel", surfaceId: "s1", path: "/status", value: "Filed." }],
+      }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "status"] },
+        {
+          id: "btn",
+          component: "Button",
+          child: "lbl",
+          action: { event: { name: "submit" } },
+        },
+        { id: "lbl", component: "Text", text: "File it" },
+        { id: "status", component: "Text", text: { path: "/status" } },
+      ],
+      { status: "" }
+    );
+
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint="/api/a2ui/action" />);
+    fireEvent.click(screen.getByText("File it"));
+
+    // The returned updateDataModel is applied to the working model → re-render.
+    expect(await screen.findByText("Filed.")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/a2ui/action",
+      expect.objectContaining({ method: "POST" })
+    );
+
+    vi.unstubAllGlobals();
   });
 });

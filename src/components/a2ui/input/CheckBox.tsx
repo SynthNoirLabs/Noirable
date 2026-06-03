@@ -5,11 +5,7 @@ import { cn } from "@/lib/utils";
 import { useFormContext } from "@/components/renderer/FormContext";
 import { getBindingPath, validate } from "./utils";
 
-export const CheckBox: React.FC<ComponentRendererProps<CheckBoxType>> = ({
-  node,
-  // Theme prop reserved for future theming support
-  theme: _theme = "standard",
-}) => {
+export const CheckBox: React.FC<ComponentRendererProps<CheckBoxType>> = ({ node }) => {
   const formContext = useFormContext();
   const bindingPath = getBindingPath(node.value);
 

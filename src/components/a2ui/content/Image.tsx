@@ -69,6 +69,7 @@ export const Image: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }
           className={cn("absolute inset-0 animate-pulse", "bg-[var(--aesthetic-surface-alt)]/20")}
         />
       )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={alt}

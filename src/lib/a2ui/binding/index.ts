@@ -6,3 +6,5 @@
 
 export { resolvePointer } from "./pointer";
 export { resolveDynamicString, resolveDynamicNumber, resolveDynamicBoolean } from "./dynamic";
+export { isFunctionCall, evaluateFunctionCall, functionRegistry } from "./functions";
+export { resolveChildList, type ResolvedChild } from "./template-children";

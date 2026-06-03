@@ -51,7 +51,7 @@ const Slider = ({
 export function AudioCustomization({ className }: AudioCustomizationProps) {
   const { settings, updateSettings } = useA2UIStore();
 
-  const handlePreview = (_type: string) => {
+  const handlePreview = () => {
     // TODO: Play actual audio asset when URLs are available
   };
 
@@ -110,19 +110,19 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
             label="TYPEWRITER"
             value={settings.sfxVolumes?.typewriter ?? 1}
             onChange={(v) => updateSfxVolume("typewriter", v)}
-            onPreview={() => handlePreview("typewriter")}
+            onPreview={() => handlePreview()}
           />
           <Slider
             label="THUNDER"
             value={settings.sfxVolumes?.thunder ?? 1}
             onChange={(v) => updateSfxVolume("thunder", v)}
-            onPreview={() => handlePreview("thunder")}
+            onPreview={() => handlePreview()}
           />
           <Slider
             label="PHONE"
             value={settings.sfxVolumes?.phone ?? 1}
             onChange={(v) => updateSfxVolume("phone", v)}
-            onPreview={() => handlePreview("phone")}
+            onPreview={() => handlePreview()}
           />
         </div>
       </section>
@@ -156,7 +156,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
             label="MUSIC VOLUME"
             value={settings.musicVolume ?? 0.5}
             onChange={updateMusicVolume}
-            onPreview={() => handlePreview("music")}
+            onPreview={() => handlePreview()}
           />
         </div>
       </section>
@@ -195,7 +195,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
                 label="INTENSITY"
                 value={settings.ambient.rainVolume}
                 onChange={(v) => updateAmbientVolume("rain", v)}
-                onPreview={() => handlePreview("rain")}
+                onPreview={() => handlePreview()}
               />
             </div>
           </div>
@@ -226,7 +226,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
                 label="VOLUME"
                 value={settings.ambient.crackleVolume}
                 onChange={(v) => updateAmbientVolume("crackle", v)}
-                onPreview={() => handlePreview("crackle")}
+                onPreview={() => handlePreview()}
               />
             </div>
           </div>

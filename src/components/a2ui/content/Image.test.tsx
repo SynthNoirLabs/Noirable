@@ -19,6 +19,7 @@ describe("Image Component", () => {
     };
     const props = { node, theme: "noir" } as unknown as ComponentRendererProps;
 
+    // eslint-disable-next-line jsx-a11y/alt-text -- alt comes from accessibility.label, not a DOM alt attr
     render(<Image {...props} />);
     const img = screen.getByRole("img");
     expect(img).toHaveAttribute("src", "https://example.com/image.jpg");
@@ -35,6 +36,7 @@ describe("Image Component", () => {
     };
     const props = { node, theme: "noir" } as unknown as ComponentRendererProps;
 
+    // eslint-disable-next-line jsx-a11y/alt-text -- alt comes from accessibility.label, not a DOM alt attr
     render(<Image {...props} />);
     const img = screen.getByRole("img");
     expect(img.className).toContain("object-cover");
@@ -51,6 +53,7 @@ describe("Image Component", () => {
       accessibility: { label: "Loading test image" },
     };
     const props = { node, theme: "noir" } as unknown as ComponentRendererProps;
+    // eslint-disable-next-line jsx-a11y/alt-text -- alt comes from accessibility.label, not a DOM alt attr
     render(<Image {...props} />);
     expect(screen.getByRole("img")).toBeInTheDocument();
   });

@@ -3,8 +3,11 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { SurfaceState, SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
 import { resolvePointer } from "@/lib/a2ui/binding/pointer";
+import { isFunctionCall, evaluateFunctionCall } from "@/lib/a2ui/binding/functions";
+import { resolveChildList } from "@/lib/a2ui/binding/template-children";
+import { runChecks, type CheckRule } from "@/lib/a2ui/validation";
 import { dispatchAction } from "@/lib/a2ui/events/dispatch";
-import type { ActionMessage } from "@/lib/a2ui/schema/messages";
+import type { ActionMessage, ServerMessage } from "@/lib/a2ui/schema/messages";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
 import { PaperFrame } from "@/components/noir/Surface";
 import { cn } from "@/lib/utils";
@@ -16,8 +19,8 @@ import { cn } from "@/lib/utils";
 interface SurfaceContextValue {
   surface: SurfaceState;
   getComponent: (id: string) => SurfaceComponent | undefined;
-  /** Resolve a JSON Pointer path against the live (working) data model. */
-  resolveBinding: (path: string) => unknown;
+  /** The live (working) data model — root for JSON Pointer resolution. */
+  dataModel: Record<string, unknown>;
   /** Write a value back into the data model (two-way binding). */
   setData: (path: string, value: unknown) => void;
   /** Dispatch a component action (server event or local function call). */
@@ -26,6 +29,13 @@ interface SurfaceContextValue {
 }
 
 const SurfaceContext = createContext<SurfaceContextValue | null>(null);
+
+/**
+ * Per-subtree data scope, set by template-expanded children so that relative
+ * JSON Pointers and function-call args resolve against the current item rather
+ * than the surface root. Undefined at the top level.
+ */
+const ScopeContext = createContext<unknown>(undefined);
 
 export function useSurfaceContext(): SurfaceContextValue {
   const ctx = useContext(SurfaceContext);
@@ -59,9 +69,28 @@ function getBindingPath(value: unknown): string | null {
   return null;
 }
 
-function resolveDynamic(value: unknown, resolve: (path: string) => unknown): unknown {
+/**
+ * Resolve a Dynamic value against the data model + current scope:
+ * - functionCall `{ call, args }` → evaluated via the built-in registry.
+ * - data binding `{ path }` → JSON Pointer resolution (scope-aware).
+ * - anything else → literal passthrough.
+ */
+function resolveValue(value: unknown, dataModel: Record<string, unknown>, scope: unknown): unknown {
+  if (isFunctionCall(value)) {
+    return evaluateFunctionCall(value, dataModel, scope);
+  }
   const path = getBindingPath(value);
-  return path !== null ? resolve(path) : value;
+  if (path !== null) {
+    return resolvePointer(dataModel, path, scope);
+  }
+  return value;
+}
+
+/** Hook returning a scope-aware resolver for the current subtree. */
+function useResolve(): (value: unknown) => unknown {
+  const { dataModel } = useSurfaceContext();
+  const scope = useContext(ScopeContext);
+  return useCallback((value: unknown) => resolveValue(value, dataModel, scope), [dataModel, scope]);
 }
 
 /** RFC 6901 token decode (~1 → "/", ~0 → "~"). */
@@ -129,22 +158,58 @@ function setAtPathImmutable(
 }
 
 // ============================================================================
+// Validation
+// ============================================================================
+
+function checksOf(component: SurfaceComponent): CheckRule[] | undefined {
+  const checks = (component as { checks?: unknown }).checks;
+  return Array.isArray(checks) ? (checks as CheckRule[]) : undefined;
+}
+
+/**
+ * Field-level validation. Errors surface only after the field is "touched"
+ * (changed or blurred) so a form doesn't shout before the user has typed.
+ */
+function useFieldValidation(currentValue: unknown, checks: CheckRule[] | undefined) {
+  const [touched, setTouched] = useState(false);
+  const error = touched ? runChecks(currentValue, checks) : null;
+  return { error, markTouched: () => setTouched(true) };
+}
+
+function FieldError({ error }: { error: string | null }) {
+  if (!error) return null;
+  return (
+    <span role="alert" className="text-[10px] font-mono text-[var(--aesthetic-error)]">
+      {error}
+    </span>
+  );
+}
+
+// ============================================================================
 // Layout: Row / Column / List
 // ============================================================================
 
-function childIdsOf(component: SurfaceComponent): string[] {
-  const children = (component as { children?: unknown }).children;
-  return Array.isArray(children) ? (children as string[]) : [];
-}
-
-function ChildList({ ids }: { ids: string[] }) {
-  const { getComponent } = useSurfaceContext();
+/**
+ * Render a component's children. `children` is the raw childList field: either
+ * a static `string[]` or a template `{ componentId, path }`. Template-expanded
+ * children carry a per-item scope, provided to descendants via ScopeContext.
+ */
+function ChildList({ childList }: { childList: unknown }) {
+  const { getComponent, dataModel } = useSurfaceContext();
+  const resolved = resolveChildList(childList, dataModel);
   return (
     <>
-      {ids.map((childId) => {
-        const child = getComponent(childId);
-        if (!child) return <MissingComponent key={childId} id={childId} />;
-        return <ComponentRenderer key={childId} component={child} />;
+      {resolved.map(({ componentId, scope, key }) => {
+        const child = getComponent(componentId);
+        if (!child) return <MissingComponent key={key} id={componentId} />;
+        const node = <ComponentRenderer component={child} />;
+        return scope !== undefined ? (
+          <ScopeContext.Provider key={key} value={scope}>
+            {node}
+          </ScopeContext.Provider>
+        ) : (
+          <React.Fragment key={key}>{node}</React.Fragment>
+        );
       })}
     </>
   );
@@ -166,7 +231,7 @@ function RowRenderer({ component }: ComponentProps) {
         row.align === "stretch" && "items-stretch"
       )}
     >
-      <ChildList ids={childIdsOf(component)} />
+      <ChildList childList={(component as { children?: unknown }).children} />
     </div>
   );
 }
@@ -184,7 +249,7 @@ function ColumnRenderer({ component }: ComponentProps) {
         col.align === "stretch" && "items-stretch"
       )}
     >
-      <ChildList ids={childIdsOf(component)} />
+      <ChildList childList={(component as { children?: unknown }).children} />
     </div>
   );
 }
@@ -198,7 +263,7 @@ function ListRenderer({ component }: ComponentProps) {
         list.direction === "horizontal" ? "flex-row overflow-x-auto" : "flex-col"
       )}
     >
-      <ChildList ids={childIdsOf(component)} />
+      <ChildList childList={(component as { children?: unknown }).children} />
     </div>
   );
 }
@@ -247,7 +312,8 @@ interface TabItem {
 }
 
 function TabsRenderer({ component }: ComponentProps) {
-  const { getComponent, resolveBinding } = useSurfaceContext();
+  const { getComponent } = useSurfaceContext();
+  const resolve = useResolve();
   const tabs = component as SurfaceComponent & { tabs?: TabItem[] };
   const items = Array.isArray(tabs.tabs) ? tabs.tabs : [];
   const [active, setActive] = useState(0);
@@ -266,7 +332,7 @@ function TabsRenderer({ component }: ComponentProps) {
         className="flex flex-row gap-1 border-b border-[var(--aesthetic-border)]/30"
       >
         {items.map((tab, index) => {
-          const title = String(resolveDynamic(tab.title, resolveBinding) ?? `Tab ${index + 1}`);
+          const title = String(resolve(tab.title) ?? `Tab ${index + 1}`);
           const selected = index === safeActive;
           return (
             <button
@@ -358,10 +424,10 @@ function ModalRenderer({ component }: ComponentProps) {
 // ============================================================================
 
 function TextRenderer({ component }: ComponentProps) {
-  const { resolveBinding } = useSurfaceContext();
+  const resolve = useResolve();
   const text = component as SurfaceComponent & { text?: unknown; variant?: string };
 
-  const content = String(resolveDynamic(text.text, resolveBinding) ?? "");
+  const content = String(resolve(text.text) ?? "");
   const variant = text.variant || "body";
   const baseClass = "text-[var(--aesthetic-text)] font-mono";
 
@@ -388,7 +454,7 @@ function TextRenderer({ component }: ComponentProps) {
 }
 
 function ImageRenderer({ component }: ComponentProps) {
-  const { resolveBinding } = useSurfaceContext();
+  const resolve = useResolve();
   const img = component as SurfaceComponent & {
     url?: unknown;
     fit?: string;
@@ -396,10 +462,8 @@ function ImageRenderer({ component }: ComponentProps) {
     accessibility?: { label?: unknown };
   };
 
-  const url = String(resolveDynamic(img.url, resolveBinding) ?? "");
-  const alt = img.accessibility?.label
-    ? String(resolveDynamic(img.accessibility.label, resolveBinding))
-    : "Image";
+  const url = String(resolve(img.url) ?? "");
+  const alt = img.accessibility?.label ? String(resolve(img.accessibility.label)) : "Image";
 
   const sizeClasses = {
     icon: "w-6 h-6",
@@ -453,9 +517,9 @@ function ImageRenderer({ component }: ComponentProps) {
 }
 
 function IconRenderer({ component }: ComponentProps) {
-  const { resolveBinding } = useSurfaceContext();
+  const resolve = useResolve();
   const icon = component as SurfaceComponent & { name?: unknown };
-  const name = String(resolveDynamic(icon.name, resolveBinding) ?? "help");
+  const name = String(resolve(icon.name) ?? "help");
   return (
     <span className="text-[var(--aesthetic-text)] text-xl" aria-label={name} role="img">
       [{name}]
@@ -464,15 +528,13 @@ function IconRenderer({ component }: ComponentProps) {
 }
 
 function VideoRenderer({ component }: ComponentProps) {
-  const { resolveBinding } = useSurfaceContext();
+  const resolve = useResolve();
   const video = component as SurfaceComponent & {
     url?: unknown;
     accessibility?: { label?: unknown };
   };
-  const url = String(resolveDynamic(video.url, resolveBinding) ?? "");
-  const label = video.accessibility?.label
-    ? String(resolveDynamic(video.accessibility.label, resolveBinding))
-    : undefined;
+  const url = String(resolve(video.url) ?? "");
+  const label = video.accessibility?.label ? String(resolve(video.accessibility.label)) : undefined;
 
   if (!url) {
     return (
@@ -493,12 +555,10 @@ function VideoRenderer({ component }: ComponentProps) {
 }
 
 function AudioPlayerRenderer({ component }: ComponentProps) {
-  const { resolveBinding } = useSurfaceContext();
+  const resolve = useResolve();
   const audio = component as SurfaceComponent & { url?: unknown; description?: unknown };
-  const url = String(resolveDynamic(audio.url, resolveBinding) ?? "");
-  const description = audio.description
-    ? String(resolveDynamic(audio.description, resolveBinding))
-    : undefined;
+  const url = String(resolve(audio.url) ?? "");
+  const description = audio.description ? String(resolve(audio.description)) : undefined;
 
   if (!url) {
     return (
@@ -551,25 +611,32 @@ function ButtonRenderer({ component }: ComponentProps) {
 }
 
 function TextFieldRenderer({ component }: ComponentProps) {
-  const { resolveBinding, setData } = useSurfaceContext();
+  const { setData } = useSurfaceContext();
+  const resolve = useResolve();
   const field = component as SurfaceComponent & {
     label?: unknown;
     value?: unknown;
     variant?: string;
   };
 
-  const label = String(resolveDynamic(field.label, resolveBinding) ?? "");
+  const label = String(resolve(field.label) ?? "");
   const bindingPath = getBindingPath(field.value);
-  const value = String(resolveDynamic(field.value, resolveBinding) ?? "");
+  const value = String(resolve(field.value) ?? "");
+  const { error, markTouched } = useFieldValidation(value, checksOf(component));
 
   const fieldId = `surface-field-${field.id}`;
   const inputType =
     field.variant === "obscured" ? "password" : field.variant === "number" ? "number" : "text";
 
-  const sharedClass =
-    "bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm px-3 py-2 text-[var(--aesthetic-text)] font-mono text-sm focus:border-[var(--aesthetic-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]";
+  const sharedClass = cn(
+    "bg-[var(--aesthetic-surface)] border rounded-sm px-3 py-2 text-[var(--aesthetic-text)] font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+    error
+      ? "border-[var(--aesthetic-error)]/70 focus:border-[var(--aesthetic-error)]"
+      : "border-[var(--aesthetic-border)]/30 focus:border-[var(--aesthetic-accent)]"
+  );
 
   const onChange = (next: string) => {
+    markTouched();
     if (bindingPath) setData(bindingPath, next);
   };
 
@@ -584,50 +651,63 @@ function TextFieldRenderer({ component }: ComponentProps) {
         <textarea
           id={fieldId}
           rows={4}
+          aria-invalid={Boolean(error)}
           // Controlled when bound, uncontrolled otherwise — a literal value is
           // a one-shot default, while a `{path}` binding is the source of truth.
           {...(bindingPath ? { value } : { defaultValue: value })}
           onChange={(e) => onChange(e.currentTarget.value)}
+          onBlur={markTouched}
           className={sharedClass}
         />
       ) : (
         <input
           id={fieldId}
           type={inputType}
+          aria-invalid={Boolean(error)}
           {...(bindingPath ? { value } : { defaultValue: value })}
           onChange={(e) => onChange(e.currentTarget.value)}
+          onBlur={markTouched}
           className={sharedClass}
         />
       )}
+      <FieldError error={error} />
     </div>
   );
 }
 
 function CheckBoxRenderer({ component }: ComponentProps) {
-  const { resolveBinding, setData } = useSurfaceContext();
+  const { setData } = useSurfaceContext();
+  const resolve = useResolve();
   const cb = component as SurfaceComponent & { label?: unknown; value?: unknown };
 
-  const label = String(resolveDynamic(cb.label, resolveBinding) ?? "");
+  const label = String(resolve(cb.label) ?? "");
   const bindingPath = getBindingPath(cb.value);
-  const checked = Boolean(resolveDynamic(cb.value, resolveBinding));
+  const checked = Boolean(resolve(cb.value));
+  const { error, markTouched } = useFieldValidation(checked, checksOf(component));
 
   return (
-    <label className="flex items-center gap-2 text-[var(--aesthetic-text)] font-mono text-sm cursor-pointer">
-      <input
-        type="checkbox"
-        {...(bindingPath ? { checked } : { defaultChecked: checked })}
-        onChange={(e) => {
-          if (bindingPath) setData(bindingPath, e.currentTarget.checked);
-        }}
-        className="w-4 h-4 accent-[var(--aesthetic-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
-      />
-      {label}
-    </label>
+    <div className="flex flex-col gap-1">
+      <label className="flex items-center gap-2 text-[var(--aesthetic-text)] font-mono text-sm cursor-pointer">
+        <input
+          type="checkbox"
+          aria-invalid={Boolean(error)}
+          {...(bindingPath ? { checked } : { defaultChecked: checked })}
+          onChange={(e) => {
+            markTouched();
+            if (bindingPath) setData(bindingPath, e.currentTarget.checked);
+          }}
+          className="w-4 h-4 accent-[var(--aesthetic-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+        />
+        {label}
+      </label>
+      <FieldError error={error} />
+    </div>
   );
 }
 
 function SliderRenderer({ component }: ComponentProps) {
-  const { resolveBinding, setData } = useSurfaceContext();
+  const { setData } = useSurfaceContext();
+  const resolve = useResolve();
   const slider = component as SurfaceComponent & {
     label?: unknown;
     min?: number;
@@ -635,11 +715,11 @@ function SliderRenderer({ component }: ComponentProps) {
     value?: unknown;
   };
 
-  const label = slider.label ? String(resolveDynamic(slider.label, resolveBinding)) : "Range";
+  const label = slider.label ? String(resolve(slider.label)) : "Range";
   const min = typeof slider.min === "number" ? slider.min : 0;
   const max = typeof slider.max === "number" ? slider.max : 100;
   const bindingPath = getBindingPath(slider.value);
-  const resolved = resolveDynamic(slider.value, resolveBinding);
+  const resolved = resolve(slider.value);
   const value = typeof resolved === "number" ? resolved : Number(resolved) || min;
 
   return (
@@ -668,7 +748,8 @@ interface ChoiceOption {
 }
 
 function ChoicePickerRenderer({ component }: ComponentProps) {
-  const { resolveBinding, setData } = useSurfaceContext();
+  const { setData } = useSurfaceContext();
+  const resolve = useResolve();
   const picker = component as SurfaceComponent & {
     label?: unknown;
     variant?: string;
@@ -676,19 +757,21 @@ function ChoicePickerRenderer({ component }: ComponentProps) {
     value?: unknown;
   };
 
-  const label = picker.label ? String(resolveDynamic(picker.label, resolveBinding)) : "";
+  const label = picker.label ? String(resolve(picker.label)) : "";
   const options = Array.isArray(picker.options) ? picker.options : [];
   const bindingPath = getBindingPath(picker.value);
-  const resolved = resolveDynamic(picker.value, resolveBinding);
+  const resolved = resolve(picker.value);
   const selected: string[] = Array.isArray(resolved)
     ? (resolved as string[])
     : typeof resolved === "string" && resolved
       ? [resolved]
       : [];
+  const { error, markTouched } = useFieldValidation(selected, checksOf(component));
 
   const multiple = picker.variant === "multipleSelection";
 
   const toggle = (optValue: string) => {
+    markTouched();
     if (!bindingPath) return;
     if (multiple) {
       const next = selected.includes(optValue)
@@ -708,7 +791,7 @@ function ChoicePickerRenderer({ component }: ComponentProps) {
         </legend>
       )}
       {options.map((option) => {
-        const optLabel = String(resolveDynamic(option.label, resolveBinding) ?? option.value);
+        const optLabel = String(resolve(option.label) ?? option.value);
         const isSelected = selected.includes(option.value);
         return (
           <label
@@ -726,12 +809,14 @@ function ChoicePickerRenderer({ component }: ComponentProps) {
           </label>
         );
       })}
+      <FieldError error={error} />
     </fieldset>
   );
 }
 
 function DateTimeInputRenderer({ component }: ComponentProps) {
-  const { resolveBinding, setData } = useSurfaceContext();
+  const { setData } = useSurfaceContext();
+  const resolve = useResolve();
   const dti = component as SurfaceComponent & {
     value?: unknown;
     enableDate?: boolean;
@@ -740,10 +825,9 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
   };
 
   const bindingPath = getBindingPath(dti.value);
-  const value = String(resolveDynamic(dti.value, resolveBinding) ?? "");
-  const label = dti.accessibility?.label
-    ? String(resolveDynamic(dti.accessibility.label, resolveBinding))
-    : undefined;
+  const value = String(resolve(dti.value) ?? "");
+  const label = dti.accessibility?.label ? String(resolve(dti.accessibility.label)) : undefined;
+  const { error, markTouched } = useFieldValidation(value, checksOf(component));
 
   // Default to date when neither flag is set; pick the closest native type.
   const enableDate = dti.enableDate ?? true;
@@ -762,12 +846,16 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
       <input
         id={fieldId}
         type={inputType}
+        aria-invalid={Boolean(error)}
         {...(bindingPath ? { value } : { defaultValue: value })}
         onChange={(e) => {
+          markTouched();
           if (bindingPath) setData(bindingPath, e.currentTarget.value);
         }}
+        onBlur={markTouched}
         className="bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm px-3 py-2 text-[var(--aesthetic-text)] font-mono text-sm focus:border-[var(--aesthetic-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] [color-scheme:dark]"
       />
+      <FieldError error={error} />
     </div>
   );
 }
@@ -829,6 +917,36 @@ function ComponentRenderer({ component }: ComponentProps) {
 }
 
 // ============================================================================
+// Server action round-trip
+// ============================================================================
+
+/**
+ * POST an action to the server endpoint and apply the returned follow-up
+ * messages. Best-effort: a missing/erroring back-channel (e.g. in unit tests
+ * without a server) is swallowed so the UI never breaks.
+ */
+async function postAction(
+  endpoint: string,
+  message: ActionMessage,
+  apply: (messages: ServerMessage[]) => void
+): Promise<void> {
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(message),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as { messages?: unknown };
+    if (Array.isArray(data.messages)) {
+      apply(data.messages as ServerMessage[]);
+    }
+  } catch {
+    // Back-channel unavailable — leave the UI as-is.
+  }
+}
+
+// ============================================================================
 // Surface Renderer
 // ============================================================================
 
@@ -837,11 +955,16 @@ interface SurfaceRendererProps {
   theme?: "noir" | "standard";
   className?: string;
   /**
-   * Called when a server `event` action fires. The A2UI stream is a one-shot
-   * POST (no open back-channel), so this surfaces the client→server
-   * ActionMessage for the host app to handle (log, POST back, etc.).
+   * Observer for client→server `event` actions. Called with the ActionMessage
+   * whenever a server-event button fires (in addition to the HTTP round-trip).
    */
   onAction?: (message: ActionMessage) => void;
+  /**
+   * Endpoint that processes server-event actions and returns follow-up A2UI
+   * messages (applied to the surface). Defaults to `/api/a2ui/action`; pass
+   * `null` to disable the round-trip (e.g. in unit tests).
+   */
+  actionEndpoint?: string | null;
 }
 
 export function SurfaceRenderer({
@@ -849,8 +972,10 @@ export function SurfaceRenderer({
   theme = "noir",
   className,
   onAction,
+  actionEndpoint = "/api/a2ui/action",
 }: SurfaceRendererProps) {
   const storeSetDataModel = useSurfaceStore((s) => s.setDataModel);
+  const storeUpdateComponents = useSurfaceStore((s) => s.updateComponents);
   const storeHasSurface = useSurfaceStore((s) => s.hasSurface);
 
   // Working copy of the data model. Seeded from the surface and re-synced
@@ -882,23 +1007,45 @@ export function SurfaceRenderer({
     [storeHasSurface, storeSetDataModel, surface.config.surfaceId]
   );
 
+  // Apply server-returned follow-up messages to the surface.
+  const applyServerMessages = useCallback(
+    (messages: ServerMessage[]) => {
+      for (const msg of messages) {
+        if (msg.type === "updateDataModel") {
+          setData(msg.path, msg.value);
+        } else if (msg.type === "updateComponents") {
+          if (storeHasSurface(surface.config.surfaceId)) {
+            storeUpdateComponents(
+              surface.config.surfaceId,
+              msg.components as unknown as SurfaceComponent[]
+            );
+          }
+        }
+      }
+    },
+    [setData, storeHasSurface, storeUpdateComponents, surface.config.surfaceId]
+  );
+
   const runAction = useCallback(
     (componentId: string, action: unknown) => {
       if (!action || typeof action !== "object") return;
 
-      // Server event → emit a client→server ActionMessage.
+      // Server event → emit a client→server ActionMessage + HTTP round-trip.
       if ("event" in action) {
         const event = (action as { event: { name: string; context?: Record<string, unknown> } })
           .event;
-        dispatchAction(
+        const message = dispatchAction(
           {
             surfaceId: surface.config.surfaceId,
             componentId,
             actionName: event.name,
             dataBindings: event.context,
           },
-          (message) => onAction?.(message)
+          (m) => onAction?.(m)
         );
+        if (actionEndpoint) {
+          void postAction(actionEndpoint, message, applyServerMessages);
+        }
         return;
       }
 
@@ -925,25 +1072,25 @@ export function SurfaceRenderer({
         }
       }
     },
-    [dataModel, onAction, setData, surface.config.surfaceId]
+    [actionEndpoint, applyServerMessages, dataModel, onAction, setData, surface.config.surfaceId]
   );
 
   // Map a v0.9 object theme onto the aesthetic CSS variables. Only a small,
   // safe subset is honored; unknown keys are ignored. A string theme is a
   // named profile handled elsewhere, so it contributes no inline overrides.
   const themeStyle = useMemo<React.CSSProperties>(() => {
-    const theme = surface.config.theme;
-    if (!theme || typeof theme !== "object") return {};
+    const t = surface.config.theme;
+    if (!t || typeof t !== "object") return {};
     const style: Record<string, string> = {};
-    const primary = theme.primaryColor;
+    const primary = t.primaryColor;
     if (typeof primary === "string") {
       style["--aesthetic-accent"] = primary;
     }
-    const background = theme.backgroundColor;
+    const background = t.backgroundColor;
     if (typeof background === "string") {
       style["--aesthetic-background"] = background;
     }
-    const text = theme.textColor;
+    const text = t.textColor;
     if (typeof text === "string") {
       style["--aesthetic-text"] = text;
     }
@@ -954,7 +1101,7 @@ export function SurfaceRenderer({
     () => ({
       surface,
       getComponent: (id) => surface.components.get(id),
-      resolveBinding: (path) => resolvePointer(dataModel, path),
+      dataModel,
       setData,
       runAction,
       theme,

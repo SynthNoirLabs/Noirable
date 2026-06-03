@@ -5,11 +5,7 @@ import { cn } from "@/lib/utils";
 import { useFormContext } from "@/components/renderer/FormContext";
 import { getBindingPath, validate } from "./utils";
 
-export const TextField: React.FC<ComponentRendererProps<TextFieldType>> = ({
-  node,
-  // Theme prop reserved for future theming support
-  theme: _theme = "standard",
-}) => {
+export const TextField: React.FC<ComponentRendererProps<TextFieldType>> = ({ node }) => {
   const formContext = useFormContext();
   const bindingPath = getBindingPath(node.value);
   const [error, setError] = useState<string | null>(null);

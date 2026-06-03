@@ -4,11 +4,7 @@ import { ComponentRendererProps } from "@/components/a2ui/registry";
 import { cn } from "@/lib/utils";
 import { useFormContext } from "@/components/renderer/FormContext";
 
-export const Button: React.FC<ComponentRendererProps<ButtonType>> = ({
-  node,
-  // Theme prop reserved for future theming support
-  theme: _theme = "standard",
-}) => {
+export const Button: React.FC<ComponentRendererProps<ButtonType>> = ({ node }) => {
   const formContext = useFormContext();
 
   const handleClick = (e: React.MouseEvent) => {

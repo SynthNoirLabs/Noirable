@@ -29,7 +29,9 @@ const entries: EvidenceEntry[] = [
 describe("EvidenceBoard", () => {
   it("renders timeline view in newest-first order and calls onSelect", () => {
     const onSelect = vi.fn();
-    const localeSpy = vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function () {
+    const localeSpy = vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (
+      this: Date
+    ) {
       return new Date(this.valueOf()).toISOString();
     });
 

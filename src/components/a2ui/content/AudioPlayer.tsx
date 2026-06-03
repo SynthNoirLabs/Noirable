@@ -11,7 +11,7 @@ const resolveText = (text: unknown): string => {
   return "";
 };
 
-export const AudioPlayer: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }) => {
+export const AudioPlayer: React.FC<ComponentRendererProps> = ({ node }) => {
   const audioNode = node as unknown as AudioNode;
   const nodeAsRecord = node as unknown as Record<string, unknown>;
   const src = resolveText(audioNode.url);

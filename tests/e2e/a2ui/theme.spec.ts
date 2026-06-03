@@ -17,13 +17,16 @@ test.describe("A2UI Theme - Noir Styling", () => {
     const layout = page.locator('[data-testid="desk-layout"]');
     await expect(layout).toBeVisible();
 
-    // Layout should have noir background classes
-    const hasNoirClasses = await layout.evaluate((el) => {
-      const classes = el.className;
-      return classes.includes("bg-noir") || classes.includes("text-noir");
-    });
+    // The noir aesthetic is signalled via the `data-aesthetic` attribute and
+    // the aesthetic CSS-variable utility classes (the app themes through CSS
+    // variables, not literal `bg-noir` class names).
+    const aesthetic = await layout.getAttribute("data-aesthetic");
+    expect(aesthetic).toBe("noir");
 
-    expect(hasNoirClasses).toBeTruthy();
+    const hasAestheticClasses = await layout.evaluate((el) =>
+      el.className.includes("aesthetic-surface")
+    );
+    expect(hasAestheticClasses).toBeTruthy();
   });
 
   test("noir theme colors are visible on page", async ({ page }) => {
@@ -77,12 +80,12 @@ test.describe("A2UI Theme - Noir Styling", () => {
     const editor = page.locator('[data-testid="editor-pane"]');
     await expect(editor).toBeVisible();
 
-    // Check it has noir background class
-    const hasNoirBg = await editor.evaluate((el) => {
-      return el.className.includes("noir");
-    });
-
-    expect(hasNoirBg).toBeTruthy();
+    // The editor pane themes through the aesthetic CSS variables (e.g.
+    // bg-[var(--aesthetic-background)]) rather than a literal "noir" class.
+    const hasAestheticBg = await editor.evaluate((el) =>
+      el.className.includes("aesthetic-background")
+    );
+    expect(hasAestheticBg).toBeTruthy();
   });
 });
 

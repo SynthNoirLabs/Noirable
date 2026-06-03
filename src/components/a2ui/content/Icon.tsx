@@ -75,7 +75,7 @@ const resolveText = (text: unknown): string => {
   return "help"; // Default fallback
 };
 
-export const Icon: React.FC<ComponentRendererProps> = ({ node, theme = "noir" }) => {
+export const Icon: React.FC<ComponentRendererProps> = ({ node }) => {
   const iconNode = node as unknown as IconNode;
   const nodeAsRecord = node as unknown as Record<string, unknown>;
 

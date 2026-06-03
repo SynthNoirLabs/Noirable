@@ -19,7 +19,7 @@ describe("A2UI Schema", () => {
     };
     const result = a2uiInputSchema.safeParse(data);
     expect(result.success).toBe(true);
-    if (result.success) {
+    if (result.success && result.data.type === "text") {
       expect(result.data.content).toBe("Legacy content field.");
     }
   });
@@ -113,7 +113,7 @@ describe("A2UI Schema", () => {
     };
     const result = a2uiInputSchema.safeParse(data);
     expect(result.success).toBe(true);
-    if (result.success) {
+    if (result.success && result.data.type === "image") {
       expect(result.data.alt).toContain("Noir alleyway");
     }
   });
