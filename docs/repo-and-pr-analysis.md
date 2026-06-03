@@ -1,6 +1,19 @@
 # Repository & Open PR Analysis
 
-_Generated: 2026-03-02_
+_Generated: 2026-03-02 — superseded by the 2026-06-03 resolution below._
+
+---
+
+## Resolution / Update (2026-06-03)
+
+This document is a **dated historical snapshot** from 2026-03-02. The case is closed; the findings below are preserved as record. As of 2026-06-03:
+
+- The ~80+ duplicate Palette accessibility PRs were consolidated into a single verified a11y pass and merged to `main`.
+- All open PRs were closed; stray remote branches were deleted.
+- Remote branches reduced to `main` plus the active working branch.
+- **Net open PRs: 0.**
+
+Everything from the next heading down reflects the repository as it stood on 2026-03-02 and should be read as history, not current state.
 
 ---
 
@@ -19,24 +32,28 @@ _Generated: 2026-03-02_
 | AI | Vercel AI SDK 6 (OpenAI, Anthropic, Google Gemini, OpenAI-compatible) |
 | Validation | Zod 4 |
 | Sandbox | Sandpack (CodeSandbox) |
-| Testing | Vitest (88 test files, 70% coverage threshold), Playwright (E2E), Percy (visual) |
+| Testing | Vitest (91 test files, 70% lines / 60% branches coverage thresholds), Playwright (E2E), Percy (visual) |
 | Linting | ESLint 9, Prettier, Stylelint, Husky pre-commit |
 | Package Manager | pnpm 10 (monorepo) |
 
 ### Codebase Stats
 
-- **222 TypeScript/TSX source files**
-- **88 unit/integration test files**
-- **11 Playwright E2E specs**
-- **18 A2UI component types** (layout, content, input)
-- **18+ registered AI models** across multiple providers
+_Source-file and E2E-spec counts are as of 2026-03-02; the test counts have been refreshed to 2026-06-03._
+
+- **222 TypeScript/TSX source files** (as of 2026-03-02)
+- **91 unit/integration test files** (875 tests passing)
+- **11 Playwright E2E specs** (as of 2026-03-02)
+- **18 A2UI v0.9 component types** (layout, content, input)
+- **19 registered AI models** across OpenAI, Anthropic, and Google
 
 ### Architecture
 
 ```
 src/
-├── app/           # Next.js App Router (pages + API routes)
-├── components/
+├── app/           # Next.js App Router (pages, print view, API routes)
+│   └── api/       # a2ui (stream), chat, elevenlabs, images/[id], settings, tts
+├── components/    # a2ui, board, chat, eject, layout, noir,
+│                  # renderer, settings, shared, templates, training
 │   ├── a2ui/      # A2UI protocol components (content, layout, input, theme)
 │   ├── board/     # Evidence board workspace
 │   ├── chat/      # Chat sidebar
@@ -46,16 +63,21 @@ src/
 │   ├── renderer/  # Legacy component renderer
 │   ├── settings/  # Settings & customization panels
 │   ├── shared/    # Shared UI primitives
-│   └── templates/ # 8 pre-built component templates
-├── lib/
+│   ├── templates/ # Pre-built component templates
+│   └── training/  # Training / fine-tuning UI
+├── lib/           # a2ui, aesthetic, ai, api, customization, eject, elevenlabs,
+│                  # evidence, hooks, protocol, sanity, storage, store,
+│                  # templates, training (+ utils.ts)
 │   ├── a2ui/      # A2UI v0.9 protocol (schema, catalog, transport, binding)
 │   ├── ai/        # Provider factory, tools, prompts, image generation
 │   ├── api/       # Rate limiting + CSRF security
 │   ├── customization/ # Aesthetic profiles, CSS injection
 │   ├── eject/     # A2UI-to-React code generation
-│   ├── protocol/  # Legacy Zod schemas
+│   ├── protocol/  # Legacy Zod schemas (23 component types)
 │   ├── store/     # Zustand stores
-│   └── ...        # hooks, storage, templates, training, utils
+│   ├── templates/ # 8 pre-built templates
+│   └── ...        # aesthetic, elevenlabs, evidence, hooks, sanity,
+│                  # storage, training
 └── __tests__/
 ```
 
@@ -69,7 +91,9 @@ src/
 
 ## Open Pull Requests Analysis
 
-**9 open PRs**, all authored by `komod0`, all targeting `main`, none with reviewers assigned.
+> **Superseded (2026-06-03):** The 9 open PRs described below have since been closed and their accessibility work consolidated into a single verified a11y pass merged to `main`. See the [Resolution / Update](#resolution--update-2026-06-03) at the top. The inventory below is preserved as a 2026-03-02 snapshot.
+
+**9 open PRs** (as of 2026-03-02), all authored by `komod0`, all targeting `main`, none with reviewers assigned.
 
 ### PR Inventory
 

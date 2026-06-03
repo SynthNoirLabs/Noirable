@@ -2,7 +2,16 @@
 
 > This is a local copy of the A2UI v0.9 specification for reference.
 > Source: https://a2ui.org/specification/v0.9-a2ui/
+> (Canonical spec: https://github.com/google/A2UI/blob/main/specification/0.9/docs/a2ui_protocol.md)
 > Last fetched: 2026-02-01
+
+> **Implementation note:** The message structures below follow the upstream
+> spec, which wraps each message in a named-key envelope (e.g.
+> `{"createSurface": {...}}`). This repo's stream implementation emits a
+> flattened variant instead, with a top-level `type` discriminator
+> (e.g. `{"type": "createSurface", "surfaceId": "...", "catalogId": "standard"}`)
+> and a `catalogId` of `"standard"`. See `src/lib/a2ui/schema/messages.ts` and
+> `src/app/api/a2ui/stream/route.ts` for the authoritative in-repo shape.
 
 ---
 

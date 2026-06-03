@@ -36,7 +36,7 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 | **Multi-Provider Support** | OpenAI, Anthropic, Google, OpenAI-compatible | Done |
 | **Image Generation** | AI-generated noir-styled images via prompts | Done |
 | **Eject to Code** | Export to React + Tailwind components | Done |
-| **Model Selector** | Switch between 18 registered models | Done |
+| **Model Selector** | Switch between 19 registered models across OpenAI, Anthropic, and Google | Done |
 | **Print View** | Print-friendly evidence export | Done |
 | **Resizable Layout** | Drag-to-resize panes | Done |
 | **Form Handlers** | Input/button components with actions | Done |
@@ -123,4 +123,4 @@ Frontend developers exploring AI-assisted UI generation. This is an experimental
 
 ---
 
-*Last updated: 2026-02-07*
+*Last updated: 2026-06-03*

@@ -21,7 +21,7 @@ pnpm dev
 | `pnpm dev` | Start Next.js dev server (port 3000) |
 | `pnpm build` | Production build |
 | `pnpm start` | Start production server |
-| `pnpm check` | **CI gate** - prettier + eslint + vitest + build |
+| `pnpm check` | **CI gate** - prettier + eslint + stylelint + vitest + build |
 | `pnpm test` | Run Vitest tests |
 | `pnpm test:coverage` | Tests with coverage report |
 | `pnpm lint` | ESLint only |
@@ -38,30 +38,26 @@ pnpm dev
 ```
 src/
 ├── app/                    # Next.js App Router
+│   ├── api/a2ui/stream/    # A2UI v0.9 streaming endpoint
 │   ├── api/chat/           # AI streaming + tool execution
 │   ├── api/images/[id]/    # Serves generated images
+│   ├── api/elevenlabs/     # ElevenLabs proxy
+│   ├── api/settings/       # Settings persistence
+│   ├── api/tts/            # Text-to-speech
 │   └── print/              # Print view page
-├── components/
-│   ├── board/              # EvidenceBoard (history)
-│   ├── chat/               # ChatSidebar
-│   ├── eject/              # EjectPanel (code export)
-│   ├── layout/             # DetectiveWorkspace, DeskLayout
-│   ├── noir/               # Theme components (TypewriterText)
-│   ├── renderer/           # A2UIRenderer
-│   └── settings/           # ModelSelector
-└── lib/
-    ├── ai/                 # Provider factory, tools, images, registry
-    ├── protocol/           # A2UI Zod schema
-    ├── store/              # Zustand state
-    ├── evidence/           # Label/status derivation
-    └── eject/              # A2UI to React export
+├── components/             # a2ui, board, chat, eject, layout, noir,
+│                           # renderer, settings, shared, templates, training
+└── lib/                    # a2ui, aesthetic, ai, api, customization, eject,
+                            # elevenlabs, evidence, hooks, protocol, sanity,
+                            # storage, store, templates, training
 ```
 
 ### Key Files
 
 | Task | Location |
 |------|----------|
-| Add A2UI component type | `src/lib/protocol/schema.ts` |
+| Add legacy component type | `src/lib/protocol/schema.ts` |
+| Add A2UI v0.9 component | `src/lib/a2ui/catalog/` |
 | Change AI behavior | `src/lib/ai/prompts.ts` |
 | Add/modify AI provider | `src/lib/ai/factory.ts` |
 | Image generation | `src/lib/ai/images.ts` |
@@ -185,8 +181,14 @@ describe("FeatureName", () => {
 
 ### Coverage Requirements
 
-- Target: **>80%** for new code
-- Run `pnpm test:coverage` to check
+The Vitest thresholds in `vitest.config.ts` are the gate:
+
+- Lines: **70%**
+- Branches: **60%**
+- Functions: **65%**
+- Statements: **70%**
+
+Run `pnpm test:coverage` to check. The suite currently has 875 tests across 91 test files.
 
 ---
 
@@ -234,7 +236,7 @@ Before marking any task complete:
 - [ ] No lint errors (`pnpm lint`)
 - [ ] Types check (`pnpm build`)
 - [ ] Prettier passes (`pnpm prettier --check .`)
-- [ ] Coverage adequate (>80%)
+- [ ] Coverage meets thresholds (70% lines / 60% branches)
 
 ---
 
@@ -309,4 +311,4 @@ pnpm build 2>&1 | head -50
 
 ---
 
-*Last updated: 2026-02-01*
+*Last updated: 2026-06-03*

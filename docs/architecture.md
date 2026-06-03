@@ -226,6 +226,8 @@ data: [DONE]
 - `updateDataModel` - Update data at JSON Pointer path
 - `deleteSurface` - Remove surface
 
+> **Note:** This repo emits messages with a flat `type` discriminator (e.g. `{"type":"createSurface",...}`). The upstream A2UI v0.9 spec uses a named-key envelope instead (e.g. `{"createSurface":{...}}`). See `docs/reference/a2ui-v09-spec.md` for the upstream form.
+
 **Key Files:**
 - Endpoint: `src/app/api/a2ui/stream/route.ts`
 - Schemas: `src/lib/a2ui/schema/messages.ts`
@@ -234,6 +236,10 @@ data: [DONE]
 ### `GET /print`
 
 **Response:** Print-friendly HTML view of current evidence.
+
+### Other routes
+
+The app also exposes supporting endpoints outside the core generation pipeline: `POST /api/tts` (voice synthesis), `/api/elevenlabs/*` (ElevenLabs `status` and `voices`), and `/api/settings/*` (e.g. `image-style` preferences).
 
 ---
 
@@ -272,4 +278,4 @@ data: [DONE]
 
 ---
 
-*Last updated: 2026-02-01*
+*Last updated: 2026-06-03*
