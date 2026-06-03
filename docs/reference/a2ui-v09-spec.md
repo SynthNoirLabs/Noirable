@@ -255,4 +255,27 @@ A2UI is transport-agnostic. Common bindings:
 
 ---
 
+## Conformance in this repo
+
+What the live renderer (`src/components/a2ui/SurfaceRenderer.tsx`, driven by
+`A2UIv09Preview`) currently supports:
+
+| Area | Status |
+|------|--------|
+| **Messages** | All four server messages — `createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface` |
+| **Components** | All 18 standard-catalog components (Row, Column, List, Card, Tabs, Divider, Modal, Text, Image, Icon, Video, AudioPlayer, Button, CheckBox, TextField, DateTimeInput, ChoicePicker, Slider) |
+| **Data binding** | JSON Pointer (RFC 6901) resolution of `{path}` bindings on display |
+| **Two-way binding** | Input components (TextField, CheckBox, Slider, ChoicePicker, DateTimeInput) write edits back to the data model |
+| **Actions** | Button `action` dispatch — server `event` surfaces a client→server `ActionMessage` via the renderer's `onAction` callback; local `functionCall` supports the built-in `set`/`setValue`/`toggle` client functions |
+| **Theme** | String identifiers and v0.9 object themes (`{ primaryColor, backgroundColor, textColor }`) mapped onto CSS variables |
+
+Known deviations / not yet implemented:
+
+- **Wire format:** flat `type` discriminator instead of the upstream named-key envelope (see the implementation note at the top).
+- **Back-channel:** the stream is a one-shot POST, so server `event` actions are surfaced to the host (`onAction`) rather than round-tripped to the agent automatically.
+- **Validation functions** (`required`, `email`, `regex`, …) are defined in the catalog schema but not enforced at the input layer.
+- **Template/dynamic children** (`{ componentId, path }` child lists) and **function-call data bindings** are accepted by the schema but not expanded by the renderer.
+
+---
+
 *This document is for reference. For the authoritative spec, see: https://a2ui.org/specification/v0.9-a2ui/*

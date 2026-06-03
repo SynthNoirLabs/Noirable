@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
+import type { ActionMessage } from "@/lib/a2ui/schema/messages";
 import { SurfaceRenderer } from "./SurfaceRenderer";
 
 /**
@@ -13,9 +14,14 @@ import { SurfaceRenderer } from "./SurfaceRenderer";
 
 interface A2UIv09PreviewProps {
   className?: string;
+  /**
+   * Handler for client→server action events. The A2UI stream is a one-shot
+   * POST with no open back-channel, so the default just logs the action.
+   */
+  onAction?: (message: ActionMessage) => void;
 }
 
-export function A2UIv09Preview({ className }: A2UIv09PreviewProps) {
+export function A2UIv09Preview({ className, onAction }: A2UIv09PreviewProps) {
   const { surfaces, getAllSurfaceIds } = useSurfaceStore();
   const surfaceIds = getAllSurfaceIds();
 
@@ -50,7 +56,16 @@ export function A2UIv09Preview({ className }: A2UIv09PreviewProps) {
           ({surface.components.size} components)
         </span>
       </div>
-      <SurfaceRenderer surface={surface} theme="noir" />
+      <SurfaceRenderer
+        surface={surface}
+        theme="noir"
+        onAction={
+          onAction ??
+          ((message) => {
+            console.log("[A2UI v0.9] Action:", message);
+          })
+        }
+      />
     </div>
   );
 }
