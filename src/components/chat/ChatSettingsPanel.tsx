@@ -112,6 +112,8 @@ export function ChatSettingsPanel({
       <ToggleRow
         label="VOICE (TTS)"
         active={ttsEnabled}
+        activeLabel="ON AIR"
+        inactiveLabel="OFF AIR"
         onToggle={toggleTts}
         disabled={elevenLabsConfigured === false}
         disabledTitle="Set ELEVENLABS_API_KEY to enable"
@@ -120,6 +122,8 @@ export function ChatSettingsPanel({
       <ToggleRow
         label="NOIR MUSIC"
         active={musicEnabled}
+        activeLabel="ON AIR"
+        inactiveLabel="OFF AIR"
         onToggle={toggleMusic}
         disabled={elevenLabsConfigured === false}
         disabledTitle="Set ELEVENLABS_API_KEY to enable"
