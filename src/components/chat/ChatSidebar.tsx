@@ -522,6 +522,17 @@ export function ChatSidebar({
       </div>
 
       <div className="p-4 bg-[var(--aesthetic-surface)]/95 border-t border-[var(--aesthetic-border)]/20">
+        {ttsDisabledReason && (
+          <div className="mb-2 inline-flex items-center gap-2 font-typewriter text-[10px] uppercase tracking-[0.2em] text-[var(--aesthetic-text)]/45">
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-[var(--aesthetic-error)]/60"
+              aria-hidden="true"
+            />
+            {elevenLabsConfigured === false || ttsUnavailable
+              ? "Wire dead — set ELEVENLABS_API_KEY"
+              : "Voice off — enable in settings"}
+          </div>
+        )}
         <form onSubmit={onSubmit} className="relative">
           <input
             ref={inputRef}
