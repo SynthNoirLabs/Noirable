@@ -12,6 +12,6 @@ describe("buildNoirImagePrompt", () => {
   it("returns style prompt when input is empty", () => {
     const prompt = buildNoirImagePrompt(" ");
     expect(prompt).toMatch(/noir/i);
-    expect(prompt).toMatch(/neon/i);
+    expect(prompt).toMatch(/film grain/i);
   });
 });

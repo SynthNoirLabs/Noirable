@@ -4,6 +4,11 @@
   --font-sans: var(--font-sans);
   --font-typewriter: var(--font-typewriter);
 
+  /* Make `font-mono` intentional: route it to the loaded typewriter face
+     (Special Elite) so data/body text is cohesive instead of falling back to
+     the OS monospace. */
+  --font-mono: var(--font-typewriter);
+
   --color-noir-black: #0f0f0f;
   --color-noir-dark: #1a1a1a;
   --color-noir-gray: #2a2a2a;
@@ -89,9 +94,9 @@ body {
   background: radial-gradient(
     ellipse at center,
     transparent 0%,
-    transparent 50%,
-    rgba(0, 0, 0, 0.2) 80%,
-    rgba(0, 0, 0, 0.6) 100%
+    transparent 55%,
+    rgba(0, 0, 0, 0.25) 82%,
+    rgba(0, 0, 0, 0.72) 100%
   );
   pointer-events: none;
   z-index: 9999;
@@ -118,12 +123,18 @@ body {
   opacity: 0.5;
 }
 
-/* CRT Phosphor Glow */
+/* CRT Phosphor Glow — the phosphor glow is always-on; the flicker only runs
+   when the user has not asked for reduced motion. */
 .crt-glow {
   text-shadow:
     0 0 2px rgba(255, 191, 0, 0.3),
     0 0 4px rgba(255, 191, 0, 0.1);
-  animation: crt-flicker 0.15s infinite alternate;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .crt-glow {
+    animation: crt-flicker 0.6s infinite alternate;
+  }
 }
 
 @keyframes crt-flicker {
@@ -132,6 +143,17 @@ body {
   }
   100% {
     opacity: 0.95;
+  }
+}
+
+/* Typewriter caret blink */
+@keyframes typewriter-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
   }
 }
 
@@ -205,4 +227,40 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #ffbf00; /* noir-amber */
+}
+
+/* Wire-tap equalizer (TTS playing indicator) */
+@keyframes eq-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+
+/* --- GLOBAL REDUCED-MOTION RESET --- */
+
+/* Honour the user's reduced-motion preference everywhere, including effects
+   driven by CSS animations that opt in individually elsewhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .crt-glow,
+  .eq-bar {
+    animation: none;
+  }
 }

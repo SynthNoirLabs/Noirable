@@ -8,6 +8,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { a2uiInputSchema } from "@/lib/protocol/schema";
 import { EvidenceBoard } from "@/components/board/EvidenceBoard";
+import { CaseBoardEmptyState } from "@/components/board/CaseBoardEmptyState";
 import { EjectPanel } from "@/components/eject/EjectPanel";
 import { deriveEvidenceLabel, deriveEvidenceStatus } from "@/lib/evidence/utils";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
@@ -85,18 +86,6 @@ export function DetectiveWorkspace() {
     addPrompt,
     addTrainingExample,
   } = useA2UIStore();
-
-  // Initialize store
-  useEffect(() => {
-    try {
-      if (!evidence) {
-        setEvidence(JSON.parse(DEFAULT_JSON));
-      }
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Once
 
   const modelConfig = useMemo(
     () => settings.modelConfig ?? { provider: "auto", model: "" },
@@ -225,6 +214,10 @@ export function DetectiveWorkspace() {
               status: deriveEvidenceStatus(parsed.data),
               data: parsed.data,
             };
+            // This effect synchronizes the app with the external AI message
+            // stream (the documented Client Synchronization pattern), so it
+            // intentionally commits state when a tool result arrives.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             processNewEvidence(entry, parsed.data);
             setLastFailedPrompt(null);
             captureTraining(parsed.data);
@@ -500,14 +493,9 @@ export function DetectiveWorkspace() {
               fallbackEvidence={evidence}
             />
           ) : (
-            <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm animate-pulse max-w-md">
-              <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
-                REDACTED
-              </h3>
-              <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
-                NO EVIDENCE LOADED.
-              </p>
-            </div>
+            // No evidence yet (true first run, after removing the seed): show
+            // the inviting case-board empty state instead of an alarm.
+            <CaseBoardEmptyState />
           )}
         </NoirErrorBoundary>
       }

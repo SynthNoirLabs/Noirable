@@ -104,8 +104,14 @@ export function TypewriterText({
       </span>
       <span aria-hidden="true">{displayedText}</span>
       {showCursor && (
-        <span aria-hidden="true" className="animate-pulse ml-1 opacity-50">
-          _
+        <span
+          aria-hidden="true"
+          className={cn(
+            "ml-1 text-[var(--aesthetic-accent)]",
+            !reducedMotion && "animate-[typewriter-blink_1.06s_steps(1,end)_infinite]"
+          )}
+        >
+          ▏
         </span>
       )}
     </motion.div>

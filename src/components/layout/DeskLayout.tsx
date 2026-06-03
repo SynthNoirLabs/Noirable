@@ -128,12 +128,33 @@ export function DeskLayout({
       />
       <div
         data-testid="noir-rain-bg"
-        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-top opacity-15 grayscale contrast-125 pointer-events-none z-0"
+        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-top opacity-40 contrast-110 saturate-[0.85] brightness-90 pointer-events-none z-0"
         aria-hidden="true"
       />
+      {/* Vertical readability gradient: dark header + lit mid-field + dark
+          lower gutter. color-mix keeps it theme-aware (works in the light
+          "minimal" aesthetic too). */}
       <div
-        className="absolute inset-0 bg-[var(--aesthetic-surface)]/80 pointer-events-none z-0"
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 92%, transparent) 0%, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 45%, transparent) 38%, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 42%, transparent) 62%, " +
+            "color-mix(in srgb, var(--aesthetic-surface) 88%, transparent) 100%)",
+        }}
         aria-hidden="true"
+      />
+      {/* Warm desk-lamp rim glow, biased toward the evidence-board side so it
+          reads in the default 3-pane layout. */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        aria-hidden="true"
+        style={{
+          background:
+            "radial-gradient(60% 50% at 38% 90%, rgba(255,191,0,0.10), rgba(255,191,0,0.04) 40%, transparent 72%)",
+        }}
       />
       {!isEditorVisible && onToggleEditor && (
         <button

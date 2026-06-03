@@ -21,12 +21,12 @@ export function A2UIv09Preview({ className }: A2UIv09PreviewProps) {
 
   if (surfaceIds.length === 0) {
     return (
-      <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm animate-pulse max-w-md">
-        <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
-          NO SURFACES
+      <div className="border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/30 p-4 rounded-sm max-w-md">
+        <h3 className="text-[var(--aesthetic-accent)] font-typewriter font-bold mb-2">
+          AWAITING FIRST LEAD
         </h3>
-        <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
-          Send a message to generate UI using A2UI v0.9 protocol.
+        <p className="text-[var(--aesthetic-text)]/60 font-mono text-xs">
+          Type a command in the Interrogation Log to open your first surface.
         </p>
       </div>
     );
