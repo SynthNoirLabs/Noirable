@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { A2UIRenderer } from "@/components/renderer/A2UIRenderer";
 import { Search, X } from "lucide-react";
@@ -53,6 +54,7 @@ export function EvidenceBoard({
   };
 
   const shouldShowFallback = sortedEntries.length === 0 && fallbackEvidence;
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <div
@@ -241,15 +243,23 @@ export function EvidenceBoard({
 
       {activeEntry && (
         <div className="w-full flex flex-col items-center relative mt-6">
-          <div
+          <motion.div
+            key={activeEntry.id}
+            initial={prefersReducedMotion ? false : { scale: 1.8, opacity: 0, rotate: -18 }}
+            animate={{ scale: 1, opacity: 1, rotate: -6 }}
+            transition={
+              prefersReducedMotion
+                ? { duration: 0 }
+                : { type: "spring", stiffness: 700, damping: 18, mass: 0.6 }
+            }
             className={cn(
-              "absolute -top-5 right-8 rotate-[-6deg] px-3 py-1 border-2 text-[10px] font-mono uppercase tracking-[0.4em] backdrop-blur-sm z-10",
+              "absolute -top-5 right-8 px-3 py-1 border-2 text-[10px] font-mono uppercase tracking-[0.4em] backdrop-blur-sm z-10",
               stampStyle(activeStamp)
             )}
             data-testid="evidence-stamp"
           >
             {activeStamp}
-          </div>
+          </motion.div>
           <div className="w-full">
             <A2UIRenderer data={activeEntry.data} />
           </div>

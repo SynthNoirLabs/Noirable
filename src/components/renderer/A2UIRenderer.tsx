@@ -19,6 +19,19 @@ interface A2UIRendererProps {
 
 export type { FormValues };
 
+// Variant map uses CSS variables for theme-awareness (unlike exported
+// token-maps which use hardcoded colors). Hoisted to module scope so it is not
+// re-allocated on every render.
+const variantMap: Record<string, string> = {
+  primary:
+    "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] border-[var(--aesthetic-accent)]/60",
+  secondary:
+    "bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] border-[var(--aesthetic-border)]/50",
+  ghost: "bg-transparent text-[var(--aesthetic-text)] border-[var(--aesthetic-border)]/40",
+  danger:
+    "bg-[var(--aesthetic-error)] text-[var(--aesthetic-text)] border-[var(--aesthetic-error)]/60",
+};
+
 function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
   const formContext = useFormContext();
   const result = a2uiInputSchema.safeParse(data);
@@ -37,17 +50,6 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
   }
 
   const component = result.data;
-
-  // Variant map uses CSS variables for theme-awareness (unlike exported token-maps which use hardcoded colors)
-  const variantMap: Record<string, string> = {
-    primary:
-      "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] border-[var(--aesthetic-accent)]/60",
-    secondary:
-      "bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] border-[var(--aesthetic-border)]/50",
-    ghost: "bg-transparent text-[var(--aesthetic-text)] border-[var(--aesthetic-border)]/40",
-    danger:
-      "bg-[var(--aesthetic-error)] text-[var(--aesthetic-text)] border-[var(--aesthetic-error)]/60",
-  };
 
   type TabsNode = Extract<A2UIInput, { type: "tabs" }>;
 
@@ -184,11 +186,11 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <HeadingTag
             className={cn(
-              "font-typewriter text-[var(--aesthetic-text)]",
-              node.level === 1 && "text-3xl",
-              node.level === 2 && "text-2xl",
-              node.level === 3 && "text-xl",
-              node.level === 4 && "text-lg",
+              "font-typewriter font-bold text-[var(--aesthetic-text)]",
+              node.level === 1 && "text-3xl mb-4",
+              node.level === 2 && "text-2xl mb-3",
+              node.level === 3 && "text-xl mb-2",
+              node.level === 4 && "text-lg mb-2",
               node.style?.className
             )}
           >
@@ -223,8 +225,10 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <span
             className={cn(
-              "inline-flex items-center gap-2 px-2 py-1 text-[10px] uppercase tracking-[0.2em] border rounded-sm font-typewriter",
-              node.variant ? variantMap[node.variant] : "border-[var(--aesthetic-border)]/40",
+              "inline-flex items-center gap-2 px-2 py-1 text-[10px] uppercase tracking-[0.2em] border rounded-sm font-typewriter transition-colors hover:border-[var(--aesthetic-accent)]/70 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)]",
+              node.variant
+                ? variantMap[node.variant]
+                : "bg-[var(--aesthetic-surface)]/40 border-[var(--aesthetic-border)]/40",
               node.style?.className
             )}
           >
@@ -266,18 +270,18 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <div
             className={cn(
-              "w-full overflow-x-auto",
+              "w-full overflow-x-auto border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 rounded-sm shadow-[0_0_14px_rgba(0,0,0,0.35)] p-3",
               node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
           >
             <table className="w-full border-collapse text-xs font-mono">
               <thead>
-                <tr className="text-[var(--aesthetic-text)]/70">
+                <tr className="bg-[var(--aesthetic-surface)]/60 text-[var(--aesthetic-text)]">
                   {node.columns.map((col, index) => (
                     <th
                       key={index}
-                      className="text-left border-b border-[var(--aesthetic-border)]/40 pb-2 pr-3 uppercase tracking-[0.2em]"
+                      className="text-left border-b-2 border-[var(--aesthetic-accent)]/40 pb-2 pr-3 pl-2 uppercase tracking-[0.2em]"
                     >
                       {col}
                     </th>
@@ -286,9 +290,15 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               </thead>
               <tbody>
                 {node.rows.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="border-b border-[var(--aesthetic-border)]/20">
+                  <tr
+                    key={rowIndex}
+                    className="border-b border-[var(--aesthetic-border)]/20 odd:bg-[var(--aesthetic-surface)]/20 hover:bg-[var(--aesthetic-accent)]/5 transition-colors"
+                  >
                     {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="py-2 pr-3 text-[var(--aesthetic-text)]/80">
+                      <td
+                        key={cellIndex}
+                        className="py-2 pr-3 pl-2 text-[var(--aesthetic-text)]/80"
+                      >
                         {cell}
                       </td>
                     ))}
@@ -302,14 +312,14 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
         return (
           <div
             className={cn(
-              "border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3 rounded-sm shadow-[0_0_12px_rgba(0,0,0,0.35)]",
+              "border border-t-2 border-[var(--aesthetic-border)]/60 border-t-[var(--aesthetic-accent)]/50 bg-[var(--aesthetic-surface)]/70 px-4 py-3 rounded-sm shadow-[0_0_12px_rgba(0,0,0,0.35)]",
               node.style?.className
             )}
           >
             <div className="text-[10px] uppercase tracking-[0.3em] text-[var(--aesthetic-text)]/60 font-typewriter">
               {node.label}
             </div>
-            <div className="text-2xl text-[var(--aesthetic-text)] font-typewriter mt-2">
+            <div className="text-3xl md:text-4xl font-typewriter text-[var(--aesthetic-accent)] tabular-nums mt-2">
               {node.value}
             </div>
             {node.helper && (
@@ -336,16 +346,25 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           );
         }
         return (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={node.src}
-            alt={node.alt ?? "Generated image"}
+          <figure
             className={cn(
-              "rounded-sm object-cover",
+              "inline-block bg-[#0d0d0d] p-2 pb-7 border border-[var(--aesthetic-border)]/50 rounded-sm rotate-[-0.6deg] shadow-[0_10px_30px_rgba(0,0,0,0.45)]",
               node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
-          />
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={node.src}
+              alt={node.alt ?? "Generated image"}
+              className="block w-full max-w-full object-cover sepia-[0.15]"
+            />
+            {node.alt && (
+              <figcaption className="mt-2 px-1 font-typewriter text-[10px] uppercase tracking-[0.25em] text-[var(--aesthetic-text)]/60">
+                Exhibit — {node.alt}
+              </figcaption>
+            )}
+          </figure>
         );
       case "input": {
         const inputName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");
@@ -362,7 +381,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               defaultValue={node.value ?? ""}
               onChange={(e) => formContext?.setValue(inputName, e.target.value)}
               className={cn(
-                "bg-transparent border-b border-[var(--aesthetic-border)]/30 py-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                "bg-[var(--aesthetic-surface)]/50 border border-[var(--aesthetic-border)]/60 rounded-sm px-3 py-2 text-sm text-[var(--aesthetic-text)] placeholder:text-[var(--aesthetic-text)]/40 focus:border-[var(--aesthetic-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 node.variant ? variantMap[node.variant] : ""
               )}
             />
@@ -385,7 +404,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               onChange={(e) => formContext?.setValue(textareaName, e.target.value)}
               rows={node.rows ?? 3}
               className={cn(
-                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                "bg-[var(--aesthetic-surface)]/50 border border-[var(--aesthetic-border)]/60 rounded-sm px-3 py-2 text-sm text-[var(--aesthetic-text)] placeholder:text-[var(--aesthetic-text)]/40 focus:border-[var(--aesthetic-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 node.variant ? variantMap[node.variant] : ""
               )}
             />
@@ -406,7 +425,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               defaultValue={node.value ?? node.options[0]}
               onChange={(e) => formContext?.setValue(selectName, e.target.value)}
               className={cn(
-                "bg-transparent border border-[var(--aesthetic-border)]/30 p-2 text-sm text-[var(--aesthetic-text)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                "appearance-none bg-[var(--aesthetic-surface)]/50 border border-[var(--aesthetic-border)]/60 rounded-sm pl-3 pr-8 py-2 text-sm text-[var(--aesthetic-text)] focus:border-[var(--aesthetic-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] bg-[length:0.7rem] bg-[right_0.6rem_center] bg-no-repeat [background-image:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23ffbf00' stroke-width='1.5'><path d='M2 4l4 4 4-4'/></svg>\")] [&>option]:bg-[var(--aesthetic-surface)] [&>option]:text-[var(--aesthetic-text)]",
                 node.variant ? variantMap[node.variant] : ""
               )}
             >
@@ -430,7 +449,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
               name={checkboxName}
               defaultChecked={node.checked ?? false}
               onChange={(e) => formContext?.setValue(checkboxName, e.target.checked)}
-              className="focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+              className="w-4 h-4 accent-[var(--aesthetic-accent)] focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
             />
             <label htmlFor={checkboxId} className="font-typewriter text-[var(--aesthetic-text)]/70">
               {node.label}
@@ -464,7 +483,7 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
             type="button"
             onClick={handleClick}
             className={cn(
-              "px-3 py-2 text-xs uppercase tracking-widest border rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+              "px-3 py-2 text-xs uppercase tracking-[0.25em] font-typewriter rounded-sm border shadow-[0_2px_0_rgba(0,0,0,0.4)] hover:brightness-110 active:translate-y-px focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
               node.variant ? variantMap[node.variant] : "",
               node.style?.className
             )}

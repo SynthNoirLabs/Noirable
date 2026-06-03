@@ -44,6 +44,7 @@ export function DossierCard({
       <div className="border-b-2 border-[var(--aesthetic-border)]/10 pb-4 mb-4">
         <TypewriterText
           content={title}
+          glow={false}
           className="text-2xl font-bold text-[var(--aesthetic-border)]"
         />
       </div>
@@ -52,6 +53,7 @@ export function DossierCard({
         <TypewriterText
           content={description}
           priority="low"
+          glow={false}
           className="text-sm leading-relaxed text-[var(--aesthetic-border)]/80"
         />
       )}

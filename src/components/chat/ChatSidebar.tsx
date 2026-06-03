@@ -10,7 +10,6 @@ import {
   Settings as SettingsIcon,
   PanelRightClose,
   Volume2,
-  VolumeX,
   Copy,
   Check,
   Loader2,
@@ -30,6 +29,13 @@ export interface Message {
   content: string;
   toolInvocations?: unknown[];
 }
+
+/** Suggested first commands shown in the empty chat state. */
+const STARTER_COMMANDS = [
+  "Build a suspect profile card",
+  "Lay out a case dashboard",
+  "Draft a witness contact form",
+];
 
 interface ChatSidebarProps {
   className?: string;
@@ -96,9 +102,11 @@ export function ChatSidebar({
   const ttsSetting = ttsEnabled ?? true;
   const musicSetting = musicEnabled ?? false;
 
+  // Scroll only when a message is added/removed, not on every streamed-token
+  // identity change (which caused a forced reflow per chunk).
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages.length]);
 
   useEffect(() => {
     let isMounted = true;
@@ -248,8 +256,9 @@ export function ChatSidebar({
         await audio.play();
       } catch (error) {
         console.error("TTS playback failed:", error);
-        setTtsLoadingId(null);
-        setTtsPlayingId(null);
+        // Fully tear down so a partially-created Audio/object URL is revoked
+        // rather than leaked on an aborted playback.
+        stopTts();
       }
     },
     [elevenLabsConfigured, stopTts, ttsPlayingId, ttsSetting]
@@ -349,6 +358,21 @@ export function ChatSidebar({
               className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 opacity-10 pointer-events-none"
             />
             <span className="relative z-10">No record found. Begin interrogation.</span>
+            <div className="relative z-10 mt-5 flex flex-col gap-2 max-w-xs mx-auto">
+              {STARTER_COMMANDS.map((text) => (
+                <button
+                  key={text}
+                  type="button"
+                  onClick={() => {
+                    void sendMessage({ text });
+                  }}
+                  className="w-full text-left border border-[var(--aesthetic-border)]/40 rounded-sm px-3 py-2 font-mono text-[11px] normal-case tracking-normal text-[var(--aesthetic-text)]/70 hover:border-[var(--aesthetic-accent)]/50 hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+                >
+                  <span className="text-[var(--aesthetic-accent)]/40 mr-2">&gt;</span>
+                  {text}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         <AnimatePresence initial={false}>
@@ -460,9 +484,14 @@ export function ChatSidebar({
                     )}
                   >
                     {ttsLoadingId === m.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--aesthetic-accent)]" />
                     ) : ttsPlayingId === m.id ? (
-                      <VolumeX className="w-3.5 h-3.5" />
+                      // Wire-tap equalizer: the transmission is live.
+                      <span className="flex items-end gap-[2px] h-3.5" aria-hidden="true">
+                        <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:0ms]" />
+                        <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:150ms]" />
+                        <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:300ms]" />
+                      </span>
                     ) : (
                       <Volume2 className="w-3.5 h-3.5" />
                     )}

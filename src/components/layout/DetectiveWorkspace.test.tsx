@@ -85,7 +85,8 @@ describe("DetectiveWorkspace", () => {
     const textarea = container.querySelector("textarea");
     if (!textarea) throw new Error("Textarea not found");
 
-    expect(screen.getAllByText("Evidence #1").length).toBeGreaterThan(0);
+    // With no evidence yet, the first-run case-board empty state is shown.
+    expect(screen.getByText(/CASE FILE \/\/ UNOPENED/i)).toBeInTheDocument();
 
     const newJson = JSON.stringify(
       {
