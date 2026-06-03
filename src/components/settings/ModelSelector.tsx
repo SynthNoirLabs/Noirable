@@ -74,16 +74,20 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
 
       <div className="space-y-1.5 relative">
         <label className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5">
-          <Server className="w-3 h-3 text-[var(--aesthetic-accent)]/70" />
+          <Server className="w-3 h-3 text-[var(--aesthetic-accent)]/70" aria-hidden="true" />
           Provider Protocol
         </label>
 
         <div className="relative">
           <button
+            role="combobox"
+            aria-haspopup="listbox"
+            aria-expanded={activeDropdown === "provider"}
+            aria-controls="provider-listbox"
             onClick={() => setActiveDropdown(activeDropdown === "provider" ? null : "provider")}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
-              "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
+              "bg-[var(--aesthetic-surface)]/50 border rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
               activeDropdown === "provider"
                 ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
                 : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text)] hover:border-[var(--aesthetic-border)]/60 hover:bg-[var(--aesthetic-text)]/5"
@@ -91,6 +95,7 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
           >
             <span className="truncate">{currentProviderLabel}</span>
             <ChevronDown
+              aria-hidden="true"
               className={cn(
                 "w-3 h-3 transition-transform duration-200 opacity-70",
                 activeDropdown === "provider" && "rotate-180 text-[var(--aesthetic-accent)]"
@@ -107,13 +112,20 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                 transition={{ duration: 0.15, ease: "circOut" }}
                 className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md"
               >
-                <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20">
+                <div
+                  id="provider-listbox"
+                  role="listbox"
+                  aria-label="Provider Protocol"
+                  className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20"
+                >
                   {PROVIDERS.map((provider) => (
                     <button
                       key={provider.id}
+                      role="option"
+                      aria-selected={modelConfig.provider === provider.id}
                       onClick={() => handleProviderChange(provider.id)}
                       className={cn(
-                        "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
+                        "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                         modelConfig.provider === provider.id
                           ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)] border-l-2 border-l-[var(--aesthetic-accent)] pl-[10px]"
                           : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)] border-l-2 border-l-transparent"
@@ -134,7 +146,7 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
 
       <div className="space-y-1.5 relative">
         <label className="text-[10px] font-typewriter text-[var(--aesthetic-text)]/60 uppercase tracking-wider flex items-center gap-1.5">
-          <Cpu className="w-3 h-3 text-[var(--aesthetic-accent)]/70" />
+          <Cpu className="w-3 h-3 text-[var(--aesthetic-accent)]/70" aria-hidden="true" />
           Model Architecture
         </label>
 
@@ -160,10 +172,14 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
         ) : (
           <div className="relative">
             <button
+              role="combobox"
+              aria-haspopup="listbox"
+              aria-expanded={activeDropdown === "model"}
+              aria-controls="model-listbox"
               onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-xs font-mono transition-all duration-200",
-                "bg-[var(--aesthetic-surface)]/50 border rounded-sm outline-none focus:ring-1 focus:ring-[var(--aesthetic-accent)]/30",
+                "bg-[var(--aesthetic-surface)]/50 border rounded-sm focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                 activeDropdown === "model"
                   ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
                   : "border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text)] hover:border-[var(--aesthetic-border)]/60 hover:bg-[var(--aesthetic-text)]/5"
@@ -171,6 +187,7 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
             >
               <span className="truncate">{modelConfig.model || "Select Model..."}</span>
               <ChevronDown
+                aria-hidden="true"
                 className={cn(
                   "w-3 h-3 transition-transform duration-200 opacity-70",
                   activeDropdown === "model" && "rotate-180 text-[var(--aesthetic-accent)]"
@@ -187,14 +204,21 @@ export function ModelSelector({ modelConfig, onConfigChange }: ModelSelectorProp
                   transition={{ duration: 0.15, ease: "circOut" }}
                   className="absolute top-full left-0 right-0 mt-1 z-50 overflow-hidden rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/95 shadow-xl backdrop-blur-md"
                 >
-                  <div className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20">
+                  <div
+                    id="model-listbox"
+                    role="listbox"
+                    aria-label="Model Architecture"
+                    className="max-h-[200px] overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/20"
+                  >
                     {availableModels.length > 0 ? (
                       availableModels.map((model) => (
                         <button
                           key={model}
+                          role="option"
+                          aria-selected={modelConfig.model === model}
                           onClick={() => handleModelChange(model)}
                           className={cn(
-                            "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors",
+                            "w-full text-left px-3 py-2 text-xs font-mono flex items-center justify-between group transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--aesthetic-accent)] focus-visible:outline-none",
                             modelConfig.model === model
                               ? "bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)] border-l-2 border-l-[var(--aesthetic-accent)] pl-[10px]"
                               : "text-[var(--aesthetic-text)]/80 hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)] border-l-2 border-l-transparent"

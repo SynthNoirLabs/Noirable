@@ -78,11 +78,14 @@ export function EvidenceBoard({
         <div className="flex items-center justify-end gap-4 relative z-20 bg-[var(--aesthetic-background)]/20 backdrop-blur-sm rounded-sm px-4 py-3 border border-[var(--aesthetic-border)]/20 mb-4">
           {/* Search Input */}
           <div className="relative flex items-center">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--aesthetic-text)]/50 pointer-events-none" />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--aesthetic-text)]/50 pointer-events-none"
+              aria-hidden="true"
+            />
             <input
               id="evidence-search"
               name="evidence-search"
-              type="text"
+              type="search"
               aria-label="Search evidence"
               placeholder="Search evidence..."
               value={searchQuery}
@@ -94,9 +97,10 @@ export function EvidenceBoard({
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
+                title="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--aesthetic-text)]/40 hover:text-[var(--aesthetic-accent)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3 h-3" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -106,6 +110,7 @@ export function EvidenceBoard({
               type="button"
               onClick={() => setView("grid")}
               aria-pressed={view === "grid"}
+              title="Grid view"
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "grid"
@@ -119,6 +124,7 @@ export function EvidenceBoard({
               type="button"
               onClick={() => setView("list")}
               aria-pressed={view === "list"}
+              title="List view"
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "list"
@@ -132,6 +138,7 @@ export function EvidenceBoard({
               type="button"
               onClick={() => setView("timeline")}
               aria-pressed={view === "timeline"}
+              title="Timeline view"
               className={cn(
                 "px-3 py-1.5 border rounded transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
                 view === "timeline"
