@@ -80,9 +80,11 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
       return emit(builder, { id, component: "Text", text: node.text });
 
     case "callout": {
-      // No catalog equivalent — wrap the text in a Card for visual emphasis.
+      // No catalog equivalent. Rendering as a noir Card produces a light
+      // aged-paper block that clashes with the dark board, so emit a plain
+      // Column on the dark surface instead (light text, in-theme).
       const childId = emitText(builder, node.content);
-      return emit(builder, { id, component: "Card", child: childId });
+      return emit(builder, { id, component: "Column", children: [childId] });
     }
 
     case "badge":
@@ -102,6 +104,9 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
     }
 
     case "stat": {
+      // Render as a plain Column on the dark surface rather than a paper Card —
+      // a grid of full-width light-paper cards reads as heavy white bars and
+      // fights the noir theme. A label + prominent value column is enough.
       const childIds: string[] = [
         emitText(builder, node.label, "caption"),
         emitText(builder, node.value, "h3"),
@@ -109,12 +114,7 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
       if (node.helper) {
         childIds.push(emitText(builder, node.helper, "caption"));
       }
-      const columnId = emit(builder, {
-        id: builder.nextId(),
-        component: "Column",
-        children: childIds,
-      });
-      return emit(builder, { id, component: "Card", child: columnId });
+      return emit(builder, { id, component: "Column", children: childIds });
     }
 
     case "container":

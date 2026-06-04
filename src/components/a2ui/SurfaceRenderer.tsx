@@ -37,6 +37,19 @@ const SurfaceContext = createContext<SurfaceContextValue | null>(null);
  */
 const ScopeContext = createContext<unknown>(undefined);
 
+/**
+ * True when the current subtree is rendered inside a noir Card / PaperFrame,
+ * which has a LIGHT aged-paper background. Descendant text must then use the
+ * dark ink color instead of the light `--aesthetic-text` (which would be
+ * near-invisible white-on-paper). Defaults to false (dark surface).
+ */
+const OnPaperContext = createContext<boolean>(false);
+
+/** Text color class for the current surface (ink on paper, light elsewhere). */
+function useTextColorClass(): string {
+  return useContext(OnPaperContext) ? "text-noir-ink" : "text-[var(--aesthetic-text)]";
+}
+
 export function useSurfaceContext(): SurfaceContextValue {
   const ctx = useContext(SurfaceContext);
   if (!ctx) {
@@ -284,7 +297,13 @@ function CardRenderer({ component }: ComponentProps) {
   );
 
   if (theme === "noir") {
-    return <PaperFrame>{body}</PaperFrame>;
+    // The noir PaperFrame has a LIGHT aged-paper background, so descendant text
+    // must switch to dark ink (otherwise light --aesthetic-text is invisible).
+    return (
+      <OnPaperContext.Provider value={true}>
+        <PaperFrame>{body}</PaperFrame>
+      </OnPaperContext.Provider>
+    );
   }
 
   return (
@@ -429,7 +448,7 @@ function TextRenderer({ component }: ComponentProps) {
 
   const content = String(resolve(text.text) ?? "");
   const variant = text.variant || "body";
-  const baseClass = "text-[var(--aesthetic-text)] font-mono";
+  const baseClass = cn(useTextColorClass(), "font-mono");
 
   switch (variant) {
     case "h1":

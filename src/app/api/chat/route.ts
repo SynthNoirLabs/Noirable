@@ -3,6 +3,7 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  stepCountIs,
 } from "ai";
 import type { UIMessage } from "ai";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
@@ -292,6 +293,14 @@ export async function POST(req: Request) {
       messages: convertedMessages,
       system: buildSystemPrompt(evidence, aestheticId),
       tools,
+      // Run a second step after the generate_ui tool result so the model writes
+      // its in-character narration (without this, streamText stops after the
+      // tool call and the assistant reply is empty). On that second step we
+      // disable the tools entirely — otherwise the model just calls generate_ui
+      // again instead of talking, which leaves the reply empty and can stall the
+      // client stream.
+      stopWhen: stepCountIs(2),
+      prepareStep: ({ stepNumber }) => (stepNumber === 0 ? {} : { activeTools: [] }),
     });
 
     // toUIMessageStreamResponse is the confirmed method in ai@6.0.41 d.ts

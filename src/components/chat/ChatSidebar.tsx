@@ -213,6 +213,11 @@ export function ChatSidebar({
         return;
       }
 
+      // Nothing to speak (e.g. a tool-call-only assistant message with no text).
+      if (!message.content || message.content.trim().length === 0) {
+        return;
+      }
+
       if (ttsPlayingId === message.id) {
         stopTts();
         return;
