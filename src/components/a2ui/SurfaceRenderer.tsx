@@ -9,7 +9,6 @@ import { runChecks, type CheckRule } from "@/lib/a2ui/validation";
 import { dispatchAction } from "@/lib/a2ui/events/dispatch";
 import type { ActionMessage, ServerMessage } from "@/lib/a2ui/schema/messages";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
-import { PaperFrame } from "@/components/noir/Surface";
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -36,19 +35,6 @@ const SurfaceContext = createContext<SurfaceContextValue | null>(null);
  * than the surface root. Undefined at the top level.
  */
 const ScopeContext = createContext<unknown>(undefined);
-
-/**
- * True when the current subtree is rendered inside a noir Card / PaperFrame,
- * which has a LIGHT aged-paper background. Descendant text must then use the
- * dark ink color instead of the light `--aesthetic-text` (which would be
- * near-invisible white-on-paper). Defaults to false (dark surface).
- */
-const OnPaperContext = createContext<boolean>(false);
-
-/** Text color class for the current surface (ink on paper, light elsewhere). */
-function useTextColorClass(): string {
-  return useContext(OnPaperContext) ? "text-noir-ink" : "text-[var(--aesthetic-text)]";
-}
 
 export function useSurfaceContext(): SurfaceContextValue {
   const ctx = useContext(SurfaceContext);
@@ -256,7 +242,7 @@ function ColumnRenderer({ component }: ComponentProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2",
+        "flex flex-col gap-3",
         col.justify === "center" && "justify-center",
         col.justify === "end" && "justify-end",
         col.align === "center" && "items-center",
@@ -298,18 +284,17 @@ function CardRenderer({ component }: ComponentProps) {
     <MissingComponent id={card.child || "unknown"} />
   );
 
-  if (theme === "noir") {
-    // The noir PaperFrame has a LIGHT aged-paper background, so descendant text
-    // must switch to dark ink (otherwise light --aesthetic-text is invisible).
-    return (
-      <OnPaperContext.Provider value={true}>
-        <PaperFrame>{body}</PaperFrame>
-      </OnPaperContext.Provider>
-    );
-  }
-
+  // A dark elevated card with a thin amber top accent — reads as "evidence on
+  // the board" without the jarring light paper block on a dark surface. (The
+  // aged-paper DossierCard look lives elsewhere; the generic renderer stays in
+  // the dark palette so cards never look like unstyled white boxes.)
   return (
-    <div className="bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm p-4 shadow-lg">
+    <div
+      className={cn(
+        "rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/60 p-5",
+        "border-t-2 border-t-[var(--aesthetic-accent)]/60 shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+      )}
+    >
       {body}
     </div>
   );
@@ -580,7 +565,7 @@ function TextRenderer({ component }: ComponentProps) {
 
   const content = String(resolve(text.text) ?? "");
   const variant = text.variant || "body";
-  const baseClass = cn(useTextColorClass(), "font-mono");
+  const baseClass = "text-[var(--aesthetic-text)] font-mono";
 
   switch (variant) {
     case "h1":
@@ -872,7 +857,7 @@ function CheckBoxRenderer({ component }: ComponentProps) {
             markTouched();
             if (bindingPath) setData(bindingPath, e.currentTarget.checked);
           }}
-          className="w-4 h-4 accent-[var(--aesthetic-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+          className="w-4 h-4 accent-[var(--aesthetic-accent)] [color-scheme:dark] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
         />
         {label}
       </label>
@@ -912,7 +897,7 @@ function SliderRenderer({ component }: ComponentProps) {
         onChange={(e) => {
           if (bindingPath) setData(bindingPath, Number(e.currentTarget.value));
         }}
-        className="w-full h-1 rounded-lg appearance-none cursor-pointer accent-[var(--aesthetic-accent)] bg-[var(--aesthetic-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[var(--aesthetic-accent)] bg-[var(--aesthetic-text)]/15 border border-[var(--aesthetic-border)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
       />
     </label>
   );
@@ -990,7 +975,7 @@ function ChoicePickerRenderer({ component }: ComponentProps) {
               name={`choice-${component.id}`}
               checked={isSelected}
               onChange={() => toggle(option.value)}
-              className="w-4 h-4 accent-[var(--aesthetic-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+              className="w-4 h-4 accent-[var(--aesthetic-accent)] [color-scheme:dark] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
             />
             {optLabel}
           </label>

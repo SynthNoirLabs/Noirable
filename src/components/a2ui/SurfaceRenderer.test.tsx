@@ -23,17 +23,20 @@ describe("SurfaceRenderer", () => {
     expect(screen.getByText("Closed case")).toBeInTheDocument();
   });
 
-  it("wraps a noir Card in the aged-paper dossier frame", () => {
+  it("renders a Card as a dark elevated panel (no light paper box on the dark board)", () => {
     const surface = makeSurface([
       { id: "root", component: "Card", child: "body" },
       { id: "body", component: "Text", text: "Evidence" },
     ]);
     const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
-    expect(container.querySelector(".bg-paper")).not.toBeNull();
+    // The jarring light aged-paper frame (.bg-paper) is gone; cards now stay in
+    // the dark palette with a thin amber top accent.
+    expect(container.querySelector(".bg-paper")).toBeNull();
+    expect(container.querySelector(".border-t-2")).not.toBeNull();
     expect(screen.getByText("Evidence")).toBeInTheDocument();
   });
 
-  it("uses the clean elevated box for the standard theme", () => {
+  it("renders the same dark card for the standard theme", () => {
     const surface = makeSurface([
       { id: "root", component: "Card", child: "body" },
       { id: "body", component: "Text", text: "Evidence" },
