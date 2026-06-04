@@ -359,7 +359,7 @@ describe("Image", () => {
   });
 
   it("validates all image fit options", () => {
-    const fits = ["contain", "cover", "fill", "none", "scale-down"];
+    const fits = ["contain", "cover", "fill", "none", "scaleDown"];
     for (const fit of fits) {
       const result = imageSchema.safeParse({
         id: `img-${fit}`,

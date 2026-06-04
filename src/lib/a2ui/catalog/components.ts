@@ -122,8 +122,9 @@ const componentCommonSchema = z.object({
 // Text variant tokens
 const textVariantToken = z.enum(["h1", "h2", "h3", "h4", "h5", "caption", "body"]);
 
-// Image fit tokens
-const imageFitToken = z.enum(["contain", "cover", "fill", "none", "scale-down"]);
+// Image fit tokens — camelCase `scaleDown` matches the official A2UI basic
+// catalog (ImageApi: `z.enum(['contain','cover','fill','none','scaleDown'])`).
+const imageFitToken = z.enum(["contain", "cover", "fill", "none", "scaleDown"]);
 
 // Image variant tokens
 const imageVariantToken = z.enum([
@@ -135,8 +136,10 @@ const imageVariantToken = z.enum([
   "header",
 ]);
 
-// Button variant tokens
-const buttonVariantToken = z.enum(["primary", "borderless"]);
+// Button variant tokens — `default` matches the official A2UI basic catalog
+// (ButtonApi: `z.enum(['default','primary','borderless']).default('default')`).
+// `default` and `primary` both render filled; `borderless` renders link-style.
+const buttonVariantToken = z.enum(["default", "primary", "borderless"]);
 
 // TextField variant tokens
 const textFieldVariantToken = z.enum(["longText", "number", "shortText", "obscured"]);
@@ -411,6 +414,9 @@ export type TextField = z.infer<typeof textFieldSchema>;
  */
 export const dateTimeInputSchema = componentCommonSchema.extend({
   component: z.literal("DateTimeInput"),
+  // `label` is the text caption for the field (matches the official
+  // DateTimeInputApi); the renderer falls back to `accessibility.label`.
+  label: dynamicStringSchema.optional(),
   value: dynamicStringSchema,
   enableDate: z.boolean().optional(),
   enableTime: z.boolean().optional(),
@@ -449,6 +455,9 @@ export const sliderSchema = componentCommonSchema.extend({
   label: dynamicStringSchema.optional(),
   min: z.number(),
   max: z.number(),
+  // `step` controls the slider's granularity (matches the official SliderApi:
+  // `step: z.number().optional()`); omitted means the HTML default of 1.
+  step: z.number().optional(),
   value: dynamicNumberSchema,
   checks: z.array(checkRuleSchema).optional(),
 });

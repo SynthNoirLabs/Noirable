@@ -192,8 +192,19 @@ function FieldError({ error }: { error: string | null }) {
  * Render a component's children. `children` is the raw childList field: either
  * a static `string[]` or a template `{ componentId, path }`. Template-expanded
  * children carry a per-item scope, provided to descendants via ScopeContext.
+ *
+ * When `applyWeight` is set (Row/Column only, per the A2UI spec: `weight` is
+ * "similar to CSS flex-grow ... ONLY when a direct descendant of a Row or
+ * Column"), a child with a positive numeric `weight` is wrapped in a flex item
+ * that grows proportionally. Unweighted children stay as plain flex items.
  */
-function ChildList({ childList }: { childList: unknown }) {
+function ChildList({
+  childList,
+  applyWeight = false,
+}: {
+  childList: unknown;
+  applyWeight?: boolean;
+}) {
   const { getComponent, dataModel } = useSurfaceContext();
   const resolved = resolveChildList(childList, dataModel);
   return (
@@ -201,7 +212,15 @@ function ChildList({ childList }: { childList: unknown }) {
       {resolved.map(({ componentId, scope, key }) => {
         const child = getComponent(componentId);
         if (!child) return <MissingComponent key={key} id={componentId} />;
-        const node = <ComponentRenderer component={child} />;
+        let node = <ComponentRenderer component={child} />;
+        const weight = (child as { weight?: unknown }).weight;
+        if (applyWeight && typeof weight === "number" && weight > 0) {
+          node = (
+            <div style={{ flexGrow: weight }} className="min-w-0">
+              {node}
+            </div>
+          );
+        }
         return scope !== undefined ? (
           <ScopeContext.Provider key={key} value={scope}>
             {node}
@@ -232,7 +251,7 @@ function RowRenderer({ component }: ComponentProps) {
         row.align === "stretch" && "items-stretch"
       )}
     >
-      <ChildList childList={(component as { children?: unknown }).children} />
+      <ChildList childList={(component as { children?: unknown }).children} applyWeight />
     </div>
   );
 }
@@ -250,7 +269,7 @@ function ColumnRenderer({ component }: ComponentProps) {
         col.align === "stretch" && "items-stretch"
       )}
     >
-      <ChildList childList={(component as { children?: unknown }).children} />
+      <ChildList childList={(component as { children?: unknown }).children} applyWeight />
     </div>
   );
 }
@@ -629,6 +648,8 @@ function ImageRenderer({ component }: ComponentProps) {
         "object-cover",
         img.fit === "contain" && "object-contain",
         img.fit === "fill" && "object-fill",
+        img.fit === "none" && "object-none",
+        img.fit === "scaleDown" && "object-scale-down",
         isInline
           ? sizeClasses[img.variant as keyof typeof sizeClasses]
           : "block w-full max-w-full sepia-[0.15]"
@@ -873,12 +894,14 @@ function SliderRenderer({ component }: ComponentProps) {
     label?: unknown;
     min?: number;
     max?: number;
+    step?: number;
     value?: unknown;
   };
 
   const label = slider.label ? String(resolve(slider.label)) : "Range";
   const min = typeof slider.min === "number" ? slider.min : 0;
   const max = typeof slider.max === "number" ? slider.max : 100;
+  const step = typeof slider.step === "number" && slider.step > 0 ? slider.step : undefined;
   const bindingPath = getBindingPath(slider.value);
   const resolved = resolve(slider.value);
   const value = typeof resolved === "number" ? resolved : Number(resolved) || min;
@@ -893,6 +916,7 @@ function SliderRenderer({ component }: ComponentProps) {
         type="range"
         min={min}
         max={max}
+        {...(step !== undefined ? { step } : {})}
         {...(bindingPath ? { value } : { defaultValue: value })}
         onChange={(e) => {
           if (bindingPath) setData(bindingPath, Number(e.currentTarget.value));
@@ -990,15 +1014,22 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
   const { setData } = useSurfaceContext();
   const resolve = useResolve();
   const dti = component as SurfaceComponent & {
+    label?: unknown;
     value?: unknown;
     enableDate?: boolean;
     enableTime?: boolean;
+    min?: unknown;
+    max?: unknown;
     accessibility?: { label?: unknown };
   };
 
   const bindingPath = getBindingPath(dti.value);
   const value = String(resolve(dti.value) ?? "");
-  const label = dti.accessibility?.label ? String(resolve(dti.accessibility.label)) : undefined;
+  // Prefer the top-level `label`; fall back to the accessibility label.
+  const labelSource = dti.label ?? dti.accessibility?.label;
+  const label = labelSource ? String(resolve(labelSource)) : undefined;
+  const min = dti.min != null ? String(resolve(dti.min) ?? "") : undefined;
+  const max = dti.max != null ? String(resolve(dti.max) ?? "") : undefined;
   const { error, markTouched } = useFieldValidation(value, checksOf(component));
 
   // Default to date when neither flag is set; pick the closest native type.
@@ -1022,6 +1053,8 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
         id={fieldId}
         type={inputType}
         aria-invalid={Boolean(error)}
+        {...(min ? { min } : {})}
+        {...(max ? { max } : {})}
         {...(bindingPath ? { value } : { defaultValue: value })}
         onChange={(e) => {
           markTouched();
