@@ -7,7 +7,7 @@ An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interfa
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
 [![Tests](https://img.shields.io/badge/tests-875%20passing-brightgreen)]()
 
-![Detective workspace with evidence board and chat](docs/screenshots/workspace.png)
+![Detective workspace with evidence board and chat](docs/screenshots/noirable_screen.jpg)
 
 ![Evidence board with generated UI component](docs/screenshots/evidence-board.png)
 
