@@ -6,6 +6,7 @@ import {
   Code,
   LayoutTemplate,
   Database,
+  Disc,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NoirEffects } from "@/components/noir/NoirEffects";
@@ -20,11 +21,14 @@ interface DeskLayoutProps {
   ejectPanel?: React.ReactNode;
   templatePanel?: React.ReactNode;
   trainingPanel?: React.ReactNode;
+  dictaphonePanel?: React.ReactNode;
   showEditor?: boolean;
   showSidebar?: boolean;
   showEject?: boolean;
+  showDictaphone?: boolean;
   showTemplates?: boolean;
   showTraining?: boolean;
+  onToggleDictaphone?: () => void;
   editorWidth?: number;
   sidebarWidth?: number;
   onToggleEditor?: () => void;
@@ -50,9 +54,11 @@ export function DeskLayout({
   ejectPanel,
   templatePanel,
   trainingPanel,
+  dictaphonePanel,
   showEditor = true,
   showSidebar = true,
   showEject = false,
+  showDictaphone = false,
   showTemplates = false,
   showTraining = false,
   editorWidth = 300,
@@ -62,6 +68,7 @@ export function DeskLayout({
   onToggleEject,
   onToggleTemplates,
   onToggleTraining,
+  onToggleDictaphone,
   onResizeEditor,
   onResizeSidebar,
   ambient,
@@ -76,6 +83,7 @@ export function DeskLayout({
   const isEjectVisible = Boolean(ejectPanel) && showEject;
   const isTemplatesVisible = Boolean(templatePanel) && showTemplates;
   const isTrainingVisible = Boolean(trainingPanel) && showTraining;
+  const isDictaphoneVisible = Boolean(dictaphonePanel) && showDictaphone;
   const ejectShortcut = formatShortcut(["mod", "e"]);
   // `persist` may rehydrate older saved settings that don't include newly added fields.
   // Merge with defaults to avoid undefined values.
@@ -96,6 +104,7 @@ export function DeskLayout({
     if (isEditorVisible) cols.push("var(--editor-w)");
     if (isTemplatesVisible) cols.push("280px");
     cols.push("1fr");
+    if (isDictaphoneVisible) cols.push("380px");
     if (isEjectVisible) cols.push("400px");
     if (isTrainingVisible) cols.push("420px");
     // Sidebar is now fixed position, not in grid - but reserve space with margin
@@ -300,6 +309,26 @@ export function DeskLayout({
                   Eject
                 </button>
               )}
+              {onToggleDictaphone && (
+                <button
+                  type="button"
+                  onClick={onToggleDictaphone}
+                  aria-label={showDictaphone ? "Hide dictaphone log" : "Show dictaphone log"}
+                  title={showDictaphone ? "Hide dictaphone log" : "Open dictaphone tape recorder"}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                    showDictaphone
+                      ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
+                      : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
+                  )}
+                >
+                  <Disc
+                    className={cn("w-3 h-3", showDictaphone && "animate-spin")}
+                    style={{ animationDuration: "3s" }}
+                  />
+                  Dictaphone
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -307,6 +336,12 @@ export function DeskLayout({
           {preview}
         </div>
       </div>
+
+      {isDictaphoneVisible && dictaphonePanel && (
+        <div className="h-full overflow-hidden border-l border-[var(--aesthetic-border)]/20 relative z-10">
+          {dictaphonePanel}
+        </div>
+      )}
 
       {isEjectVisible && ejectPanel && (
         <div className="h-full overflow-hidden relative z-10">{ejectPanel}</div>

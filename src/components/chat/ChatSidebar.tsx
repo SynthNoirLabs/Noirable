@@ -53,6 +53,12 @@ interface ChatSidebarProps {
   onModelConfigChange?: (config: ModelConfig) => void;
   onToggleCollapse?: () => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  generatedTapes?: Array<{
+    id: string;
+    text: string;
+    hash: string;
+    createdAt: number;
+  }>;
 }
 
 export function ChatSidebar({
@@ -71,6 +77,7 @@ export function ChatSidebar({
   onModelConfigChange,
   onToggleCollapse,
   inputRef,
+  generatedTapes = [],
 }: ChatSidebarProps) {
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
@@ -324,6 +331,22 @@ export function ChatSidebar({
         setTtsLoadingId(null);
         setTtsPlayingId(message.id);
         await audio.play();
+
+        const recordingHash = response.headers.get("x-recording-hash");
+        if (recordingHash) {
+          const alreadyExists = (generatedTapes || []).some((t) => t.hash === recordingHash);
+          if (!alreadyExists) {
+            const newTape = {
+              id: message.id,
+              text,
+              hash: recordingHash,
+              createdAt: Date.now(),
+            };
+            onUpdateSettings?.({
+              generatedTapes: [...(generatedTapes || []), newTape],
+            });
+          }
+        }
 
         // When audio starts playing, schedule the atmospheric effects based on estimated speaking timings
         if (sfxControls) {

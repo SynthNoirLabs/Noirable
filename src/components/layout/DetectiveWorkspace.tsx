@@ -16,6 +16,7 @@ import { TemplatePanel } from "@/components/templates/TemplatePanel";
 import { EvidenceSkeleton } from "@/components/board/EvidenceSkeleton";
 import { NoirErrorBoundary } from "@/components/shared/NoirErrorBoundary";
 import { TrainingDataPanel } from "@/components/training/TrainingDataPanel";
+import { DictaphonePanel } from "@/components/noir/DictaphonePanel";
 import type { A2UIInput } from "@/lib/protocol/schema";
 import { createTrainingExample, shouldCapture } from "@/lib/training";
 // A2UI v0.9 imports
@@ -466,6 +467,7 @@ export function DetectiveWorkspace() {
       showEditor={layout.showEditor}
       showSidebar={layout.showSidebar}
       showEject={layout.showEject}
+      showDictaphone={layout.showDictaphone}
       showTemplates={showTemplates}
       showTraining={showTraining}
       editorWidth={layout.editorWidth}
@@ -478,6 +480,7 @@ export function DetectiveWorkspace() {
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
       onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
+      onToggleDictaphone={() => updateLayout({ showDictaphone: !layout.showDictaphone })}
       onToggleTemplates={() => setShowTemplates(!showTemplates)}
       onToggleTraining={() => setShowTraining(!showTraining)}
       onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
@@ -486,6 +489,18 @@ export function DetectiveWorkspace() {
         <TemplatePanel onSelect={handleSelectTemplate} onClose={() => setShowTemplates(false)} />
       }
       trainingPanel={<TrainingDataPanel onClose={() => setShowTraining(false)} />}
+      dictaphonePanel={
+        <NoirErrorBoundary>
+          <DictaphonePanel
+            tapes={settings.generatedTapes ?? []}
+            onDeleteTape={(hash) => {
+              const updated = (settings.generatedTapes ?? []).filter((t) => t.hash !== hash);
+              updateSettings({ generatedTapes: updated });
+            }}
+            onClose={() => updateLayout({ showDictaphone: false })}
+          />
+        </NoirErrorBoundary>
+      }
       ejectPanel={
         <NoirErrorBoundary>
           <EjectPanel evidence={evidence} onClose={() => updateLayout({ showEject: false })} />
@@ -570,6 +585,7 @@ export function DetectiveWorkspace() {
           onModelConfigChange={(config) => updateSettings({ modelConfig: config })}
           onToggleCollapse={() => updateLayout({ showSidebar: false })}
           inputRef={chatInputRef}
+          generatedTapes={settings.generatedTapes}
         />
       }
     />
