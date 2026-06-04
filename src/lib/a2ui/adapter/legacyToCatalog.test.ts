@@ -135,6 +135,35 @@ describe("flattenLegacyToCatalog", () => {
     expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
   });
 
+  it("renders a select as a ChoicePicker with its options (not an empty TextField)", () => {
+    const { components } = flattenLegacyToCatalog({
+      type: "select",
+      label: "Case",
+      options: ["Case 904", "Case 887"],
+    });
+    const picker = components.find((c) => c.component === "ChoicePicker") as
+      | (SurfaceComponent & { options?: unknown })
+      | undefined;
+    expect(picker).toBeDefined();
+    expect(picker?.options).toEqual([
+      { label: "Case 904", value: "Case 904" },
+      { label: "Case 887", value: "Case 887" },
+    ]);
+  });
+
+  it("accepts tabs that use `children` or omit content entirely", () => {
+    // Regression: a tab with `children` (or no content at all) previously failed
+    // validation and discarded the whole tree.
+    const { components } = flattenLegacyToCatalog({
+      type: "tabs",
+      tabs: [
+        { id: "a", label: "Victims", children: [{ type: "text", content: "x" }] },
+        { id: "b", label: "Theory" },
+      ],
+    });
+    expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
+  });
+
   it("accepts a table whose columns are named `headers` (common model synonym)", () => {
     // Regression: a deeply-nested table using `headers` instead of `columns`
     // previously failed validation and discarded the ENTIRE tree, leaving only

@@ -500,27 +500,30 @@ export function normalizeA2UI(input: unknown): unknown {
   if (type === "tabs" && Array.isArray(normalized.tabs)) {
     normalized = {
       ...normalized,
-      tabs: normalized.tabs.map((tab) => {
+      tabs: normalized.tabs.map((tab, i) => {
         if (typeof tab !== "object" || tab === null) return tab;
         const tabObj = tab as Record<string, unknown>;
-        let updated = { ...tabObj };
 
-        if (!("content" in tabObj) && Array.isArray(tabObj.children)) {
-          updated = {
-            ...updated,
-            content: { type: "container", children: tabObj.children },
-          };
-          delete (updated as Record<string, unknown>).children;
+        // Each tab must be { label: string, content: A2UIComponent }. Models use
+        // many shapes: a `children` array, a `panel`/`body` alias, or just a
+        // label with the content omitted entirely. Coerce all of them, and drop
+        // stray fields like `id` that the tab schema doesn't allow.
+        const label =
+          typeof tabObj.label === "string"
+            ? tabObj.label
+            : typeof tabObj.title === "string"
+              ? tabObj.title
+              : `Tab ${i + 1}`;
+
+        let content = tabObj.content ?? tabObj.panel ?? tabObj.body;
+        if (content === undefined && Array.isArray(tabObj.children)) {
+          content = { type: "container", children: tabObj.children };
+        }
+        if (content === undefined || content === null) {
+          content = { type: "container", children: [] };
         }
 
-        if (updated.content) {
-          updated = {
-            ...updated,
-            content: normalizeA2UI(updated.content),
-          };
-        }
-
-        return updated;
+        return { label, content: normalizeA2UI(content) };
       }),
     };
   }

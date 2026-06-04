@@ -167,14 +167,32 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
       });
 
     case "input":
-    case "textarea":
-    case "select":
-      // TextField is the closest catalog input. Loses select options/rows.
       return emit(builder, {
         id,
         component: "TextField",
         label: node.label,
         ...(node.value ? { value: node.value } : {}),
+      });
+
+    case "textarea":
+      return emit(builder, {
+        id,
+        component: "TextField",
+        label: node.label,
+        variant: "longText",
+        ...(node.value ? { value: node.value } : {}),
+      });
+
+    case "select":
+      // Map to ChoicePicker (the catalog's option-list input) so the choices
+      // actually render — a TextField would show an empty box and lose them.
+      return emit(builder, {
+        id,
+        component: "ChoicePicker",
+        label: node.label,
+        variant: "mutuallyExclusive",
+        options: node.options.map((opt) => ({ label: opt, value: opt })),
+        value: node.value ? [node.value] : [],
       });
 
     case "checkbox":
