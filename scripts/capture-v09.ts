@@ -5,6 +5,7 @@
  *
  * Captures:
  *  - workspace.png     — main detective desk loads
+ *  - gallery.png       — every catalog component + variants in one surface
  *  - harness-initial   — the v0.9 harness with all 18-component features
  *  - harness-validated — after an invalid email (validation error visible)
  *  - harness-action    — after the server-action round-trip updates /status
@@ -40,20 +41,27 @@ async function main() {
   await page.waitForTimeout(500);
   await shot(page, "workspace");
 
-  // 2. The v0.9 harness — every new feature in one surface.
+  // 2. The component gallery — every catalog component in one surface (full page).
+  await page.goto(`${BASE_URL}/a2ui-gallery`);
+  await page.waitForSelector('[data-testid="a2ui-gallery"]');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(OUT_DIR, "gallery.png"), fullPage: true });
+  console.log("Captured: gallery.png");
+
+  // 3. The v0.9 harness — every new feature in one surface.
   await page.goto(`${BASE_URL}/a2ui-harness`);
   await page.waitForSelector('[data-testid="a2ui-harness"]');
   await page.waitForTimeout(400);
   await shot(page, "harness-initial");
 
-  // 3. Validation: type a bad email and blur → inline error.
+  // 4. Validation: type a bad email and blur → inline error.
   const email = page.getByLabel("Contact email");
   await email.fill("not-an-email");
   await email.blur();
   await page.waitForTimeout(200);
   await shot(page, "harness-validated");
 
-  // 4. Server-action round-trip: click the button → /status updates.
+  // 5. Server-action round-trip: click the button → /status updates.
   await page.getByRole("button", { name: "File the case" }).click();
   await page.getByText("Submitted: submit").waitFor({ timeout: 5000 });
   await page.waitForTimeout(200);
