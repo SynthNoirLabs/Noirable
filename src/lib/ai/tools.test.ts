@@ -1,8 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { asSchema } from "ai";
+import { coerceComponentInput } from "./tools";
 
 // Mock server-only since registry has it
 vi.mock("server-only", () => ({}));
+
+describe("coerceComponentInput", () => {
+  it("passes an object through unchanged", () => {
+    const obj = { type: "card", title: "X" };
+    expect(coerceComponentInput(obj)).toBe(obj);
+  });
+
+  it("parses a JSON string into an object", () => {
+    expect(coerceComponentInput('{"type":"text","content":"hi"}')).toEqual({
+      type: "text",
+      content: "hi",
+    });
+  });
+
+  it("repairs loose JS-object notation (unquoted keys / single quotes)", () => {
+    expect(coerceComponentInput("{type: 'card', title: \"X\"}")).toEqual({
+      type: "card",
+      title: "X",
+    });
+  });
+
+  it("returns the raw value when it cannot be parsed", () => {
+    expect(coerceComponentInput("not json at all")).toBe("not json at all");
+  });
+});
 
 describe("AI Tools", () => {
   beforeEach(() => {

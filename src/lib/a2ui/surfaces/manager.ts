@@ -14,7 +14,9 @@
 export type SurfaceConfig = {
   surfaceId: string;
   catalogId: string;
-  theme?: string;
+  // A2UI v0.9 theme: either a string identifier or an object of theme
+  // parameters (e.g. `{ primaryColor: "#00BFFF" }`).
+  theme?: string | Record<string, unknown>;
   sendDataModel?: boolean;
 };
 

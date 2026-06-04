@@ -22,6 +22,8 @@ export interface UseA2UIStreamOptions {
   onComplete?: (surfaceId: string) => void;
   /** Callback on error */
   onError?: (error: Error) => void;
+  /** Callback with the detective's in-character narration for the chat log. */
+  onNarration?: (text: string) => void;
 }
 
 export interface UseA2UIStreamResult {
@@ -90,7 +92,7 @@ function isA2UIMessage(data: unknown): data is A2UIMessage {
 // ============================================================================
 
 export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStreamResult {
-  const { endpoint = "/api/a2ui/stream", onComplete, onError } = options;
+  const { endpoint = "/api/a2ui/stream", onComplete, onError, onNarration } = options;
 
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -101,6 +103,17 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
 
   const handleMessage = useCallback(
     (data: unknown) => {
+      // Narration is a non-surface message carrying the detective's chat reply.
+      if (
+        data &&
+        typeof data === "object" &&
+        (data as { type?: string }).type === "narration" &&
+        typeof (data as { text?: unknown }).text === "string"
+      ) {
+        onNarration?.((data as { text: string }).text);
+        return;
+      }
+
       if (!isA2UIMessage(data)) {
         console.warn("[useA2UIStream] Ignoring non-A2UI message:", data);
         return;
@@ -111,10 +124,10 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
           createSurface({
             surfaceId: data.surfaceId,
             catalogId: data.catalogId,
-            // Only forward a string theme identifier; object themes (v0.9
-            // theme parameters) are not consumed by the CSS-variable renderer,
-            // so they are dropped rather than stringified to "[object Object]".
-            theme: typeof data.theme === "string" ? data.theme : undefined,
+            // Forward both string identifiers and v0.9 object themes
+            // ({ primaryColor, ... }); the renderer maps known keys onto
+            // CSS variables.
+            theme: data.theme,
           });
           currentSurfaceIdRef.current = data.surfaceId;
           break;
@@ -135,7 +148,7 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
           break;
       }
     },
-    [createSurface, updateComponents, setDataModel, deleteSurface]
+    [createSurface, updateComponents, setDataModel, deleteSurface, onNarration]
   );
 
   const sendPrompt = useCallback(

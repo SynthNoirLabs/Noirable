@@ -11,13 +11,14 @@ import {
   createEventDispatcher,
   type EventDispatcher,
   type ActionEventParams,
+  type SendFn,
 } from "./dispatch";
 
 describe("dispatchAction", () => {
-  let mockSendFn: ReturnType<typeof vi.fn>;
+  let mockSendFn: ReturnType<typeof vi.fn<SendFn>>;
 
   beforeEach(() => {
-    mockSendFn = vi.fn();
+    mockSendFn = vi.fn<SendFn>();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-01T12:00:00Z"));
   });
@@ -136,11 +137,11 @@ describe("dispatchAction", () => {
 });
 
 describe("createEventDispatcher", () => {
-  let mockSendFn: ReturnType<typeof vi.fn>;
+  let mockSendFn: ReturnType<typeof vi.fn<SendFn>>;
   let dispatcher: EventDispatcher;
 
   beforeEach(() => {
-    mockSendFn = vi.fn();
+    mockSendFn = vi.fn<SendFn>();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-01T12:00:00Z"));
     dispatcher = createEventDispatcher({

@@ -21,7 +21,10 @@ export const createSurfaceMessageSchema = z.object({
   type: z.literal("createSurface"),
   surfaceId: surfaceIdSchema,
   catalogId: catalogIdSchema,
-  theme: z.string().optional(),
+  // Per the A2UI v0.9 spec, `theme` is an object of theme parameters
+  // (e.g. `{ primaryColor: "#00BFFF" }`); a bare string identifier is also
+  // accepted for convenience and back-compat.
+  theme: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   sendDataModel: z.boolean().optional(),
 });
 export type CreateSurfaceMessage = z.infer<typeof createSurfaceMessageSchema>;

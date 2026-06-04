@@ -5,9 +5,9 @@
 An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interface. Inspired by [Lovable](https://lovable.dev).
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-848%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-875%20passing-brightgreen)]()
 
-![Detective workspace with evidence board and chat](docs/screenshots/workspace.png)
+![Detective workspace with evidence board and chat](docs/screenshots/noirable_screen.jpg)
 
 ![Evidence board with generated UI component](docs/screenshots/evidence-board.png)
 
@@ -17,10 +17,12 @@ synthNoirUI is a full-stack reference implementation of the **A2UI (Agent to UI)
 
 The project implements two protocol versions:
 
-- **A2UI v0.9** -- 18 component types streamed via SSE as JSONL messages (`createSurface`, `updateComponents`)
+- **A2UI v0.9** -- 18 components in the standard catalog, streamed via SSE as JSONL messages (`createSurface`, `updateComponents`)
 - **Legacy protocol** -- 23 component types delivered through Vercel AI SDK tool calls, validated with Zod schemas
 
 Both protocols produce the same visual output. The v0.9 path is the active development target.
+
+> This repo's v0.9 stream emits messages with a flat `type` discriminator (e.g. `{"type":"createSurface","catalogId":"standard"}`). The upstream a2ui.org spec uses a named-key envelope (e.g. `{"createSurface":{...}}`); [docs/reference/a2ui-v09-spec.md](docs/reference/a2ui-v09-spec.md) mirrors that upstream form.
 
 **A2UI Protocol resources:**
 
@@ -61,7 +63,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ```bash
 pnpm dev          # Dev server on port 3000
 pnpm build        # Production build
-pnpm check        # CI gate: prettier + eslint + vitest + build
+pnpm check        # CI gate: prettier + eslint + stylelint + vitest + build
 pnpm test         # Unit/integration tests (Vitest)
 pnpm e2e          # E2E tests (Playwright)
 ```
@@ -87,25 +89,16 @@ src/
 ├── app/
 │   ├── api/a2ui/stream/  # A2UI v0.9 SSE streaming endpoint
 │   ├── api/chat/         # Legacy chat endpoint (Vercel AI SDK tool calls)
+│   ├── api/elevenlabs/   # ElevenLabs voice proxy
+│   ├── api/images/[id]/  # Serve generated images
+│   ├── api/settings/     # Settings persistence
 │   ├── api/tts/          # Text-to-speech proxy
-│   └── api/images/[id]/  # Serve generated images
-├── components/
-│   ├── a2ui/             # A2UI v0.9 component catalog + theme system
-│   ├── board/            # Evidence board history panel
-│   ├── chat/             # Chat sidebar + settings
-│   ├── eject/            # Code export + Sandpack sandbox
-│   ├── layout/           # Main workspace orchestration
-│   ├── noir/             # Ambient effects (rain, fog, crackle, typewriter)
-│   ├── renderer/         # Legacy A2UI component renderer
-│   └── settings/         # Model selector, customization panels
-└── lib/
-    ├── a2ui/             # A2UI v0.9 protocol types + message schemas
-    ├── ai/               # Provider factory, tool definitions, model registry
-    ├── api/              # Rate limiting + CSRF security
-    ├── protocol/         # Legacy Zod schemas + shared token maps
-    ├── store/            # Zustand store (chat state, evidence, settings)
-    ├── customization/    # Profile storage, CSS injection, aesthetic types
-    └── eject/            # A2UI-to-React code generation
+│   └── print/            # Print-friendly evidence view
+├── components/           # a2ui, board, chat, eject, layout, noir, renderer,
+│                         #   settings, shared, templates, training
+└── lib/                  # a2ui, aesthetic, ai, api, customization, eject,
+                          #   elevenlabs, evidence, hooks, protocol, sanity,
+                          #   storage, store, templates, training
 ```
 
 ## Tech Stack

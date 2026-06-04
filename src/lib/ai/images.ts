@@ -33,8 +33,8 @@ function selectImageModel(): {
   if (googleKey) {
     const googleModels = imageModels.filter((m) => m.provider === "google");
     const preferred =
-      googleModels.find((m) => m.id === "gemini-3-pro-image-preview") ||
-      googleModels.find((m) => m.id === "gemini-2.5-flash-image") ||
+      googleModels.find((m) => m.id === "gemini-3-pro-image") ||
+      googleModels.find((m) => m.id === "gemini-3.1-flash-image") ||
       googleModels[0];
     if (preferred) {
       return { model: preferred, provider: "google" };

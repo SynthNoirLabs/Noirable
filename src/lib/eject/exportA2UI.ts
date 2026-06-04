@@ -322,7 +322,7 @@ ${ind}</div>`;
 ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}}</span>
 ${indChild}<input
 ${indChild}  name={${jsxString(inputName)}}
-${indChild}  placeholder={${jsxString(node.placeholder)}}
+${indChild}  placeholder={${jsxString(node.placeholder ?? "")}}
 ${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
 ${indChild}  className={${jsxString(inputClasses)}}
 ${indChild}/>
@@ -342,7 +342,7 @@ ${ind}</label>`;
 ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}}</span>
 ${indChild}<textarea
 ${indChild}  name={${jsxString(textareaName)}}
-${indChild}  placeholder={${jsxString(node.placeholder)}}
+${indChild}  placeholder={${jsxString(node.placeholder ?? "")}}
 ${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
 ${indChild}  rows={${node.rows ?? 3}}
 ${indChild}  className={${jsxString(textareaClasses)}}
@@ -398,6 +398,25 @@ ${ind}</label>`;
       return `${ind}<button type="button" className={${jsxString(classes)}}>{${jsxString(
         node.label
       )}}</button>`;
+    }
+
+    case "slider": {
+      const min = typeof node.min === "number" ? node.min : 0;
+      const max = typeof node.max === "number" ? node.max : 100;
+      const def = node.value ?? min;
+      const label = node.label ?? "Range";
+      return `${ind}<label className={${jsxString(
+        buildClassList(["flex flex-col gap-2 text-xs", node.style?.className])
+      )}}>
+${indChild}<span className="font-medium text-zinc-400">{${jsxString(label)}}</span>
+${indChild}<input
+${indChild}  type="range"
+${indChild}  min={${min}}
+${indChild}  max={${max}}
+${indChild}  defaultValue={${typeof def === "number" ? def : jsxString(String(def))}}
+${indChild}  className="w-full accent-amber-500"
+${indChild}/>
+${ind}</label>`;
     }
 
     default:

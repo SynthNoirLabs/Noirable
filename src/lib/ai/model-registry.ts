@@ -17,6 +17,34 @@ export interface ModelInfo {
 }
 
 export const MODEL_REGISTRY: Record<string, ModelInfo> = {
+  "gpt-5.5": {
+    id: "gpt-5.5",
+    name: "GPT 5.5",
+    provider: "openai",
+    capabilities: {
+      chat: true,
+      vision: true,
+      imageGen: false,
+      streaming: true,
+      tools: true,
+      contextWindow: 1000000,
+      maxOutput: 128000,
+    },
+  },
+  "gpt-5.4-mini": {
+    id: "gpt-5.4-mini",
+    name: "GPT 5.4 Mini",
+    provider: "openai",
+    capabilities: {
+      chat: true,
+      vision: true,
+      imageGen: false,
+      streaming: true,
+      tools: true,
+      contextWindow: 400000,
+      maxOutput: 128000,
+    },
+  },
   "gpt-5.2": {
     id: "gpt-5.2",
     name: "GPT 5.2",
@@ -29,20 +57,6 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       tools: true,
       contextWindow: 272000,
       maxOutput: 128000,
-    },
-  },
-  "gpt-5.2-mini": {
-    id: "gpt-5.2-mini",
-    name: "GPT 5.2 Mini",
-    provider: "openai",
-    capabilities: {
-      chat: true,
-      vision: true,
-      imageGen: false,
-      streaming: true,
-      tools: true,
-      contextWindow: 128000,
-      maxOutput: 64000,
     },
   },
   "gpt-5": {
@@ -142,9 +156,9 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
     },
   },
 
-  "claude-opus-4.5-20251201": {
-    id: "claude-opus-4.5-20251201",
-    name: "Claude Opus 4.5",
+  "claude-opus-4-8": {
+    id: "claude-opus-4-8",
+    name: "Claude Opus 4.8",
     provider: "anthropic",
     capabilities: {
       chat: true,
@@ -152,13 +166,13 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGen: false,
       streaming: true,
       tools: true,
-      contextWindow: 200000,
-      maxOutput: 32000,
+      contextWindow: 1000000,
+      maxOutput: 128000,
     },
   },
-  "claude-sonnet-4-20250514": {
-    id: "claude-sonnet-4-20250514",
-    name: "Claude Sonnet 4",
+  "claude-sonnet-4-6": {
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
     provider: "anthropic",
     capabilities: {
       chat: true,
@@ -166,13 +180,13 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGen: false,
       streaming: true,
       tools: true,
-      contextWindow: 200000,
+      contextWindow: 1000000,
       maxOutput: 64000,
     },
   },
-  "claude-3-5-haiku-latest": {
-    id: "claude-3-5-haiku-latest",
-    name: "Claude 3.5 Haiku",
+  "claude-haiku-4-5-20251001": {
+    id: "claude-haiku-4-5-20251001",
+    name: "Claude Haiku 4.5",
     provider: "anthropic",
     capabilities: {
       chat: true,
@@ -185,9 +199,9 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
     },
   },
 
-  "gemini-3-pro-preview": {
-    id: "gemini-3-pro-preview",
-    name: "Gemini 3 Pro Preview",
+  "gemini-3.5-flash": {
+    id: "gemini-3.5-flash",
+    name: "Gemini 3.5 Flash",
     provider: "google",
     capabilities: {
       chat: true,
@@ -196,12 +210,26 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       streaming: true,
       tools: true,
       contextWindow: 1048576,
-      maxOutput: 65535,
+      maxOutput: 65536,
     },
   },
-  "gemini-3-flash-preview": {
-    id: "gemini-3-flash-preview",
-    name: "Gemini 3 Flash Preview",
+  "gemini-3.1-pro": {
+    id: "gemini-3.1-pro",
+    name: "Gemini 3.1 Pro",
+    provider: "google",
+    capabilities: {
+      chat: true,
+      vision: true,
+      imageGen: false,
+      streaming: true,
+      tools: true,
+      contextWindow: 1048576,
+      maxOutput: 65536,
+    },
+  },
+  "gemini-3-flash": {
+    id: "gemini-3-flash",
+    name: "Gemini 3 Flash",
     provider: "google",
     capabilities: {
       chat: true,
@@ -241,9 +269,9 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       maxOutput: 65536,
     },
   },
-  "gemini-2.5-flash-image": {
-    id: "gemini-2.5-flash-image",
-    name: "Gemini 2.5 Flash Image",
+  "gemini-3-pro-image": {
+    id: "gemini-3-pro-image",
+    name: "Gemini 3 Pro Image (Nano Banana Pro)",
     provider: "google",
     capabilities: {
       chat: true,
@@ -252,13 +280,13 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGenMethod: "generateText",
       streaming: true,
       tools: true,
-      contextWindow: 1048576,
-      maxOutput: 65536,
+      contextWindow: 65536,
+      maxOutput: 32768,
     },
   },
-  "gemini-3-pro-image-preview": {
-    id: "gemini-3-pro-image-preview",
-    name: "Gemini 3 Pro Image Preview",
+  "gemini-3.1-flash-image": {
+    id: "gemini-3.1-flash-image",
+    name: "Gemini 3.1 Flash Image (Nano Banana 2)",
     provider: "google",
     capabilities: {
       chat: true,
@@ -267,8 +295,8 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       imageGenMethod: "generateText",
       streaming: true,
       tools: true,
-      contextWindow: 1048576,
-      maxOutput: 65536,
+      contextWindow: 131072,
+      maxOutput: 32768,
     },
   },
   "imagen-4.0-generate-001": {

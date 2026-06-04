@@ -20,6 +20,7 @@ import type { A2UIInput } from "@/lib/protocol/schema";
 import { createTrainingExample, shouldCapture } from "@/lib/training";
 // A2UI v0.9 imports
 import { useA2UIStream } from "@/lib/a2ui/hooks/useA2UIStream";
+import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
 import { A2UIv09Preview } from "@/components/a2ui/A2UIv09Preview";
 
 const DEFAULT_JSON = JSON.stringify(
@@ -96,14 +97,37 @@ export function DetectiveWorkspace() {
 
   // A2UI v0.9 hook
   const useV09 = settings.useA2UIv09 ?? false;
+  // The v0.9 stream delivers the detective's narration mid-stream (before the
+  // promise resolves), so stash it here for the send handler to read afterward.
+  const v09NarrationRef = useRef<string | null>(null);
   const {
     sendPrompt: sendV09Prompt,
     isStreaming: isV09Streaming,
     error: v09Error,
   } = useA2UIStream({
+    onNarration: (text) => {
+      v09NarrationRef.current = text;
+    },
     onComplete: (surfaceId) => {
       if (process.env.NODE_ENV !== "production") {
         console.log("[A2UI v0.9] Surface completed:", surfaceId);
+      }
+      // Mirror the rendered surface into the JSON editor so the "CASE FILE //
+      // JSON DATA" pane reflects the v0.9 component tree instead of stale state.
+      const surface = useSurfaceStore.getState().getSurface(surfaceId);
+      if (surface) {
+        const components = Array.from(surface.components.values());
+        setJson(
+          JSON.stringify(
+            {
+              surfaceId,
+              catalogId: surface.config.catalogId,
+              components,
+            },
+            null,
+            2
+          )
+        );
       }
       setLastFailedPrompt(null);
     },
@@ -130,7 +154,7 @@ export function DetectiveWorkspace() {
     onError: (err) => console.error("useChat error:", err),
   });
 
-  const { messages, status, sendMessage } = chat;
+  const { messages, status, sendMessage, setMessages } = chat;
   const isLegacyLoading = status === "submitted" || status === "streaming";
   const isLoading = useV09 ? isV09Streaming : isLegacyLoading;
 
@@ -372,15 +396,45 @@ export function DetectiveWorkspace() {
         trackAndSend(text);
       }
 
-      // Use A2UI v0.9 endpoint when enabled
+      // Use A2UI v0.9 endpoint when enabled. The v0.9 stream produces UI
+      // components plus a `narration` message (captured via onNarration into
+      // v09NarrationRef); mirror the exchange into the chat log ourselves so the
+      // Interrogation Log stays populated and TTS can read the detective's reply.
       if (useV09 && text) {
-        await sendV09Prompt(text);
+        const stamp = Date.now();
+        v09NarrationRef.current = null;
+        setMessages((prev) => [
+          ...prev,
+          { id: `v09-user-${stamp}`, role: "user", parts: [{ type: "text", text }] },
+        ]);
+        try {
+          await sendV09Prompt(text);
+          // Prefer the model's real narration; fall back to a varied in-character
+          // line if the stream didn't provide one this run.
+          const V09_FALLBACK_REPLIES = [
+            "Case file's on the board. The evidence speaks for itself — read it and weep.",
+            "Pulled the threads together. It's pinned up and waiting. Don't touch the photos.",
+            "Filed it. The rain's still coming down, but the board's lit. Take a look.",
+            "Another case cracked open on the desk. The details are all there in the evidence.",
+            "Wired the report to the board. Cold facts, warm coffee. Your move, detective.",
+            "It's all laid out — the leads, the faces, the loose ends. Make of it what you will.",
+          ];
+          const narrated = (v09NarrationRef.current ?? "") as string;
+          const reply =
+            narrated.trim() || V09_FALLBACK_REPLIES[stamp % V09_FALLBACK_REPLIES.length];
+          setMessages((prev) => [
+            ...prev,
+            { id: `v09-asst-${stamp}`, role: "assistant", parts: [{ type: "text", text: reply }] },
+          ]);
+        } catch {
+          // The hook surfaces the error in the preview pane; leave the log as-is.
+        }
         return;
       }
 
       return sendMessageWithContext(message, options);
     },
-    [sendMessageWithContext, trackAndSend, useV09, sendV09Prompt]
+    [sendMessageWithContext, trackAndSend, useV09, sendV09Prompt, setMessages]
   );
 
   // Retry last failed prompt
@@ -419,6 +473,7 @@ export function DetectiveWorkspace() {
       ambient={settings.ambient}
       soundEnabled={settings.soundEnabled}
       musicEnabled={settings.musicEnabled}
+      customMusicUrl={settings.customMusicUrl}
       aestheticId={settings.aestheticId}
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}

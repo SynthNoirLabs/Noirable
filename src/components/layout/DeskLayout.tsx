@@ -39,6 +39,7 @@ interface DeskLayoutProps {
   musicEnabled?: boolean;
   /** Active aesthetic profile ID */
   aestheticId?: AestheticId;
+  customMusicUrl?: string;
   className?: string;
 }
 
@@ -66,6 +67,7 @@ export function DeskLayout({
   ambient,
   soundEnabled,
   musicEnabled,
+  customMusicUrl,
   aestheticId,
   className,
 }: DeskLayoutProps) {
@@ -130,6 +132,7 @@ export function DeskLayout({
         ambient={ambientSettings}
         soundEnabled={soundSetting}
         musicEnabled={musicSetting}
+        customMusicUrl={customMusicUrl}
         aestheticId={aestheticId}
       />
       <div

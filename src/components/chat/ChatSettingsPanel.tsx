@@ -1,9 +1,20 @@
 "use client";
 
-import React from "react";
-import { Keyboard, CloudLightning, Phone } from "lucide-react";
+import React, { useState } from "react";
+import {
+  Keyboard,
+  CloudLightning,
+  Phone,
+  Music,
+  Trash2,
+  Play,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/settings/ModelSelector";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
 
 interface ChatSettingsPanelProps {
@@ -24,6 +35,33 @@ interface ChatSettingsPanelProps {
   onModelConfigChange?: (config: ModelConfig) => void;
 }
 
+const MUSIC_PRESETS = [
+  {
+    icon: "🎷",
+    name: "Sax Solo",
+    prompt:
+      "A slow, smoky 1940s film noir jazz track with a melancholic saxophone solo, gentle upright bass, and quiet brushed snare drum.",
+  },
+  {
+    icon: "🎺",
+    name: "Muted Trumpet",
+    prompt:
+      "A dark, suspenseful detective theme with a muted trumpet melody, distant sirens, low piano chords, and a rainy atmosphere.",
+  },
+  {
+    icon: "🎹",
+    name: "Rainy Piano",
+    prompt:
+      "A slow, solitary piano melody echoing in a rainy alleyway, wet pavement ambience, minor chords, reflective and nostalgic mood.",
+  },
+  {
+    icon: "🎻",
+    name: "Low Strings",
+    prompt:
+      "Low, brooding orchestral string chords with a slow tempo, building tension, cinematic and mysterious detective atmosphere.",
+  },
+];
+
 export function ChatSettingsPanel({
   typewriterSpeed,
   soundEnabled,
@@ -37,6 +75,16 @@ export function ChatSettingsPanel({
   onUpdateSettings,
   onModelConfigChange,
 }: ChatSettingsPanelProps) {
+  const { settings, updateSettings } = useA2UIStore();
+
+  const [showComposer, setShowComposer] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [provider, setProvider] = useState<"elevenlabs" | "lyria">("lyria");
+  const [usePro, setUsePro] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState(30);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [composerError, setComposerError] = useState<string | null>(null);
+
   const defaults: AmbientSettings = {
     rainEnabled: true,
     rainVolume: 1,
@@ -60,7 +108,6 @@ export function ChatSettingsPanel({
   };
 
   const toggleMusic = () => {
-    if (elevenLabsConfigured === false) return;
     onUpdateSettings({ musicEnabled: !musicEnabled });
   };
 
@@ -70,6 +117,67 @@ export function ChatSettingsPanel({
     onUpdateSettings({ ambient: { fogEnabled: !ambientSettings.fogEnabled } });
   const toggleCrackle = () =>
     onUpdateSettings({ ambient: { crackleEnabled: !ambientSettings.crackleEnabled } });
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    setIsGenerating(true);
+    setComposerError(null);
+    try {
+      const response = await fetch("/api/music/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          prompt,
+          durationMs: durationSeconds * 1000,
+          usePro,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || errData.details || "Generation failed");
+      }
+
+      const track = await response.json();
+      const updatedTracks = [
+        ...(settings.generatedTracks || []),
+        {
+          id: Math.random().toString(36).substring(7),
+          url: track.url,
+          prompt: track.prompt,
+          provider: track.provider,
+          createdAt: track.createdAt,
+        },
+      ];
+
+      updateSettings({
+        customMusicUrl: track.url,
+        musicProvider: provider,
+        musicPrompt: prompt,
+        generatedTracks: updatedTracks,
+        musicEnabled: true, // Auto-enable music
+      });
+      onUpdateSettings({ musicEnabled: true });
+    } catch (err) {
+      console.error(err);
+      const errMsg = err instanceof Error ? err.message : "An unexpected error occurred";
+      setComposerError(errMsg);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDeleteTrack = (id: string, url: string) => {
+    const remaining = (settings.generatedTracks || []).filter((t) => t.id !== id);
+    const updates: SettingsUpdate = {
+      generatedTracks: remaining.length > 0 ? remaining : undefined,
+    };
+    if (settings.customMusicUrl === url) {
+      updates.customMusicUrl = undefined;
+    }
+    updateSettings(updates);
+  };
 
   const sfxDisabledReason = !soundEnabled
     ? "Enable sound effects"
@@ -126,10 +234,247 @@ export function ChatSettingsPanel({
         activeLabel="ON AIR"
         inactiveLabel="OFF AIR"
         onToggle={toggleMusic}
-        disabled={elevenLabsConfigured === false}
-        disabledTitle="Set ELEVENLABS_API_KEY to enable"
         ariaLabel="Toggle noir music"
       />
+
+      {/* COMPOSER LAB */}
+      <div className="border border-[var(--aesthetic-border)]/30 rounded-sm p-3 space-y-3 bg-[var(--aesthetic-background)]/20">
+        <button
+          type="button"
+          onClick={() => setShowComposer(!showComposer)}
+          className="w-full flex items-center justify-between font-typewriter text-xs uppercase tracking-widest text-[var(--aesthetic-accent)] hover:opacity-85 focus:outline-none"
+        >
+          <span className="flex items-center gap-1.5 font-bold">
+            <Music className="w-3.5 h-3.5" />
+            Composer Lab
+          </span>
+          {showComposer ? (
+            <ChevronUp className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5" />
+          )}
+        </button>
+
+        {showComposer && (
+          <div className="space-y-3 pt-2 border-t border-[var(--aesthetic-border)]/15">
+            {/* Provider selection */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono text-[var(--aesthetic-text)]/50 uppercase tracking-widest block">
+                AI Orchestra Provider
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["lyria", "elevenlabs"] as const).map((prov) => (
+                  <button
+                    key={prov}
+                    type="button"
+                    onClick={() => {
+                      setProvider(prov);
+                      setComposerError(null);
+                    }}
+                    className={cn(
+                      "px-2 py-1 border rounded-sm font-mono text-[10px] uppercase tracking-wider transition-colors",
+                      provider === prov
+                        ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                        : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
+                    )}
+                  >
+                    {prov === "lyria" ? "Google Lyria" : "ElevenLabs"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sub-options for the chosen provider */}
+            {provider === "lyria" ? (
+              <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-[10px] font-mono">
+                <span className="text-[var(--aesthetic-text)]/60">LYRIA PRO MODEL</span>
+                <button
+                  type="button"
+                  onClick={() => setUsePro(!usePro)}
+                  className={cn(
+                    "px-2 py-0.5 border rounded-sm transition-colors min-w-[50px] text-center",
+                    usePro
+                      ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
+                      : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)]"
+                  )}
+                >
+                  {usePro ? "PRO" : "CLIP"}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1 font-mono text-[10px]">
+                <div className="flex justify-between text-[var(--aesthetic-text)]/60">
+                  <span>DURATION</span>
+                  <span>{durationSeconds}s</span>
+                </div>
+                <input
+                  type="range"
+                  min={30}
+                  max={120}
+                  step={10}
+                  value={durationSeconds}
+                  onChange={(e) => setDurationSeconds(Number(e.target.value))}
+                  className="w-full accent-[var(--aesthetic-accent)] cursor-pointer"
+                />
+              </div>
+            )}
+
+            {/* Presets */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono text-[var(--aesthetic-text)]/50 uppercase tracking-widest block">
+                Atmosphere Presets
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {MUSIC_PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setPrompt(preset.prompt);
+                      setComposerError(null);
+                    }}
+                    className="flex items-center gap-1.5 p-1 border border-[var(--aesthetic-border)]/30 rounded-sm text-left hover:border-[var(--aesthetic-accent)]/45 transition-colors font-mono text-[9px] text-[var(--aesthetic-text)]/80"
+                  >
+                    <span>{preset.icon}</span>
+                    <span className="truncate">{preset.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Prompt input */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono text-[var(--aesthetic-text)]/50 uppercase tracking-widest block">
+                Musical Script (Prompt)
+              </label>
+              <textarea
+                value={prompt}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  setComposerError(null);
+                }}
+                placeholder="Describe the melody, tempo, and instrumentation..."
+                rows={3}
+                className="w-full bg-[var(--aesthetic-background)]/60 border border-[var(--aesthetic-border)]/45 rounded-sm p-2 text-xs font-mono text-[var(--aesthetic-text)] placeholder-[var(--aesthetic-text-muted)]/50 focus:outline-none focus:border-[var(--aesthetic-accent)]/80 resize-none"
+              />
+            </div>
+
+            {/* Generate Action */}
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt.trim()}
+              className={cn(
+                "w-full py-1.5 rounded-sm border font-typewriter text-xs uppercase tracking-widest text-center transition-all",
+                isGenerating
+                  ? "bg-[var(--aesthetic-accent)]/5 border-[var(--aesthetic-accent)]/20 text-[var(--aesthetic-text-muted)] cursor-not-allowed"
+                  : !prompt.trim()
+                    ? "bg-transparent border-[var(--aesthetic-border)]/30 text-[var(--aesthetic-text-muted)] opacity-50 cursor-not-allowed"
+                    : "bg-[var(--aesthetic-accent)]/15 border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-accent)]/25 active:scale-[0.98]"
+              )}
+            >
+              {isGenerating ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Orchestrating...
+                </span>
+              ) : (
+                "Compose Track"
+              )}
+            </button>
+
+            {/* Error display */}
+            {composerError && (
+              <p className="text-[var(--aesthetic-error)] font-mono text-[9px] leading-relaxed border-t border-[var(--aesthetic-error)]/25 pt-1.5 mt-1">
+                ERROR: {composerError}
+              </p>
+            )}
+
+            {/* Restoring default loop option */}
+            {settings.customMusicUrl && (
+              <button
+                type="button"
+                onClick={() => {
+                  updateSettings({
+                    customMusicUrl: undefined,
+                  });
+                }}
+                className="w-full py-1 text-center font-mono text-[9px] uppercase tracking-wider text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-text)] transition-colors border border-dashed border-[var(--aesthetic-border)]/35 rounded-sm"
+              >
+                Revert to Default Jazz Loop
+              </button>
+            )}
+
+            {/* Generated Tracks List */}
+            {settings.generatedTracks && settings.generatedTracks.length > 0 && (
+              <div className="space-y-1.5 pt-2 border-t border-[var(--aesthetic-border)]/15">
+                <span className="text-[10px] font-mono text-[var(--aesthetic-text)]/50 uppercase tracking-widest block">
+                  Archive of Records
+                </span>
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                  {settings.generatedTracks.map((track) => {
+                    const isActive = settings.customMusicUrl === track.url;
+                    return (
+                      <div
+                        key={track.id}
+                        className={cn(
+                          "flex items-center justify-between gap-2 p-1.5 border rounded-sm text-[10px] font-mono transition-colors",
+                          isActive
+                            ? "border-[var(--aesthetic-accent)]/60 bg-[var(--aesthetic-accent)]/5"
+                            : "border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-background)]/20"
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="text-[var(--aesthetic-text)] truncate font-semibold"
+                            title={track.prompt}
+                          >
+                            {track.prompt}
+                          </p>
+                          <p className="text-[var(--aesthetic-text-muted)] text-[8px] uppercase tracking-wider">
+                            {track.provider === "lyria" ? "Lyria" : "ElevenLabs"} •{" "}
+                            {new Date(track.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isActive ? (
+                            <span className="text-[var(--aesthetic-accent)] flex items-center gap-1 px-1.5 py-0.5 border border-[var(--aesthetic-accent)]/40 rounded-sm text-[8px] uppercase tracking-widest font-semibold animate-pulse">
+                              Active
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateSettings({
+                                  customMusicUrl: track.url,
+                                  musicEnabled: true,
+                                });
+                                onUpdateSettings({ musicEnabled: true });
+                              }}
+                              title="Play record"
+                              className="text-[var(--aesthetic-text)] hover:text-[var(--aesthetic-accent)] transition-colors p-1"
+                            >
+                              <Play className="w-3 h-3 fill-current" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTrack(track.id, track.url)}
+                            title="Purge record"
+                            className="text-[var(--aesthetic-text-muted)] hover:text-[var(--aesthetic-error)] transition-colors p-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
         <span className="text-[var(--aesthetic-text)]/70">FX TRIGGERS</span>

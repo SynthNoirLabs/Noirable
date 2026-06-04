@@ -6,6 +6,8 @@
 
 A2UI (AI-to-UI) is a schema-validated JSON protocol that allows AI models to generate UI components without executing arbitrary code. All components are validated against Zod schemas before rendering.
 
+> **Note:** This page documents the legacy protocol in `src/lib/protocol/schema.ts` (23 component types), retained for backward compatibility. New work targets the A2UI v0.9 standard catalog — see [`a2ui-v09-spec.md`](./a2ui-v09-spec.md).
+
 ## Component Types
 
 ### Layout Components
@@ -17,6 +19,7 @@ A2UI (AI-to-UI) is a schema-validated JSON protocol that allows AI models to gen
 | `column` | Vertical flex column | Yes |
 | `grid` | CSS grid (2-4 columns) | Yes |
 | `tabs` | Tabbed container | Tab items |
+| `modal` | Triggered overlay dialog | `trigger`, `content` |
 
 ### Content Components
 
@@ -145,6 +148,21 @@ All components accept an optional `style` object:
     { "label": "Tab 1", "content": {...} },
     { "label": "Tab 2", "content": {...} }
   ]
+}
+```
+
+### Modal
+
+```json
+{
+  "type": "modal",
+  "open": false,
+  "trigger": { "type": "button", "label": "View Details" },
+  "content": {
+    "type": "card",
+    "title": "Case File",
+    "description": "Full dossier contents"
+  }
 }
 ```
 
@@ -371,9 +389,11 @@ All A2UI payloads are validated using Zod schemas defined in `src/lib/protocol/s
 ### Normalization
 
 The `normalizeA2UI()` function handles common LLM output variations:
-- Converts `text` to `content` for text/callout components
-- Converts `text`/`content` to `label` for badges
-- Defaults image `alt` to prompt if not provided
+
+- Converts `text` to `content` for `text` and `callout` components
+- Coerces `text`/`content` into `label` for badges
+- Defaults image `alt` to the `prompt`, or to `"Generated image"` when neither is present
+- Wraps tab `children` into a `content` container and normalizes nested tab content
 
 ### Error Handling
 

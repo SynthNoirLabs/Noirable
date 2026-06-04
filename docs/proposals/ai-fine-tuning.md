@@ -23,6 +23,13 @@ Current challenges with generic LLMs generating A2UI:
 
 ### Phase 1: Data Collection Pipeline
 
+> **Status note:** A foundation for this phase already ships in `src/lib/training/`
+> (`capture.ts`, `inference.ts`, `export.ts`), exposing `createTrainingExample`,
+> `shouldCapture`, `inferCategory`, `inferComplexity`, `extractComponentTypes`, and
+> JSONL/JSON export helpers. The interfaces below describe the target design; the
+> shipped types use camelCase metadata keys (`componentsUsed`, `createdAt`,
+> `qualityScore`) and add a `"mixed"` category.
+
 #### 1.1 Training Data Sources
 
 | Source | Description | Volume Target |
@@ -37,14 +44,14 @@ Current challenges with generic LLMs generating A2UI:
 ```typescript
 interface TrainingExample {
   id: string;
-  prompt: string;                    // User's natural language request
-  output: A2UIInput;                 // Valid A2UI JSON
+  prompt: string; // User's natural language request
+  output: A2UIInput; // Valid A2UI JSON
   metadata: {
-    category: "form" | "dashboard" | "card" | "layout" | "data";
+    category: "form" | "dashboard" | "card" | "layout" | "data" | "mixed";
     complexity: "simple" | "moderate" | "complex";
-    components_used: string[];       // List of component types
-    created_at: number;
-    quality_score?: number;          // 1-5 human rating
+    componentsUsed: string[]; // List of component types
+    createdAt: number;
+    qualityScore?: number; // 1-5 human rating
   };
 }
 ```
@@ -52,7 +59,7 @@ interface TrainingExample {
 #### 1.3 Collection Implementation
 
 ```typescript
-// Add to useA2UIStore.ts
+// Add to src/lib/store/useA2UIStore.ts
 interface TrainingData {
   examples: TrainingExample[];
   addExample: (prompt: string, output: A2UIInput, metadata: Partial<TrainingExample["metadata"]>) => void;
@@ -65,7 +72,7 @@ const handleSuccessfulGeneration = (prompt: string, output: A2UIInput) => {
     addExample(prompt, output, {
       category: inferCategory(output),
       complexity: inferComplexity(output),
-      components_used: extractComponentTypes(output),
+      componentsUsed: extractComponentTypes(output),
     });
   }
 };
@@ -120,11 +127,11 @@ interface QualityFilter {
 #### 3.3 Prompt Template (System Message)
 
 ```
-You are synthNoirUI, a noir-themed UI generation assistant. 
+You are synthNoirUI, a noir-themed UI generation assistant.
 
 RULES:
 1. Output ONLY valid A2UI JSON - no explanations, no markdown
-2. Use ONLY these component types: text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button
+2. Use ONLY these component types: text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, modal, list, table, stat, tabs, image, input, textarea, select, checkbox, button
 3. Maintain noir aesthetic: dark themes, amber accents, typewriter fonts, detective terminology
 4. Keep responses concise and structured
 5. For images, use the "prompt" field with noir-themed descriptions
@@ -171,15 +178,19 @@ interface ABTestConfig {
 
 ```typescript
 // src/lib/ai/model-registry.ts
+// Matches the existing ModelInfo shape (capabilities are nested).
 {
-  id: "synthnoirui-v1",
-  provider: "openai",
-  modelId: "ft:gpt-4o-mini-2024-07-18:org::synthnoirui-v1",
+  id: "ft:gpt-4o-mini-2024-07-18:org::synthnoirui-v1",
   name: "synthNoirUI Custom",
-  contextWindow: 128000,
-  supportsImages: false,
-  supportsTools: true,
-  isFineTuned: true,
+  provider: "openai",
+  capabilities: {
+    chat: true,
+    vision: false,
+    imageGen: false,
+    streaming: true,
+    tools: true,
+    contextWindow: 128000,
+  },
 }
 ```
 
@@ -239,4 +250,4 @@ interface ABTestConfig {
 
 ---
 
-*Last updated: 2026-01-29*
+*Last updated: 2026-06-03*

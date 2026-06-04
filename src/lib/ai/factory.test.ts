@@ -74,6 +74,27 @@ describe("ProviderFactory", () => {
     expect(result.type).toBe("google");
   });
 
+  it("prefers an explicit env key over an opencode auth.json key for a different provider", () => {
+    // Reproduces the bug where a Google-only .env.local was overridden by a
+    // stale OpenAI key in ~/.local/share/opencode/auth.json.
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = "env-google-key";
+    vi.spyOn(fs, "existsSync").mockReturnValue(true);
+    vi.spyOn(fs, "readFileSync").mockReturnValue(
+      JSON.stringify({ openai: "stale-file-openai-key" })
+    );
+
+    const result = getProvider();
+    expect(result.type).toBe("google");
+  });
+
+  it("falls back to opencode auth.json when no env key is set", () => {
+    vi.spyOn(fs, "existsSync").mockReturnValue(true);
+    vi.spyOn(fs, "readFileSync").mockReturnValue(JSON.stringify({ google: "file-google-key" }));
+
+    const result = getProvider();
+    expect(result.type).toBe("google");
+  });
+
   it("throws if no key found", () => {
     vi.spyOn(fs, "existsSync").mockReturnValue(false);
     // Ensure NODE_ENV is NOT development for this test to trigger throw

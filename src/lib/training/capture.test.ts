@@ -56,7 +56,7 @@ describe("createTrainingExample", () => {
     const output: A2UIInput = {
       type: "container",
       children: [
-        { type: "card", title: "Title" },
+        { type: "card", title: "Title", status: "active" },
         { type: "text", content: "Content", priority: "normal" },
       ],
     };
@@ -117,7 +117,7 @@ describe("shouldCapture", () => {
   });
 
   it("returns true for card output", () => {
-    const output: A2UIInput = { type: "card", title: "My Card" };
+    const output: A2UIInput = { type: "card", title: "My Card", status: "active" };
     expect(shouldCapture("Create a card component", output)).toBe(true);
   });
 

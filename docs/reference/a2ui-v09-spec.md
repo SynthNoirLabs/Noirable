@@ -2,7 +2,16 @@
 
 > This is a local copy of the A2UI v0.9 specification for reference.
 > Source: https://a2ui.org/specification/v0.9-a2ui/
+> (Canonical spec: https://github.com/google/A2UI/blob/main/specification/0.9/docs/a2ui_protocol.md)
 > Last fetched: 2026-02-01
+
+> **Implementation note:** The message structures below follow the upstream
+> spec, which wraps each message in a named-key envelope (e.g.
+> `{"createSurface": {...}}`). This repo's stream implementation emits a
+> flattened variant instead, with a top-level `type` discriminator
+> (e.g. `{"type": "createSurface", "surfaceId": "...", "catalogId": "standard"}`)
+> and a `catalogId` of `"standard"`. See `src/lib/a2ui/schema/messages.ts` and
+> `src/app/api/a2ui/stream/route.ts` for the authoritative in-repo shape.
 
 ---
 
@@ -243,6 +252,31 @@ A2UI is transport-agnostic. Common bindings:
 {"updateDataModel":{"surfaceId":"form","path":"/user","value":{"name":""}}}
 {"deleteSurface":{"surfaceId":"form"}}
 ```
+
+---
+
+## Conformance in this repo
+
+What the live renderer (`src/components/a2ui/SurfaceRenderer.tsx`, driven by
+`A2UIv09Preview`) currently supports:
+
+| Area | Status |
+|------|--------|
+| **Messages** | All four server messages — `createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface` |
+| **Components** | All 18 standard-catalog components (Row, Column, List, Card, Tabs, Divider, Modal, Text, Image, Icon, Video, AudioPlayer, Button, CheckBox, TextField, DateTimeInput, ChoicePicker, Slider) |
+| **Data binding** | JSON Pointer (RFC 6901) resolution of `{path}` bindings, scope-aware (relative pointers resolve against the current item) |
+| **Function-call bindings** | `{ call, args }` dynamic values evaluated via a built-in registry (`concat`, `uppercase`, `lowercase`, `not`, `eq`, `and`, `or`, `count`); args may be nested `{path}` bindings or function calls (`src/lib/a2ui/binding/functions.ts`) |
+| **Template children** | Both static `string[]` and the template form `{ componentId, path }` — the latter expands `componentId` once per array element with a per-item scope (`src/lib/a2ui/binding/template-children.ts`) |
+| **Two-way binding** | Input components (TextField, CheckBox, Slider, ChoicePicker, DateTimeInput) write edits back to the data model |
+| **Validation** | Catalog `checks` (`required`, `email`, `regex`, `minLength`, `maxLength`, `min`, `max`) enforced at the input layer with inline, touch-gated error messages and `aria-invalid` (`src/lib/a2ui/validation/`) |
+| **Actions** | Button `action` dispatch — server `event` posts an `ActionMessage` to `POST /api/a2ui/action` and applies the returned follow-up messages to the surface (plus an `onAction` observer); local `functionCall` supports the built-in `set`/`setValue`/`toggle` client functions |
+| **Theme** | String identifiers and v0.9 object themes (`{ primaryColor, backgroundColor, textColor }`) mapped onto CSS variables |
+
+Known deviations / not yet implemented:
+
+- **Wire format:** flat `type` discriminator instead of the upstream named-key envelope (see the implementation note at the top).
+- **Back-channel:** the server-action round-trip is a request/response HTTP call (`POST /api/a2ui/action`) with a deterministic demo handler — not a persistent connection, so the agent cannot push unsolicited updates. A live agent would replace that route's handler (or a WebSocket transport would be needed for server-initiated pushes).
+- **Function registry** is intentionally a small safe built-in set; arbitrary client functions are not evaluated.
 
 ---
 

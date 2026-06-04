@@ -114,7 +114,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createOpenAI(providerOptions),
-        model: override.model || process.env.AI_MODEL || "gpt-4o",
+        model: override.model || process.env.AI_MODEL || "gpt-5.5",
         type: baseUrl ? "openai-compatible" : "openai",
       };
     }
@@ -128,7 +128,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createAnthropic({ apiKey }),
-        model: override.model || process.env.AI_MODEL || "claude-3-5-sonnet-latest",
+        model: override.model || process.env.AI_MODEL || "claude-sonnet-4-6",
         type: "anthropic",
       };
     }
@@ -145,7 +145,7 @@ export function getProviderWithOverrides(override?: ModelOverride): ProviderResu
 
       return {
         provider: createGoogleGenerativeAI({ apiKey }),
-        model: override.model || process.env.AI_MODEL || "gemini-1.5-pro",
+        model: override.model || process.env.AI_MODEL || "gemini-3.5-flash",
         type: "google",
       };
     }
@@ -161,55 +161,51 @@ export { loadAuthConfig as preloadAuthConfig };
 export function getProvider(): ProviderResult {
   const config = loadAuthConfigSync();
 
-  // 1. Check OpenAI Compatible (Prioritize Custom Proxy)
   const openAIBaseUrl = process.env.OPENAI_BASE_URL;
+  const envOpenAI = process.env.OPENAI_API_KEY;
+  const envAnthropic = process.env.ANTHROPIC_API_KEY;
+  const envGoogle = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+
+  // Note: the proxy case keeps type "openai" (not "openai-compatible") to match
+  // the prior behavior the rest of the app relies on.
+  const openai = (apiKey: string | undefined, baseURL?: string): ProviderResult => ({
+    provider: createOpenAI(baseURL ? { baseURL, apiKey: apiKey || "dummy" } : { apiKey: apiKey! }),
+    model: process.env.AI_MODEL || "gpt-5.5",
+    type: "openai",
+  });
+  const anthropic = (apiKey: string): ProviderResult => ({
+    provider: createAnthropic({ apiKey }),
+    model: process.env.AI_MODEL || "claude-sonnet-4-6",
+    type: "anthropic",
+  });
+  const google = (apiKey: string): ProviderResult => ({
+    provider: createGoogleGenerativeAI({ apiKey }),
+    model: process.env.AI_MODEL || "gemini-3.5-flash",
+    type: "google",
+  });
+
+  // --- Pass 1: explicit configuration via environment variables ---------------
+  // A custom OpenAI-compatible proxy is the highest-priority opt-in.
   if (openAIBaseUrl) {
-    const compatKey = process.env.OPENAI_API_KEY || resolveKey(config, "openai");
-
-    return {
-      provider: createOpenAI({
-        baseURL: openAIBaseUrl,
-        apiKey: compatKey || "dummy",
-      }),
-      model: process.env.AI_MODEL || "gpt-5.2(medium)",
-      type: "openai",
-    };
+    return openai(envOpenAI || resolveKey(config, "openai"), openAIBaseUrl);
   }
+  // Otherwise honor whichever provider's key the user actually put in their env
+  // (.env.local), in priority order. This MUST win over the auth.json fallback
+  // so a user with only GOOGLE_GENERATIVE_AI_API_KEY set doesn't get silently
+  // routed to a stale OpenAI key from ~/.local/share/opencode/auth.json.
+  if (envOpenAI) return openai(envOpenAI);
+  if (envAnthropic) return anthropic(envAnthropic);
+  if (envGoogle) return google(envGoogle);
 
-  // 2. Check OpenAI (Env or Config)
-  const openAIKey = process.env.OPENAI_API_KEY || resolveKey(config, "openai");
-  if (openAIKey) {
-    return {
-      provider: createOpenAI({ apiKey: openAIKey }),
-      model: process.env.AI_MODEL || "gpt-4o",
-      type: "openai",
-    };
-  }
+  // --- Pass 2: opencode auth.json fallback (no env keys set) ------------------
+  const cfgOpenAI = resolveKey(config, "openai");
+  if (cfgOpenAI) return openai(cfgOpenAI);
+  const cfgAnthropic = resolveKey(config, "anthropic");
+  if (cfgAnthropic) return anthropic(cfgAnthropic);
+  const cfgGoogle = resolveKey(config, "google");
+  if (cfgGoogle) return google(cfgGoogle);
 
-  // 3. Check Anthropic (Env or Config)
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || resolveKey(config, "anthropic");
-  if (anthropicKey) {
-    return {
-      provider: createAnthropic({ apiKey: anthropicKey }),
-      model: process.env.AI_MODEL || "claude-3-5-sonnet-latest",
-      type: "anthropic",
-    };
-  }
-
-  // 4. Check Google/Gemini (Env or Config)
-  const googleKey =
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    resolveKey(config, "google");
-  if (googleKey) {
-    return {
-      provider: createGoogleGenerativeAI({ apiKey: googleKey }),
-      model: process.env.AI_MODEL || "gemini-1.5-pro",
-      type: "google",
-    };
-  }
-
-  // 5. Fallback to Mock in Dev
+  // --- Pass 3: mock fallback in development -----------------------------------
   if (process.env.NODE_ENV === "development") {
     return { provider: null, model: "mock", type: "mock" };
   }

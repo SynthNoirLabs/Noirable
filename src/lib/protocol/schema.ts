@@ -86,7 +86,10 @@ const listSchema = z.object({
 
 const tableSchema = z.object({
   type: z.literal("table"),
-  columns: z.array(z.string()).min(1),
+  // Allow an empty column list — normalizeA2UI maps `headers`→`columns` and the
+  // renderer tolerates missing headers; a strict min(1) would reject otherwise
+  // valid tables a model produces with a different key.
+  columns: z.array(z.string()),
   rows: z.array(z.array(z.string())).default([]),
   style: styleSchema.optional(),
 });
@@ -122,7 +125,9 @@ const inputSchema = z.object({
   type: z.literal("input"),
   name: z.string().optional(),
   label: z.string(),
-  placeholder: z.string(),
+  // `placeholder` is optional: models routinely omit it, and a missing
+  // placeholder must not reject the whole form.
+  placeholder: z.string().optional(),
   value: z.string().optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
@@ -132,7 +137,7 @@ const textareaSchema = z.object({
   type: z.literal("textarea"),
   name: z.string().optional(),
   label: z.string(),
-  placeholder: z.string(),
+  placeholder: z.string().optional(),
   value: z.string().optional(),
   rows: z.number().int().min(2).max(12).optional(),
   variant: variantToken.optional(),
@@ -146,6 +151,18 @@ const selectSchema = z.object({
   options: z.array(z.string()).min(1),
   value: z.string().optional(),
   variant: variantToken.optional(),
+  style: styleSchema.optional(),
+});
+
+// Slider: a real catalog component (range input). Models ask for it directly
+// ("a threat-level slider from 0 to 10"); without a schema entry the invented
+// `type: "slider"` node fails validation and previously blanked the whole tree.
+const sliderSchema = z.object({
+  type: z.literal("slider"),
+  label: z.string().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  value: z.union([z.number(), z.string()]).optional(),
   style: styleSchema.optional(),
 });
 
@@ -185,6 +202,7 @@ type ImageInputComponent = z.infer<typeof imageInputSchema>;
 type InputComponent = z.infer<typeof inputSchema>;
 type TextareaComponent = z.infer<typeof textareaSchema>;
 type SelectComponent = z.infer<typeof selectSchema>;
+type SliderComponent = z.infer<typeof sliderSchema>;
 type CheckboxComponent = z.infer<typeof checkboxSchema>;
 type ButtonComponent = z.infer<typeof buttonSchema>;
 
@@ -240,6 +258,7 @@ export type A2UIComponent =
   | InputComponent
   | TextareaComponent
   | SelectComponent
+  | SliderComponent
   | CheckboxComponent
   | ButtonComponent;
 
@@ -303,9 +322,41 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   inputSchema,
   textareaSchema,
   selectSchema,
+  sliderSchema,
   checkboxSchema,
   buttonSchema,
 ]) as z.ZodType<A2UIComponent>;
+
+/**
+ * Coerce a single table row to a string[]. Models emit rows as a cell array, an
+ * object keyed by column name (or any object), or a scalar. An object row is
+ * mapped into `columnNames` order when those keys exist; otherwise its values
+ * are used in insertion order. This prevents the "[object Object]" cells that
+ * appear when an object row is naively String()-ed.
+ */
+function coerceTableRow(row: unknown, columnNames: string[]): string[] {
+  if (Array.isArray(row)) {
+    return row.map((c) => (c == null ? "" : String(c)));
+  }
+  if (row && typeof row === "object") {
+    const obj = row as Record<string, unknown>;
+    // Prefer column-name lookup so cells land in the right column. Match keys
+    // loosely — lowercased with non-alphanumerics stripped — so "Last Seen"
+    // (column) lines up with `lastSeen`/`last_seen` (object key).
+    const loose = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const looseKeys = new Map(Object.keys(obj).map((k) => [loose(k), k]));
+    const matched = columnNames.length > 0 && columnNames.some((c) => looseKeys.has(loose(c)));
+    if (matched) {
+      return columnNames.map((c) => {
+        const key = looseKeys.get(loose(c));
+        const v = key ? obj[key] : undefined;
+        return v == null ? "" : String(v);
+      });
+    }
+    return Object.values(obj).map((v) => (v == null ? "" : String(v)));
+  }
+  return [row == null ? "" : String(row)];
+}
 
 export function normalizeA2UI(input: unknown): unknown {
   if (Array.isArray(input)) {
@@ -326,6 +377,145 @@ export function normalizeA2UI(input: unknown): unknown {
     typeof normalized.text === "string"
   ) {
     normalized = { ...normalized, content: normalized.text };
+  }
+
+  // Models often emit `card` as a generic container with a `children` array
+  // (sometimes alongside a title/description). The legacy `card` has no
+  // `children` field and only renders title/description, which would drop the
+  // nested content. Reinterpret any card-with-children as a `container`, lifting
+  // a title/description into leading heading + text nodes so nothing is lost.
+  if (type === "card" && Array.isArray(normalized.children)) {
+    const lead: Record<string, unknown>[] = [];
+    if (typeof normalized.title === "string") {
+      lead.push({ type: "heading", text: normalized.title, level: 3 });
+    }
+    if (typeof normalized.description === "string") {
+      lead.push({ type: "paragraph", text: normalized.description });
+    }
+    const rest = { ...normalized };
+    delete (rest as Record<string, unknown>).title;
+    delete (rest as Record<string, unknown>).description;
+    delete (rest as Record<string, unknown>).status;
+    normalized = {
+      ...rest,
+      type: "container",
+      children: [...lead, ...(normalized.children as unknown[])],
+    };
+  }
+
+  // Clamp `variant` to the supported token set. Models invent values like
+  // "warning", "success", "info", "error" — map the common ones to the nearest
+  // supported token and drop anything else so one stray value doesn't fail the
+  // whole tree.
+  if (typeof normalized.variant === "string") {
+    const VARIANTS = new Set(["primary", "secondary", "ghost", "danger"]);
+    if (!VARIANTS.has(normalized.variant)) {
+      const VARIANT_ALIASES: Record<string, string> = {
+        warning: "danger",
+        error: "danger",
+        destructive: "danger",
+        critical: "danger",
+        success: "secondary",
+        info: "secondary",
+        muted: "ghost",
+        outline: "ghost",
+        default: "primary",
+      };
+      const mapped = VARIANT_ALIASES[normalized.variant.toLowerCase()];
+      if (mapped) {
+        normalized = { ...normalized, variant: mapped };
+      } else {
+        const next = { ...normalized };
+        delete (next as Record<string, unknown>).variant;
+        normalized = next;
+      }
+    }
+  }
+
+  // Grid: models use `cols` instead of `columns`, and/or a number instead of the
+  // "2"|"3"|"4" string enum. Coerce both, clamp to range, and ensure children.
+  if (type === "grid") {
+    const rawCols = normalized.columns ?? normalized.cols;
+    const next = { ...normalized };
+    delete (next as Record<string, unknown>).cols;
+    if (rawCols !== undefined) {
+      const n = Math.min(4, Math.max(2, Number(rawCols) || 2));
+      next.columns = String(n);
+    }
+    if (!Array.isArray(next.children)) {
+      next.children = [];
+    }
+    normalized = next;
+  }
+
+  // Layout/container types require a `children` array; default to empty if the
+  // model omitted it so a childless container doesn't fail the whole tree.
+  if (
+    (type === "container" || type === "row" || type === "column") &&
+    !Array.isArray(normalized.children)
+  ) {
+    normalized = { ...normalized, children: [] };
+  }
+
+  // Table: models frequently name the columns `headers` (or `header`) instead of
+  // `columns`, and may omit `rows`. Coerce to the required shape so one synonym
+  // doesn't reject the whole tree.
+  if (type === "table") {
+    const cols = normalized.columns ?? normalized.headers ?? normalized.header;
+    const next = { ...normalized };
+    delete (next as Record<string, unknown>).headers;
+    delete (next as Record<string, unknown>).header;
+    const columnNames = Array.isArray(cols) ? cols.map(String) : [];
+    next.columns = columnNames;
+    // Rows come in three shapes from models: an array of cell arrays, an array
+    // of objects keyed by column name (→ map into column order so they don't
+    // stringify to "[object Object]"), or a scalar. Coerce all to string[].
+    next.rows = Array.isArray(normalized.rows)
+      ? (normalized.rows as unknown[]).map((r) => coerceTableRow(r, columnNames))
+      : [];
+    normalized = next;
+  }
+
+  // Types that require a string `label` — default to "" (or lift `text`/`content`)
+  // when the model omits it, so one bare node doesn't fail the whole tree.
+  const LABEL_REQUIRED = new Set([
+    "badge",
+    "stat",
+    "input",
+    "textarea",
+    "select",
+    "checkbox",
+    "button",
+  ]);
+  if (
+    typeof type === "string" &&
+    LABEL_REQUIRED.has(type) &&
+    typeof normalized.label !== "string"
+  ) {
+    const lifted =
+      typeof normalized.text === "string"
+        ? normalized.text
+        : typeof normalized.content === "string"
+          ? normalized.content
+          : "";
+    normalized = { ...normalized, label: lifted };
+  }
+
+  // `select` requires a non-empty `options` string array.
+  if (type === "select" && !Array.isArray(normalized.options)) {
+    normalized = { ...normalized, options: [] };
+  }
+  if (type === "select" && Array.isArray(normalized.options) && normalized.options.length === 0) {
+    normalized = { ...normalized, options: ["Option"] };
+  }
+
+  // `stat` also requires a string `value`.
+  if (type === "stat" && typeof normalized.value !== "string") {
+    normalized = {
+      ...normalized,
+      value:
+        normalized.value === undefined || normalized.value === null ? "" : String(normalized.value),
+    };
   }
 
   if (type === "badge" && typeof normalized.label !== "string") {
@@ -362,27 +552,30 @@ export function normalizeA2UI(input: unknown): unknown {
   if (type === "tabs" && Array.isArray(normalized.tabs)) {
     normalized = {
       ...normalized,
-      tabs: normalized.tabs.map((tab) => {
+      tabs: normalized.tabs.map((tab, i) => {
         if (typeof tab !== "object" || tab === null) return tab;
         const tabObj = tab as Record<string, unknown>;
-        let updated = { ...tabObj };
 
-        if (!("content" in tabObj) && Array.isArray(tabObj.children)) {
-          updated = {
-            ...updated,
-            content: { type: "container", children: tabObj.children },
-          };
-          delete (updated as Record<string, unknown>).children;
+        // Each tab must be { label: string, content: A2UIComponent }. Models use
+        // many shapes: a `children` array, a `panel`/`body` alias, or just a
+        // label with the content omitted entirely. Coerce all of them, and drop
+        // stray fields like `id` that the tab schema doesn't allow.
+        const label =
+          typeof tabObj.label === "string"
+            ? tabObj.label
+            : typeof tabObj.title === "string"
+              ? tabObj.title
+              : `Tab ${i + 1}`;
+
+        let content = tabObj.content ?? tabObj.panel ?? tabObj.body;
+        if (content === undefined && Array.isArray(tabObj.children)) {
+          content = { type: "container", children: tabObj.children };
+        }
+        if (content === undefined || content === null) {
+          content = { type: "container", children: [] };
         }
 
-        if (updated.content) {
-          updated = {
-            ...updated,
-            content: normalizeA2UI(updated.content),
-          };
-        }
-
-        return updated;
+        return { label, content: normalizeA2UI(content) };
       }),
     };
   }
@@ -439,6 +632,7 @@ export type A2UIInput =
   | InputComponent
   | TextareaComponent
   | SelectComponent
+  | SliderComponent
   | CheckboxComponent
   | ButtonComponent;
 
@@ -497,6 +691,7 @@ export const a2uiInputSchema = z.preprocess(
     inputSchema,
     textareaSchema,
     selectSchema,
+    sliderSchema,
     checkboxSchema,
     buttonSchema,
   ])

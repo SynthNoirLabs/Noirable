@@ -1,6 +1,6 @@
 # synthNoirUI — AI Evidence Board
 
-Noir-themed evidence board where AI generates UI via tool calls. Chat streams A2UI JSON, validated via Zod, rendered as "evidence."
+Noir-themed evidence board where AI generates UI. It primarily targets the A2UI v0.9 streaming protocol, while still supporting the original tool-call protocol; both stream JSON that is validated via Zod and rendered as "evidence."
 
 ## Commands
 
@@ -11,7 +11,7 @@ pnpm build            # Production build
 pnpm start            # Start production server
 
 # Validation (CI gate)
-pnpm check            # prettier + eslint + vitest + build (run before PR)
+pnpm check            # prettier + eslint + stylelint + vitest + build (run before PR)
 
 # Testing
 pnpm test             # Run all Vitest tests
@@ -34,21 +34,19 @@ pnpm sanity:chat      # Live API tool validation
 ```
 src/
 ├── app/                    # Next.js App Router
+│   ├── api/a2ui/stream/    # A2UI v0.9 SSE streaming endpoint
 │   ├── api/chat/           # AI streaming + tool execution
-│   └── api/images/[id]/    # Serves generated images
-├── components/
-│   ├── board/              # EvidenceBoard (history)
-│   ├── chat/               # ChatSidebar
-│   ├── layout/             # DetectiveWorkspace, DeskLayout
-│   ├── noir/               # Theme components
-│   ├── renderer/           # A2UIRenderer
-│   └── settings/           # ModelSelector
-└── lib/
-    ├── ai/                 # Provider factory, tools, images, model registry
-    ├── protocol/           # A2UI Zod schema
-    ├── store/              # Zustand state
-    ├── evidence/           # Label/status derivation
-    └── eject/              # A2UI to React export
+│   ├── api/elevenlabs/     # ElevenLabs voice proxy
+│   ├── api/images/[id]/    # Serves generated images
+│   ├── api/settings/       # Settings persistence
+│   ├── api/tts/            # Text-to-speech
+│   └── print/              # Print view
+├── components/             # a2ui, board, chat, eject, layout, noir,
+│                           # renderer, settings, shared, templates, training
+└── lib/                    # a2ui (v0.9 protocol), aesthetic, ai, api,
+                            # customization, eject, elevenlabs, evidence,
+                            # hooks, protocol (legacy Zod schema), sanity,
+                            # storage, store, templates, training
 ```
 
 ## Code Style
@@ -141,15 +139,16 @@ describe("FeatureName", () => {
 
 ## Key Files
 
-| Task                    | Location                                       |
-| ----------------------- | ---------------------------------------------- |
-| Add A2UI component type | `src/lib/protocol/schema.ts`                   |
-| Change AI behavior      | `src/lib/ai/prompts.ts`                        |
-| Add/modify AI provider  | `src/lib/ai/factory.ts`                        |
-| Image generation        | `src/lib/ai/images.ts`                         |
-| Model capabilities      | `src/lib/ai/model-registry.ts`                 |
-| Global state            | `src/lib/store/useA2UIStore.ts`                |
-| Main orchestrator       | `src/components/layout/DetectiveWorkspace.tsx` |
+| Task                      | Location                                       |
+| ------------------------- | ---------------------------------------------- |
+| Add legacy component type | `src/lib/protocol/schema.ts`                   |
+| Add A2UI v0.9 component   | `src/lib/a2ui/catalog/` (see v0.9 table below) |
+| Change AI behavior        | `src/lib/ai/prompts.ts`                        |
+| Add/modify AI provider    | `src/lib/ai/factory.ts`                        |
+| Image generation          | `src/lib/ai/images.ts`                         |
+| Model capabilities        | `src/lib/ai/model-registry.ts`                 |
+| Global state              | `src/lib/store/useA2UIStore.ts`                |
+| Main orchestrator         | `src/components/layout/DetectiveWorkspace.tsx` |
 
 ## Anti-Patterns
 
@@ -190,12 +189,13 @@ Fallback auth: `~/.local/share/opencode/auth.json`
 
 ## Documentation
 
-| Doc                                                                | Purpose                                   |
-| ------------------------------------------------------------------ | ----------------------------------------- |
-| [docs/PRODUCT.md](docs/PRODUCT.md)                                 | Product spec, features, design guidelines |
-| [docs/architecture.md](docs/architecture.md)                       | Technical architecture, data flows        |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)                         | Dev workflow, code style, testing         |
-| [docs/reference/a2ui-protocol.md](docs/reference/a2ui-protocol.md) | A2UI component schema reference           |
+| Doc                                                                | Purpose                                    |
+| ------------------------------------------------------------------ | ------------------------------------------ |
+| [docs/PRODUCT.md](docs/PRODUCT.md)                                 | Product spec, features, design guidelines  |
+| [docs/architecture.md](docs/architecture.md)                       | Technical architecture, data flows         |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)                         | Dev workflow, code style, testing          |
+| [docs/reference/a2ui-protocol.md](docs/reference/a2ui-protocol.md) | A2UI component schema reference (legacy)   |
+| [docs/reference/a2ui-v09-spec.md](docs/reference/a2ui-v09-spec.md) | A2UI v0.9 protocol specification (current) |
 
 ## A2UI v0.9 Protocol
 
@@ -209,9 +209,14 @@ The project now supports A2UI v0.9 specification for agent-generated UI.
 
 ### Message Types
 
-- `createSurface` - Initialize new surface
+Server messages use a flat `type` discriminator, e.g. `{ "type": "createSurface", "surfaceId": "...", "catalogId": "standard" }`:
+
+- `createSurface` - Initialize new surface (emits `catalogId: "standard"`)
 - `updateComponents` - Add/update components
+- `updateDataModel` - Patch the surface data model
 - `deleteSurface` - Remove surface
+
+> Note: This repo emits the flat `type` form. The upstream A2UI v0.9 spec (`docs/reference/a2ui-v09-spec.md`) uses a named-key envelope (e.g. `{ "createSurface": {...} }`); this divergence is intentional, not a bug.
 
 ### Components
 
@@ -246,5 +251,4 @@ pnpm e2e tests/e2e/a2ui/
 
 ### Legacy Protocol
 
-The old tool-result protocol (`src/lib/protocol/schema.ts`) is deprecated but still functional.
-New features should use A2UI v0.9
+The original tool-result protocol (`src/lib/protocol/schema.ts`, 23 component types) is still functional but superseded. New features should use A2UI v0.9.

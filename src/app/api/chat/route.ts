@@ -8,6 +8,7 @@ import type { UIMessage } from "ai";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { getProviderWithOverrides, type ModelOverride } from "@/lib/ai/factory";
 import { tools } from "@/lib/ai/tools";
+import { generateNarration } from "@/lib/ai/narration";
 import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import type { AestheticId } from "@/lib/aesthetic/types";
 import { apiSecurityCheck } from "@/lib/api/security";
@@ -294,9 +295,34 @@ export async function POST(req: Request) {
       tools,
     });
 
-    // toUIMessageStreamResponse is the confirmed method in ai@6.0.41 d.ts
-    // This replaces toDataStreamResponse which was removed in this version.
-    return result.toUIMessageStreamResponse({ originalMessages: normalizedMessages });
+    // The tool-calling model reliably calls generate_ui but rarely writes the
+    // accompanying in-character reply (after the tool call it considers the task
+    // done and stops). So generate the narration with a dedicated, tool-less
+    // call and append it to the stream as text parts. This is far more reliable
+    // than coaxing a second text step out of the model.
+    const lastUserText = (() => {
+      const u = [...messages].reverse().find((m) => m.role === "user");
+      return u ? extractMessageText(u as UIMessage & { content?: string }) : "";
+    })();
+    const narrationPromise = generateNarration(auth, lastUserText, aestheticId);
+
+    const stream = createUIMessageStream({
+      originalMessages: normalizedMessages,
+      execute: async ({ writer }) => {
+        // Stream the tool call / UI generation first.
+        writer.merge(result.toUIMessageStream());
+        // Then append the detective's narration as a standalone text message.
+        const narration = (await narrationPromise)?.trim();
+        if (narration) {
+          const id = `narration-${Date.now()}`;
+          writer.write({ type: "text-start", id });
+          writer.write({ type: "text-delta", id, delta: narration });
+          writer.write({ type: "text-end", id });
+        }
+      },
+    });
+
+    return createUIMessageStreamResponse({ stream });
   } catch (error) {
     console.error("API Route Error:", error);
     return new Response("Internal Server Error", { status: 500 });

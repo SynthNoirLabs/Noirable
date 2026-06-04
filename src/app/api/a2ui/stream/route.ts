@@ -4,7 +4,10 @@ import { NextRequest } from "next/server";
 import { streamText } from "ai";
 import { getProviderWithOverrides } from "@/lib/ai/factory";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
-import { tools } from "@/lib/ai/tools";
+import { tools, coerceComponentInput } from "@/lib/ai/tools";
+import { resolveA2UIImagePrompts } from "@/lib/ai/images";
+import { generateNarration } from "@/lib/ai/narration";
+import { a2uiInputSchema, normalizeA2UI } from "@/lib/protocol/schema";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
 import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
 import { apiSecurityCheck } from "@/lib/api/security";
@@ -195,42 +198,89 @@ export async function POST(req: NextRequest): Promise<Response> {
         };
         controller.enqueue(encoder.encode(formatSSE(createSurfaceMsg)));
 
-        // 2. Stream AI response (provider is non-null after mock check above)
+        // Kick off the detective's narration in parallel with the UI generation.
+        // A dedicated tool-less call is far more reliable than coaxing a second
+        // text step out of the tool-calling model (which usually just stops).
+        const narrationPromise = generateNarration(auth, prompt);
+
+        // 2. Stream AI response (provider is non-null after mock check above).
+        // Only expose generate_ui (the v0.9 surface is about producing UI;
+        // set_aesthetic is irrelevant) and force it by name — without a named
+        // choice, Gemini often picks the wrong tool and the surface ends up empty.
         const result = streamText({
           model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
           system: buildSystemPrompt(),
-          tools,
+          tools: { generate_ui: tools.generate_ui },
+          toolChoice: { type: "tool", toolName: "generate_ui" },
         });
 
         // Process the stream — emit updateComponents incrementally.
         // The first tool call owns the surface "root"; subsequent calls are
         // namespaced so their ids never collide.
         let callIndex = 0;
-        for await (const chunk of result.fullStream) {
-          if (chunk.type === "tool-call" && chunk.toolName === "generate_ui") {
-            // fullStream uses 'input' instead of 'args' for tool calls
-            const args = "args" in chunk ? chunk.args : (chunk as { input?: unknown }).input;
-            const component = (args as { component?: unknown } | undefined)?.component as
-              | Record<string, unknown>
-              | undefined;
-            if (component) {
-              // Flatten/normalize into catalog components (with a "root").
-              const components = toCatalogComponents(component, callIndex === 0, callIndex);
-              callIndex++;
 
-              // 3. Send updateComponents immediately for each tool call
-              const updateMsg: UpdateComponentsMessage = {
-                type: "updateComponents",
-                surfaceId,
-                components: components as UpdateComponentsMessage["components"],
-              };
-              controller.enqueue(encoder.encode(formatSSE(updateMsg)));
-            }
+        // Emit a generate_ui tool call's component as an updateComponents message.
+        const emitComponent = async (rawComponent: unknown): Promise<void> => {
+          let component = coerceComponentInput(rawComponent) as Record<string, unknown> | undefined;
+          if (!component || typeof component !== "object") return;
+          // Resolve any image `prompt`s into real generated image URLs (the v0.9
+          // route extracts the raw tool args and bypasses the tool's execute(),
+          // so we run the resolver here). Normalize first so the resolver sees a
+          // valid tree; fall back to the raw component if validation fails.
+          const validated = a2uiInputSchema.safeParse(normalizeA2UI(component));
+          if (validated.success) {
+            component = (await resolveA2UIImagePrompts(validated.data)) as Record<string, unknown>;
+          }
+          const components = toCatalogComponents(component, callIndex === 0, callIndex);
+          callIndex++;
+          const updateMsg: UpdateComponentsMessage = {
+            type: "updateComponents",
+            surfaceId,
+            components: components as UpdateComponentsMessage["components"],
+          };
+          controller.enqueue(encoder.encode(formatSSE(updateMsg)));
+        };
+
+        const componentOf = (chunk: unknown): unknown => {
+          const c = chunk as { args?: unknown; input?: unknown };
+          const args = "args" in (c as object) ? c.args : c.input;
+          return (args as { component?: unknown } | undefined)?.component;
+        };
+
+        // Stream incrementally — emit on each valid generate_ui tool call.
+        for await (const chunk of result.fullStream) {
+          if (
+            chunk.type === "tool-call" &&
+            chunk.toolName === "generate_ui" &&
+            !(chunk as { invalid?: boolean }).invalid
+          ) {
+            await emitComponent(componentOf(chunk));
           }
         }
 
-        // 4. Send [DONE] sentinel
+        // Fallback: some models (notably Gemini) don't surface a usable
+        // `tool-call` chunk in fullStream even with toolChoice "required". If we
+        // emitted nothing, recover the tool call from the resolved result.
+        if (callIndex === 0) {
+          try {
+            const finalToolCalls = await result.toolCalls;
+            for (const tc of finalToolCalls) {
+              if (tc.toolName === "generate_ui") {
+                await emitComponent(componentOf(tc));
+              }
+            }
+          } catch {
+            // ignore — nothing to recover
+          }
+        }
+
+        // 4. Send the detective's narration (from the parallel call) for the
+        // chat log, then [DONE].
+        const narration = (await narrationPromise)?.trim();
+        if (narration) {
+          controller.enqueue(encoder.encode(formatSSE({ type: "narration", text: narration })));
+        }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
         controller.close();

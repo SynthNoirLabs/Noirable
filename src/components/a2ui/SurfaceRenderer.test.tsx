@@ -1,13 +1,17 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { SurfaceRenderer } from "./SurfaceRenderer";
-import type { SurfaceState, SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
+import type { SurfaceState, SurfaceComponent, SurfaceConfig } from "@/lib/a2ui/surfaces/manager";
 
-function makeSurface(components: SurfaceComponent[]): SurfaceState {
+function makeSurface(
+  components: SurfaceComponent[],
+  dataModel: Record<string, unknown> = {},
+  config: Partial<SurfaceConfig> = {}
+): SurfaceState {
   return {
-    config: { surfaceId: "s1", catalogId: "standard" },
+    config: { surfaceId: "s1", catalogId: "standard", ...config },
     components: new Map(components.map((c) => [c.id, c])),
-    dataModel: {},
+    dataModel,
     createdAt: 0,
   };
 }
@@ -19,18 +23,20 @@ describe("SurfaceRenderer", () => {
     expect(screen.getByText("Closed case")).toBeInTheDocument();
   });
 
-  it("wraps a noir Card in the aged-paper dossier frame", () => {
+  it("renders a Card as a dark elevated panel (no light paper box on the dark board)", () => {
     const surface = makeSurface([
       { id: "root", component: "Card", child: "body" },
       { id: "body", component: "Text", text: "Evidence" },
     ]);
     const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
-    // The PaperFrame applies the shared `bg-paper` recipe.
-    expect(container.querySelector(".bg-paper")).not.toBeNull();
+    // The jarring light aged-paper frame (.bg-paper) is gone; cards now stay in
+    // the dark palette with a thin amber top accent.
+    expect(container.querySelector(".bg-paper")).toBeNull();
+    expect(container.querySelector(".border-t-2")).not.toBeNull();
     expect(screen.getByText("Evidence")).toBeInTheDocument();
   });
 
-  it("uses the clean elevated box for the standard theme", () => {
+  it("renders the same dark card for the standard theme", () => {
     const surface = makeSurface([
       { id: "root", component: "Card", child: "body" },
       { id: "body", component: "Text", text: "Evidence" },
@@ -46,5 +52,412 @@ describe("SurfaceRenderer", () => {
     ]);
     render(<SurfaceRenderer surface={surface} theme="noir" />);
     expect(screen.getByText(/Unknown: Bogus/)).toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Full 18-component coverage: the 7 that previously rendered as "Unknown".
+  // --------------------------------------------------------------------------
+
+  it("renders Tabs and switches the active panel on click", () => {
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Tabs",
+        tabs: [
+          { title: "Suspects", child: "p1" },
+          { title: "Alibis", child: "p2" },
+        ],
+      },
+      { id: "p1", component: "Text", text: "Panel one" },
+      { id: "p2", component: "Text", text: "Panel two" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Panel one")).toBeInTheDocument();
+    expect(screen.queryByText("Panel two")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Alibis" }));
+    expect(screen.getByText("Panel two")).toBeInTheDocument();
+  });
+
+  it("renders Modal trigger and opens the content dialog on click", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Modal", trigger: "t", content: "c" },
+      { id: "t", component: "Text", text: "Open file" },
+      { id: "c", component: "Text", text: "Top secret" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Open file"));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Top secret")).toBeInTheDocument();
+  });
+
+  it("renders a Table as a real grid (header + rows), not flattened text", () => {
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Table",
+        columns: ["Item", "Location", "Status"],
+        rows: [
+          ["Cybernetic Eye", "Alleyway", "Diagnostics"],
+          ["Datapad", "Sector 4", "Recovery"],
+        ],
+      },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector("table")).not.toBeNull();
+    expect(container.querySelectorAll("thead th")).toHaveLength(3);
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(2);
+    expect(screen.getByText("Cybernetic Eye")).toBeInTheDocument();
+    // Not pipe-joined into one text node.
+    expect(screen.queryByText(/Item\s*\|\s*Location/)).not.toBeInTheDocument();
+  });
+
+  it("lets a ChoicePicker select an option even without a {path} binding", () => {
+    // Regression: an unbound picker (literal value) was fully controlled with a
+    // no-op handler, so clicks never registered. It now falls back to local state.
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "ChoicePicker",
+        label: "Case",
+        variant: "mutuallyExclusive",
+        options: [
+          { label: "Case 904", value: "904" },
+          { label: "Case 887", value: "887" },
+        ],
+        value: [],
+      },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[0]).not.toBeChecked();
+    fireEvent.click(radios[1]);
+    expect(radios[1]).toBeChecked();
+  });
+
+  it("renders a Badge as a pill (not plain text)", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Badge", label: "WANTED", variant: "danger" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const pill = screen.getByText("WANTED");
+    expect(pill).toBeInTheDocument();
+    expect(pill.className).toMatch(/rounded-full/);
+  });
+
+  it("renders a Grid as a CSS grid containing its children", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Grid", columns: "3", children: ["a", "b", "c"] },
+      { id: "a", component: "Text", text: "One" },
+      { id: "b", component: "Text", text: "Two" },
+      { id: "c", component: "Text", text: "Three" },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector(".grid")).not.toBeNull();
+    expect(screen.getByText("One")).toBeInTheDocument();
+    expect(screen.getByText("Three")).toBeInTheDocument();
+  });
+
+  it("renders a Stat tile with label and value", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Stat", label: "Open Leads", value: "7", helper: "+2 today" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Open Leads")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getByText("+2 today")).toBeInTheDocument();
+  });
+
+  it("renders a Button label with readable text (no nested washed-out Text)", () => {
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Button",
+        child: "lbl",
+        action: { event: { name: "submit" } },
+      },
+      { id: "lbl", component: "Text", text: "Log Suspect" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
+    const btn = screen.getByRole("button", { name: "Log Suspect" });
+    expect(btn).toBeInTheDocument();
+    // The label is rendered directly on the button (not as a child <p>).
+    expect(btn.querySelector("p")).toBeNull();
+  });
+
+  it("renders Video and AudioPlayer with their URLs", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Column", children: ["v", "a"] },
+      { id: "v", component: "Video", url: "/clip.mp4" },
+      { id: "a", component: "AudioPlayer", url: "/tape.mp3", description: "Wire tap" },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector('video[src="/clip.mp4"]')).not.toBeNull();
+    expect(container.querySelector('audio[src="/tape.mp3"]')).not.toBeNull();
+    expect(screen.getByText("Wire tap")).toBeInTheDocument();
+  });
+
+  it("renders Slider, ChoicePicker, and DateTimeInput", () => {
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["s", "cp", "dt"] },
+        { id: "s", component: "Slider", label: "Heat", min: 0, max: 10, value: { path: "/heat" } },
+        {
+          id: "cp",
+          component: "ChoicePicker",
+          label: "Motive",
+          variant: "mutuallyExclusive",
+          options: [
+            { label: "Greed", value: "greed" },
+            { label: "Revenge", value: "revenge" },
+          ],
+          value: { path: "/motive" },
+        },
+        { id: "dt", component: "DateTimeInput", value: { path: "/when" }, enableDate: true },
+      ],
+      { heat: 4, motive: [], when: "" }
+    );
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector('input[type="range"]')).not.toBeNull();
+    expect(screen.getByText("Greed")).toBeInTheDocument();
+    expect(screen.getByText("Revenge")).toBeInTheDocument();
+    expect(container.querySelector('input[type="date"]')).not.toBeNull();
+  });
+
+  // --------------------------------------------------------------------------
+  // Two-way data binding
+  // --------------------------------------------------------------------------
+
+  it("renders a bound TextField value from the data model", () => {
+    const surface = makeSurface(
+      [{ id: "root", component: "TextField", label: "Name", value: { path: "/name" } }],
+      { name: "Sam Spade" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByLabelText("Name")).toHaveValue("Sam Spade");
+  });
+
+  it("writes TextField edits back into the working data model (two-way binding)", () => {
+    const surface = makeSurface(
+      [{ id: "root", component: "TextField", label: "Name", value: { path: "/name" } }],
+      { name: "" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const input = screen.getByLabelText("Name");
+    fireEvent.change(input, { target: { value: "Brigid" } });
+    // Controlled input reflects the committed data-model value.
+    expect(input).toHaveValue("Brigid");
+  });
+
+  it("toggles a bound CheckBox through the data model", () => {
+    const surface = makeSurface(
+      [{ id: "root", component: "CheckBox", label: "Urgent", value: { path: "/urgent" } }],
+      { urgent: false }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const box = screen.getByRole("checkbox");
+    expect(box).not.toBeChecked();
+    fireEvent.click(box);
+    expect(box).toBeChecked();
+  });
+
+  // --------------------------------------------------------------------------
+  // Actions
+  // --------------------------------------------------------------------------
+
+  it("emits a client→server ActionMessage when a Button server event fires", () => {
+    const onAction = vi.fn();
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Button",
+        child: "lbl",
+        action: { event: { name: "submit_case", context: { caseId: "42" } } },
+      },
+      { id: "lbl", component: "Text", text: "File it" },
+    ]);
+    render(
+      <SurfaceRenderer surface={surface} theme="noir" onAction={onAction} actionEndpoint={null} />
+    );
+    fireEvent.click(screen.getByText("File it"));
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+    const msg = onAction.mock.calls[0][0];
+    expect(msg).toMatchObject({
+      type: "action",
+      surfaceId: "s1",
+      sourceComponentId: "root",
+      actionName: "submit_case",
+    });
+  });
+
+  it("handles a local functionCall toggle action against the data model", () => {
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "flag"] },
+        {
+          id: "btn",
+          component: "Button",
+          child: "lbl",
+          action: { functionCall: { call: "toggle", args: { path: "/open" } } },
+        },
+        { id: "lbl", component: "Text", text: "Toggle" },
+        { id: "flag", component: "CheckBox", label: "Open", value: { path: "/open" } },
+      ],
+      { open: false }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const box = screen.getByRole("checkbox");
+    expect(box).not.toBeChecked();
+    fireEvent.click(screen.getByText("Toggle"));
+    expect(box).toBeChecked();
+  });
+
+  // --------------------------------------------------------------------------
+  // Object theme
+  // --------------------------------------------------------------------------
+
+  it("applies a v0.9 object theme as CSS-variable overrides", () => {
+    const surface = makeSurface(
+      [{ id: "root", component: "Text", text: "Themed" }],
+      {},
+      {
+        theme: { primaryColor: "rgb(0, 191, 255)" },
+      }
+    );
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const wrapper = container.querySelector("[style]") as HTMLElement | null;
+    expect(wrapper?.style.getPropertyValue("--aesthetic-accent")).toBe("rgb(0, 191, 255)");
+  });
+
+  // --------------------------------------------------------------------------
+  // Function-call data bindings
+  // --------------------------------------------------------------------------
+
+  it("resolves a functionCall binding (concat) in Text", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "Text",
+          text: { call: "concat", args: { values: [{ path: "/first" }, " ", { path: "/last" }] } },
+        },
+      ],
+      { first: "Sam", last: "Spade" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Sam Spade")).toBeInTheDocument();
+  });
+
+  it("resolves a nested/uppercase functionCall binding", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "Text",
+          text: { call: "uppercase", args: { v: { path: "/name" } } },
+        },
+      ],
+      { name: "redacted" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("REDACTED")).toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Template children (dynamic child lists)
+  // --------------------------------------------------------------------------
+
+  it("expands a template child list over an array with per-item scope", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "Column",
+          children: { componentId: "itemTpl", path: "/suspects" },
+        },
+        // Relative pointer "name" (no leading slash) resolves against each
+        // scoped array element; absolute "/..." would hit the surface root.
+        { id: "itemTpl", component: "Text", text: { path: "name" } },
+      ],
+      { suspects: [{ name: "Brigid" }, { name: "Joel" }, { name: "Wilmer" }] }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Brigid")).toBeInTheDocument();
+    expect(screen.getByText("Joel")).toBeInTheDocument();
+    expect(screen.getByText("Wilmer")).toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Validation (checks)
+  // --------------------------------------------------------------------------
+
+  it("shows a validation error after an invalid edit and clears it when fixed", () => {
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "TextField",
+          label: "Email",
+          value: { path: "/email" },
+          checks: [{ call: "email", message: "Bad email, gumshoe." }],
+        },
+      ],
+      { email: "" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const input = screen.getByLabelText("Email");
+
+    // No error before the field is touched.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "not-an-email" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Bad email, gumshoe.");
+
+    fireEvent.change(input, { target: { value: "sam@spade.io" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Server action round-trip (HTTP back-channel)
+  // --------------------------------------------------------------------------
+
+  it("posts a server event to the action endpoint and applies returned messages", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        messages: [{ type: "updateDataModel", surfaceId: "s1", path: "/status", value: "Filed." }],
+      }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "status"] },
+        {
+          id: "btn",
+          component: "Button",
+          child: "lbl",
+          action: { event: { name: "submit" } },
+        },
+        { id: "lbl", component: "Text", text: "File it" },
+        { id: "status", component: "Text", text: { path: "/status" } },
+      ],
+      { status: "" }
+    );
+
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint="/api/a2ui/action" />);
+    fireEvent.click(screen.getByText("File it"));
+
+    // The returned updateDataModel is applied to the working model → re-render.
+    expect(await screen.findByText("Filed.")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/a2ui/action",
+      expect.objectContaining({ method: "POST" })
+    );
+
+    vi.unstubAllGlobals();
   });
 });
