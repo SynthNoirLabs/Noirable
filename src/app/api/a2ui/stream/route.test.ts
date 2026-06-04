@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // Mock server-only
@@ -50,8 +50,19 @@ vi.mock("ai", async (importOriginal) => {
 });
 
 describe("/api/a2ui/stream", () => {
+  // The route fires generateNarration() in parallel with UI generation. These
+  // tests mock `streamText` but not `generateText`, so narration runs against a
+  // stub provider and logs an (expected, caught) error. Narration isn't the
+  // contract under test here, so silence that incidental noise.
+  let narrationErrorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    narrationErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    narrationErrorSpy.mockRestore();
   });
 
   it("exports a POST handler", async () => {

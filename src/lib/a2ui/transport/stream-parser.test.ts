@@ -36,6 +36,9 @@ describe("parseSSELine", () => {
   });
 
   it("returns error for malformed JSON", () => {
+    // The parser logs malformed input to console.error by design — asserting on
+    // the spy keeps that contract tested while keeping the test output clean.
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const line = "data: {invalid json}";
     const result = parseSSELine(line);
 
@@ -47,6 +50,10 @@ describe("parseSSELine", () => {
         raw: "{invalid json}",
       }),
     });
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[A2UI Transport] Parse error"), {
+      raw: "{invalid json}",
+    });
+    errorSpy.mockRestore();
   });
 
   it("handles whitespace around data prefix", () => {
@@ -79,6 +86,7 @@ describe("parseSSEStream", () => {
   });
 
   it("collects errors for malformed messages (not silent drop)", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const sseText = ['data: {"type":"valid"}', "data: {broken", 'data: {"type":"also valid"}'].join(
       "\n"
     );
@@ -91,6 +99,11 @@ describe("parseSSEStream", () => {
       type: "parse_error",
       raw: "{broken",
     });
+    // The malformed line is surfaced, not silently swallowed.
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[A2UI Transport] Parse error"), {
+      raw: "{broken",
+    });
+    errorSpy.mockRestore();
   });
 
   it("handles CRLF line endings", () => {
@@ -152,6 +165,7 @@ describe("createStreamParser", () => {
   });
 
   it("emits error events for malformed JSON (not silent)", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const parser = createStreamParser(options);
     parser.connect();
     parser.feed("data: {broken\n");
@@ -163,6 +177,7 @@ describe("createStreamParser", () => {
         raw: "{broken",
       })
     );
+    errorSpy.mockRestore();
   });
 
   it("handles chunked data across multiple feeds", () => {
