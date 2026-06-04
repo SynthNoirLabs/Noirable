@@ -106,6 +106,37 @@ describe("flattenLegacyToCatalog", () => {
   // These shapes are exactly what models (Gemini) emit and previously rendered
   // as "Unrenderable component".
 
+  it("maps modal/badge/grid to their real catalog components (not Unsupported)", () => {
+    const modal = flattenLegacyToCatalog({
+      type: "modal",
+      trigger: { type: "button", label: "Open" },
+      content: { type: "text", content: "secret" },
+    });
+    expect(modal.components.find((c) => c.id === "root")?.component).toBe("Modal");
+
+    const badge = flattenLegacyToCatalog({ type: "badge", label: "WANTED", variant: "danger" });
+    expect(badge.components.find((c) => c.id === "root")?.component).toBe("Badge");
+
+    const grid = flattenLegacyToCatalog({
+      type: "grid",
+      columns: "3",
+      children: [
+        { type: "text", content: "a" },
+        { type: "text", content: "b" },
+      ],
+    });
+    expect(grid.components.find((c) => c.id === "root")?.component).toBe("Grid");
+
+    // None degraded to the Unsupported/Unrenderable fallback.
+    for (const r of [modal, badge, grid]) {
+      expect(
+        r.components.some(
+          (c) => c.text === "Unsupported component" || c.text === "Unrenderable component"
+        )
+      ).toBe(false);
+    }
+  });
+
   it("renders a card with children (card-as-container) without dropping content", () => {
     const { components } = flattenLegacyToCatalog({
       type: "card",

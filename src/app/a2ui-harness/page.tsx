@@ -29,12 +29,19 @@ const COMPONENTS: SurfaceComponent[] = [
       "suspectsList",
       "fileBtn",
       "status",
-      "statsRow",
+      "badgeRow",
+      "statsGrid",
       "evidenceTable",
+      "modalRoot",
     ],
   },
-  // Row of stat tiles.
-  { id: "statsRow", component: "Row", children: ["s1", "s2", "s3"] },
+  // Row of status badges (pills).
+  { id: "badgeRow", component: "Row", children: ["b1", "b2", "b3"] },
+  { id: "b1", component: "Badge", label: "Active", variant: "primary" },
+  { id: "b2", component: "Badge", label: "High Risk", variant: "danger" },
+  { id: "b3", component: "Badge", label: "Cold", variant: "ghost" },
+  // Stat tiles in a real grid.
+  { id: "statsGrid", component: "Grid", columns: "3", children: ["s1", "s2", "s3"] },
   { id: "s1", component: "Stat", label: "Open Leads", value: "7", helper: "+2 today" },
   { id: "s2", component: "Stat", label: "Days Missing", value: "14" },
   { id: "s3", component: "Stat", label: "Bounty", value: "50,000 CR" },
@@ -49,6 +56,16 @@ const COMPONENTS: SurfaceComponent[] = [
       ["Rain-soaked Trenchcoat", "Pier 9 warehouse", "Logged in locker #12"],
     ],
   },
+  // Modal: trigger button opens a content panel.
+  { id: "modalRoot", component: "Modal", trigger: "modalTrigger", content: "modalBody" },
+  {
+    id: "modalTrigger",
+    component: "Button",
+    variant: "borderless",
+    label: "View Classified Notes",
+    action: { event: { name: "noop" } },
+  },
+  { id: "modalBody", component: "Text", text: "REDACTED. Some things stay buried." },
   // Function-call binding: concat of two data-model fields.
   {
     id: "greeting",

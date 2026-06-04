@@ -88,7 +88,13 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
     }
 
     case "badge":
-      return emit(builder, { id, component: "Text", text: node.label, variant: "caption" });
+      // Render as a styled pill rather than plain caption text.
+      return emit(builder, {
+        id,
+        component: "Badge",
+        label: node.label,
+        ...(node.variant ? { variant: node.variant } : {}),
+      });
 
     case "card": {
       const childIds: string[] = [emitText(builder, node.title, "h3")];
@@ -116,11 +122,21 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
     }
 
     case "container":
-    case "column":
-    case "grid": {
-      // grid has no catalog equivalent — approximate vertically.
+    case "column": {
       const children = node.children.map((child) => walk(builder, child));
       return emit(builder, { id, component: "Column", children });
+    }
+
+    case "grid": {
+      // Emit a real Grid (CSS grid) so multi-column layouts aren't flattened
+      // to a single vertical stack.
+      const children = node.children.map((child) => walk(builder, child));
+      return emit(builder, {
+        id,
+        component: "Grid",
+        ...(node.columns ? { columns: node.columns } : {}),
+        children,
+      });
     }
 
     case "row": {
@@ -130,6 +146,13 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
 
     case "divider":
       return emit(builder, { id, component: "Divider" });
+
+    case "modal": {
+      // Wire trigger + content as id references for the Modal renderer.
+      const triggerId = walk(builder, node.trigger);
+      const contentId = walk(builder, node.content);
+      return emit(builder, { id, component: "Modal", trigger: triggerId, content: contentId });
+    }
 
     case "list": {
       const childIds = node.items.map((item) => emitText(builder, item));

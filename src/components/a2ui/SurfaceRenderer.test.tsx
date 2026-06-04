@@ -134,6 +134,29 @@ describe("SurfaceRenderer", () => {
     expect(radios[1]).toBeChecked();
   });
 
+  it("renders a Badge as a pill (not plain text)", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Badge", label: "WANTED", variant: "danger" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const pill = screen.getByText("WANTED");
+    expect(pill).toBeInTheDocument();
+    expect(pill.className).toMatch(/rounded-full/);
+  });
+
+  it("renders a Grid as a CSS grid containing its children", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Grid", columns: "3", children: ["a", "b", "c"] },
+      { id: "a", component: "Text", text: "One" },
+      { id: "b", component: "Text", text: "Two" },
+      { id: "c", component: "Text", text: "Three" },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector(".grid")).not.toBeNull();
+    expect(screen.getByText("One")).toBeInTheDocument();
+    expect(screen.getByText("Three")).toBeInTheDocument();
+  });
+
   it("renders a Stat tile with label and value", () => {
     const surface = makeSurface([
       { id: "root", component: "Stat", label: "Open Leads", value: "7", helper: "+2 today" },

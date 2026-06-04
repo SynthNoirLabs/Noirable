@@ -380,6 +380,52 @@ function TableRenderer({ component }: ComponentProps) {
 
 // Stat — a compact metric tile with an accent rule, label, and big value.
 // Adapter-emitted (not in the upstream catalog) so legacy `stat` reads as a
+// Badge — a small status pill. Adapter-emitted (not in the upstream catalog).
+// The legacy variant tokens (primary/secondary/ghost/danger) map to pill colors.
+function BadgeRenderer({ component }: ComponentProps) {
+  const resolve = useResolve();
+  const badge = component as SurfaceComponent & { label?: unknown; variant?: string };
+  const label = String(resolve(badge.label) ?? "");
+  const variant = badge.variant ?? "secondary";
+
+  const variantClass =
+    variant === "danger"
+      ? "border-[var(--aesthetic-error)]/50 bg-[var(--aesthetic-error)]/15 text-[var(--aesthetic-error)]"
+      : variant === "primary"
+        ? "border-[var(--aesthetic-accent)]/50 bg-[var(--aesthetic-accent)]/15 text-[var(--aesthetic-accent)]"
+        : variant === "ghost"
+          ? "border-[var(--aesthetic-border)]/40 bg-transparent text-[var(--aesthetic-text)]/70"
+          : "border-[var(--aesthetic-border)]/50 bg-[var(--aesthetic-text)]/10 text-[var(--aesthetic-text)]/85";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center w-fit rounded-full border px-2.5 py-0.5 font-typewriter text-[10px] uppercase tracking-widest",
+        variantClass
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+// Grid — a real CSS grid so multi-column layouts aren't flattened to a stack.
+function GridRenderer({ component }: ComponentProps) {
+  const grid = component as SurfaceComponent & { columns?: unknown };
+  const cols = Number(grid.columns);
+  const colsClass =
+    cols === 4
+      ? "grid-cols-2 sm:grid-cols-4"
+      : cols === 3
+        ? "grid-cols-2 sm:grid-cols-3"
+        : "grid-cols-1 sm:grid-cols-2";
+  return (
+    <div className={cn("grid gap-3", colsClass)}>
+      <ChildList childList={(component as { children?: unknown }).children} />
+    </div>
+  );
+}
+
 // proper KPI rather than loose stacked text.
 function StatRenderer({ component }: ComponentProps) {
   const resolve = useResolve();
@@ -1034,6 +1080,8 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
   Divider: DividerRenderer,
   Table: TableRenderer,
   Stat: StatRenderer,
+  Badge: BadgeRenderer,
+  Grid: GridRenderer,
   Modal: ModalRenderer,
   // Content (5)
   Text: TextRenderer,
