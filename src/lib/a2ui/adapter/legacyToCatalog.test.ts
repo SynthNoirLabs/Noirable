@@ -151,6 +151,25 @@ describe("flattenLegacyToCatalog", () => {
     ]);
   });
 
+  it("emits a real Tabs component (not stacked headings) with wired children", () => {
+    const { components } = flattenLegacyToCatalog({
+      type: "tabs",
+      tabs: [
+        { label: "Victims", content: { type: "text", content: "v" } },
+        { label: "Theory", content: { type: "text", content: "t" } },
+      ],
+    });
+    const tabsNode = components.find((c) => c.component === "Tabs") as
+      | (SurfaceComponent & { tabs?: Array<{ title?: unknown; child?: string }> })
+      | undefined;
+    expect(tabsNode).toBeDefined();
+    expect(tabsNode?.tabs).toHaveLength(2);
+    // Each tab's child id resolves to a real emitted component.
+    for (const t of tabsNode!.tabs!) {
+      expect(components.some((c) => c.id === t.child)).toBe(true);
+    }
+  });
+
   it("accepts tabs that use `children` or omit content entirely", () => {
     // Regression: a tab with `children` (or no content at all) previously failed
     // validation and discarded the whole tree.

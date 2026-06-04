@@ -111,6 +111,29 @@ describe("SurfaceRenderer", () => {
     expect(screen.queryByText(/Item\s*\|\s*Location/)).not.toBeInTheDocument();
   });
 
+  it("lets a ChoicePicker select an option even without a {path} binding", () => {
+    // Regression: an unbound picker (literal value) was fully controlled with a
+    // no-op handler, so clicks never registered. It now falls back to local state.
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "ChoicePicker",
+        label: "Case",
+        variant: "mutuallyExclusive",
+        options: [
+          { label: "Case 904", value: "904" },
+          { label: "Case 887", value: "887" },
+        ],
+        value: [],
+      },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[0]).not.toBeChecked();
+    fireEvent.click(radios[1]);
+    expect(radios[1]).toBeChecked();
+  });
+
   it("renders a Stat tile with label and value", () => {
     const surface = makeSurface([
       { id: "root", component: "Stat", label: "Open Leads", value: "7", helper: "+2 today" },

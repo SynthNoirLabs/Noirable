@@ -148,14 +148,13 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
     }
 
     case "tabs": {
-      // No catalog tabs in the surface renderer — stack each panel under its
-      // label heading.
-      const childIds: string[] = [];
-      for (const tab of node.tabs) {
-        childIds.push(emitText(builder, tab.label, "h4"));
-        childIds.push(walk(builder, tab.content));
-      }
-      return emit(builder, { id, component: "Column", children: childIds });
+      // Emit a real Tabs catalog component (clickable tab strip + panels). Each
+      // tab references its content component by id (flat adjacency list).
+      const tabItems = node.tabs.map((tab) => ({
+        title: tab.label,
+        child: walk(builder, tab.content),
+      }));
+      return emit(builder, { id, component: "Tabs", tabs: tabItems });
     }
 
     case "image":

@@ -887,32 +887,38 @@ function ChoicePickerRenderer({ component }: ComponentProps) {
   const options = Array.isArray(picker.options) ? picker.options : [];
   const bindingPath = getBindingPath(picker.value);
   const resolved = resolve(picker.value);
-  const selected: string[] = Array.isArray(resolved)
+  const boundSelected: string[] = Array.isArray(resolved)
     ? (resolved as string[])
     : typeof resolved === "string" && resolved
       ? [resolved]
       : [];
+
+  // When there's no `{path}` binding (e.g. a literal default), the picker is
+  // uncontrolled — track the selection locally so clicks still register.
+  const [localSelected, setLocalSelected] = useState<string[]>(boundSelected);
+  const selected = bindingPath ? boundSelected : localSelected;
   const { error, markTouched } = useFieldValidation(selected, checksOf(component));
 
   const multiple = picker.variant === "multipleSelection";
 
   const toggle = (optValue: string) => {
     markTouched();
-    if (!bindingPath) return;
-    if (multiple) {
-      const next = selected.includes(optValue)
+    const next = multiple
+      ? selected.includes(optValue)
         ? selected.filter((v) => v !== optValue)
-        : [...selected, optValue];
+        : [...selected, optValue]
+      : [optValue];
+    if (bindingPath) {
       setData(bindingPath, next);
     } else {
-      setData(bindingPath, [optValue]);
+      setLocalSelected(next);
     }
   };
 
   return (
-    <fieldset className="flex flex-col gap-2 text-sm">
+    <fieldset className="flex flex-col gap-1.5 text-sm">
       {label && (
-        <legend className="font-typewriter text-[var(--aesthetic-text)]/70 text-xs mb-1">
+        <legend className="font-typewriter text-[10px] uppercase tracking-widest text-[var(--aesthetic-text)]/55 mb-1">
           {label}
         </legend>
       )}
@@ -922,14 +928,19 @@ function ChoicePickerRenderer({ component }: ComponentProps) {
         return (
           <label
             key={option.value}
-            className="flex items-center gap-2 font-mono text-[var(--aesthetic-text)] cursor-pointer"
+            className={cn(
+              "flex items-center gap-2.5 font-mono cursor-pointer rounded-sm px-2 py-1.5 border transition-colors",
+              isSelected
+                ? "border-[var(--aesthetic-accent)]/50 bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-text)]"
+                : "border-[var(--aesthetic-border)]/20 text-[var(--aesthetic-text)]/80 hover:border-[var(--aesthetic-border)]/40"
+            )}
           >
             <input
               type={multiple ? "checkbox" : "radio"}
               name={`choice-${component.id}`}
               checked={isSelected}
               onChange={() => toggle(option.value)}
-              className="accent-[var(--aesthetic-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+              className="w-4 h-4 accent-[var(--aesthetic-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
             />
             {optLabel}
           </label>
