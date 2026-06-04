@@ -325,6 +325,88 @@ function DividerRenderer({ component }: ComponentProps) {
   );
 }
 
+// Table — a real grid with a header band and zebra/hover rows. Not part of the
+// upstream v0.9 catalog, but emitted by the legacy→catalog adapter so legacy
+// `table` components render properly instead of as flattened text.
+function TableRenderer({ component }: ComponentProps) {
+  const table = component as SurfaceComponent & { columns?: unknown; rows?: unknown };
+  const columns = Array.isArray(table.columns) ? (table.columns as unknown[]).map(String) : [];
+  const rows = Array.isArray(table.rows)
+    ? (table.rows as unknown[]).map((r) => (Array.isArray(r) ? r.map(String) : [String(r)]))
+    : [];
+
+  if (columns.length === 0 && rows.length === 0) {
+    return <MissingComponent id={`${component.id} (empty table)`} />;
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-sm border border-[var(--aesthetic-border)]/30">
+      <table className="w-full border-collapse font-mono text-sm">
+        {columns.length > 0 && (
+          <thead>
+            <tr className="bg-[var(--aesthetic-accent)]/10 border-b border-[var(--aesthetic-accent)]/30">
+              {columns.map((col, i) => (
+                <th
+                  key={i}
+                  className="text-left px-3 py-2 font-typewriter text-xs uppercase tracking-widest text-[var(--aesthetic-accent)]/90 whitespace-nowrap"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+        )}
+        <tbody>
+          {rows.map((row, r) => (
+            <tr
+              key={r}
+              className={cn(
+                "border-b border-[var(--aesthetic-border)]/15 last:border-0 transition-colors hover:bg-[var(--aesthetic-text)]/5",
+                r % 2 === 1 && "bg-[var(--aesthetic-text)]/[0.03]"
+              )}
+            >
+              {row.map((cell, c) => (
+                <td key={c} className="px-3 py-2 text-[var(--aesthetic-text)]/85 align-top">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Stat — a compact metric tile with an accent rule, label, and big value.
+// Adapter-emitted (not in the upstream catalog) so legacy `stat` reads as a
+// proper KPI rather than loose stacked text.
+function StatRenderer({ component }: ComponentProps) {
+  const resolve = useResolve();
+  const stat = component as SurfaceComponent & {
+    label?: unknown;
+    value?: unknown;
+    helper?: unknown;
+  };
+  const label = String(resolve(stat.label) ?? "");
+  const value = String(resolve(stat.value) ?? "");
+  const helper = stat.helper ? String(resolve(stat.helper)) : "";
+
+  return (
+    <div className="flex flex-col gap-1 border-l-2 border-[var(--aesthetic-accent)]/60 bg-[var(--aesthetic-text)]/[0.03] px-3 py-2 rounded-sm">
+      <span className="font-typewriter text-[10px] uppercase tracking-widest text-[var(--aesthetic-text)]/55">
+        {label}
+      </span>
+      <span className="font-typewriter text-2xl font-bold text-[var(--aesthetic-accent)] tabular-nums leading-none">
+        {value}
+      </span>
+      {helper && (
+        <span className="font-mono text-[10px] text-[var(--aesthetic-text)]/50">{helper}</span>
+      )}
+    </div>
+  );
+}
+
 interface TabItem {
   title?: unknown;
   child?: string;
@@ -603,28 +685,50 @@ function AudioPlayerRenderer({ component }: ComponentProps) {
 // Input: Button / TextField / CheckBox / Slider / ChoicePicker / DateTimeInput
 // ============================================================================
 
+/** Extract a plain-text label from a button's child component (or `label`). */
+function buttonLabel(
+  btn: SurfaceComponent & { child?: string; label?: unknown },
+  getComponent: (id: string) => SurfaceComponent | undefined,
+  resolve: (value: unknown) => unknown
+): string {
+  if (btn.child) {
+    const child = getComponent(btn.child) as (SurfaceComponent & { text?: unknown }) | undefined;
+    if (child && typeof child.text !== "undefined") {
+      return String(resolve(child.text) ?? "");
+    }
+  }
+  if (typeof btn.label !== "undefined") return String(resolve(btn.label) ?? "");
+  return "Submit";
+}
+
 function ButtonRenderer({ component }: ComponentProps) {
   const { getComponent, runAction } = useSurfaceContext();
+  const resolve = useResolve();
   const btn = component as SurfaceComponent & {
     child?: string;
+    label?: unknown;
     variant?: string;
     action?: unknown;
   };
 
-  const childComponent = btn.child ? getComponent(btn.child) : null;
+  // Render the label as plain text with a contrast-correct color rather than
+  // recursing into a Text component (which would re-assert the light surface
+  // color and wash out against the filled amber background).
+  const label = buttonLabel(btn, getComponent, resolve);
+  const borderless = btn.variant === "borderless";
 
   return (
     <button
       type="button"
       onClick={() => runAction(btn.id, btn.action)}
       className={cn(
-        "px-4 py-2 font-mono text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
-        btn.variant === "borderless"
-          ? "text-[var(--aesthetic-accent)] hover:text-[var(--aesthetic-accent)]/80"
-          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-sm"
+        "px-4 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--aesthetic-background)] focus-visible:ring-[var(--aesthetic-accent)]",
+        borderless
+          ? "text-[var(--aesthetic-accent)] hover:text-[var(--aesthetic-accent)]/80 border border-[var(--aesthetic-accent)]/40 rounded-sm hover:border-[var(--aesthetic-accent)]"
+          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-sm shadow-[0_2px_12px_rgba(255,191,0,0.25)]"
       )}
     >
-      {childComponent ? <ComponentRenderer component={childComponent} /> : btn.id}
+      {label}
     </button>
   );
 }
@@ -648,10 +752,10 @@ function TextFieldRenderer({ component }: ComponentProps) {
     field.variant === "obscured" ? "password" : field.variant === "number" ? "number" : "text";
 
   const sharedClass = cn(
-    "bg-[var(--aesthetic-surface)] border rounded-sm px-3 py-2 text-[var(--aesthetic-text)] font-mono text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+    "bg-[var(--aesthetic-background)]/60 border rounded-sm px-3 py-2.5 text-[var(--aesthetic-text)] font-mono text-sm placeholder:text-[var(--aesthetic-text)]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
     error
       ? "border-[var(--aesthetic-error)]/70 focus:border-[var(--aesthetic-error)]"
-      : "border-[var(--aesthetic-border)]/30 focus:border-[var(--aesthetic-accent)]"
+      : "border-[var(--aesthetic-border)]/40 focus:border-[var(--aesthetic-accent)]"
   );
 
   const onChange = (next: string) => {
@@ -662,7 +766,10 @@ function TextFieldRenderer({ component }: ComponentProps) {
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label htmlFor={fieldId} className="text-[var(--aesthetic-text)]/70 text-xs font-mono">
+        <label
+          htmlFor={fieldId}
+          className="font-typewriter text-[10px] uppercase tracking-widest text-[var(--aesthetic-text)]/55"
+        >
           {label}
         </label>
       )}
@@ -858,7 +965,10 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label htmlFor={fieldId} className="text-[var(--aesthetic-text)]/70 text-xs font-mono">
+        <label
+          htmlFor={fieldId}
+          className="font-typewriter text-[10px] uppercase tracking-widest text-[var(--aesthetic-text)]/55"
+        >
           {label}
         </label>
       )}
@@ -911,6 +1021,8 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
   Card: CardRenderer,
   Tabs: TabsRenderer,
   Divider: DividerRenderer,
+  Table: TableRenderer,
+  Stat: StatRenderer,
   Modal: ModalRenderer,
   // Content (5)
   Text: TextRenderer,

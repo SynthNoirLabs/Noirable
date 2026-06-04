@@ -90,6 +90,54 @@ describe("SurfaceRenderer", () => {
     expect(screen.getByText("Top secret")).toBeInTheDocument();
   });
 
+  it("renders a Table as a real grid (header + rows), not flattened text", () => {
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Table",
+        columns: ["Item", "Location", "Status"],
+        rows: [
+          ["Cybernetic Eye", "Alleyway", "Diagnostics"],
+          ["Datapad", "Sector 4", "Recovery"],
+        ],
+      },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector("table")).not.toBeNull();
+    expect(container.querySelectorAll("thead th")).toHaveLength(3);
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(2);
+    expect(screen.getByText("Cybernetic Eye")).toBeInTheDocument();
+    // Not pipe-joined into one text node.
+    expect(screen.queryByText(/Item\s*\|\s*Location/)).not.toBeInTheDocument();
+  });
+
+  it("renders a Stat tile with label and value", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Stat", label: "Open Leads", value: "7", helper: "+2 today" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Open Leads")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getByText("+2 today")).toBeInTheDocument();
+  });
+
+  it("renders a Button label with readable text (no nested washed-out Text)", () => {
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Button",
+        child: "lbl",
+        action: { event: { name: "submit" } },
+      },
+      { id: "lbl", component: "Text", text: "Log Suspect" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
+    const btn = screen.getByRole("button", { name: "Log Suspect" });
+    expect(btn).toBeInTheDocument();
+    // The label is rendered directly on the button (not as a child <p>).
+    expect(btn.querySelector("p")).toBeNull();
+  });
+
   it("renders Video and AudioPlayer with their URLs", () => {
     const surface = makeSurface([
       { id: "root", component: "Column", children: ["v", "a"] },

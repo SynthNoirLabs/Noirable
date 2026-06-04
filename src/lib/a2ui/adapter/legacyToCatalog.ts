@@ -104,17 +104,15 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
     }
 
     case "stat": {
-      // Render as a plain Column on the dark surface rather than a paper Card —
-      // a grid of full-width light-paper cards reads as heavy white bars and
-      // fights the noir theme. A label + prominent value column is enough.
-      const childIds: string[] = [
-        emitText(builder, node.label, "caption"),
-        emitText(builder, node.value, "h3"),
-      ];
-      if (node.helper) {
-        childIds.push(emitText(builder, node.helper, "caption"));
-      }
-      return emit(builder, { id, component: "Column", children: childIds });
+      // Emit a dedicated Stat component (rendered as a compact accented tile)
+      // rather than loose label/value text on the dark surface.
+      return emit(builder, {
+        id,
+        component: "Stat",
+        label: node.label,
+        value: node.value,
+        ...(node.helper ? { helper: node.helper } : {}),
+      });
     }
 
     case "container":
@@ -139,12 +137,14 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
     }
 
     case "table": {
-      // No catalog table — render header + rows as Text lines inside a Column.
-      const childIds: string[] = [emitText(builder, node.columns.join("  |  "), "h5")];
-      for (const row of node.rows) {
-        childIds.push(emitText(builder, row.join("  |  ")));
-      }
-      return emit(builder, { id, component: "List", children: childIds });
+      // Emit a dedicated Table component (rendered as a real grid) rather than
+      // flattening to pipe-separated text lines.
+      return emit(builder, {
+        id,
+        component: "Table",
+        columns: node.columns,
+        rows: node.rows,
+      });
     }
 
     case "tabs": {

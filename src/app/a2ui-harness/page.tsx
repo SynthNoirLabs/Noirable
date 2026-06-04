@@ -21,7 +21,33 @@ const COMPONENTS: SurfaceComponent[] = [
   {
     id: "root",
     component: "Column",
-    children: ["greeting", "nameField", "emailField", "agree", "suspectsList", "fileBtn", "status"],
+    children: [
+      "greeting",
+      "nameField",
+      "emailField",
+      "agree",
+      "suspectsList",
+      "fileBtn",
+      "status",
+      "statsRow",
+      "evidenceTable",
+    ],
+  },
+  // Row of stat tiles.
+  { id: "statsRow", component: "Row", children: ["s1", "s2", "s3"] },
+  { id: "s1", component: "Stat", label: "Open Leads", value: "7", helper: "+2 today" },
+  { id: "s2", component: "Stat", label: "Days Missing", value: "14" },
+  { id: "s3", component: "Stat", label: "Bounty", value: "50,000 CR" },
+  // A real data table.
+  {
+    id: "evidenceTable",
+    component: "Table",
+    columns: ["Item", "Location", "Status"],
+    rows: [
+      ["Cracked Cybernetic Eye", "The Electric Sheep club", "Undergoing diagnostics"],
+      ["Shattered Datapad", "Drainage pipe, Sector 4", "Data recovery in progress"],
+      ["Rain-soaked Trenchcoat", "Pier 9 warehouse", "Logged in locker #12"],
+    ],
   },
   // Function-call binding: concat of two data-model fields.
   {
