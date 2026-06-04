@@ -491,7 +491,7 @@ export function ChatSidebar({
         {messages.length === 0 && (
           <div className="text-center py-12 text-[var(--aesthetic-text)]/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
             <Image
-              src="/assets/noir/search-icon.png"
+              src="/assets/noir/search-icon-removebg-preview.png"
               alt="Search icon"
               width={80}
               height={80}
