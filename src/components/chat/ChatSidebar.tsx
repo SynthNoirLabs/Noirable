@@ -138,11 +138,8 @@ export function ChatSidebar({
       if (ttsSetting) {
         onUpdateSettings?.({ ttsEnabled: false });
       }
-      if (musicSetting) {
-        onUpdateSettings?.({ musicEnabled: false });
-      }
     }
-  }, [elevenLabsConfigured, musicSetting, onUpdateSettings, ttsSetting]);
+  }, [elevenLabsConfigured, onUpdateSettings, ttsSetting]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

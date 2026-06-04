@@ -37,6 +37,17 @@ export interface Settings {
   sfxVolumes?: Record<"typewriter" | "thunder" | "phone", number>;
   /** Music volume (0-1) */
   musicVolume?: number;
+  /** Dynamic background music settings */
+  customMusicUrl?: string;
+  musicProvider?: "elevenlabs" | "lyria";
+  musicPrompt?: string;
+  generatedTracks?: Array<{
+    id: string;
+    url: string;
+    prompt: string;
+    provider: "elevenlabs" | "lyria";
+    createdAt: number;
+  }>;
   /** Visual effect intensities (0-1) */
   effectIntensities?: {
     rain?: number;

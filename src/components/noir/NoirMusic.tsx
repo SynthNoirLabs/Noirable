@@ -17,11 +17,18 @@ interface NoirMusicProps {
     src: string;
     volume: number;
   };
+  customMusicUrl?: string;
 }
 
-export function NoirMusic({ enabled, soundEnabled = true, volume, musicConfig }: NoirMusicProps) {
+export function NoirMusic({
+  enabled,
+  soundEnabled = true,
+  volume,
+  musicConfig,
+  customMusicUrl,
+}: NoirMusicProps) {
   // Resolve music source and volume from config or defaults
-  const musicSrc = musicConfig?.src ?? DEFAULT_MUSIC_SRC;
+  const musicSrc = customMusicUrl ?? musicConfig?.src ?? DEFAULT_MUSIC_SRC;
   const effectiveVolume = volume ?? musicConfig?.volume ?? DEFAULT_MUSIC_VOLUME;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const resumeHandlerRef = useRef<(() => void) | null>(null);
@@ -166,7 +173,15 @@ export function NoirMusic({ enabled, soundEnabled = true, volume, musicConfig }:
 
     void attemptPlay();
     fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume)), 900);
-  }, [attemptPlay, detachResumeListeners, enabled, fadeTo, soundEnabled, effectiveVolume]);
+  }, [
+    attemptPlay,
+    detachResumeListeners,
+    enabled,
+    fadeTo,
+    soundEnabled,
+    effectiveVolume,
+    musicSrc,
+  ]);
 
   // Handle visibility changes (pause when tab hidden)
   useEffect(() => {

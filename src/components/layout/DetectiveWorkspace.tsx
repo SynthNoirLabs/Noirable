@@ -473,6 +473,7 @@ export function DetectiveWorkspace() {
       ambient={settings.ambient}
       soundEnabled={settings.soundEnabled}
       musicEnabled={settings.musicEnabled}
+      customMusicUrl={settings.customMusicUrl}
       aestheticId={settings.aestheticId}
       onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
       onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
