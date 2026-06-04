@@ -48,6 +48,12 @@ export interface Settings {
     provider: "elevenlabs" | "lyria";
     createdAt: number;
   }>;
+  generatedTapes?: Array<{
+    id: string; // message ID
+    text: string;
+    hash: string;
+    createdAt: number;
+  }>;
   /** Visual effect intensities (0-1) */
   effectIntensities?: {
     rain?: number;
@@ -85,6 +91,7 @@ export interface Layout {
   showEditor: boolean;
   showSidebar: boolean;
   showEject: boolean;
+  showDictaphone: boolean;
   editorWidth: number;
   sidebarWidth: number;
 }

@@ -1,7 +1,9 @@
 import "server-only";
+import crypto from "node:crypto";
 
 import { ELEVENLABS_CONFIG } from "@/lib/elevenlabs/config";
 import { apiSecurityCheck } from "@/lib/api/security";
+import { readRecordingFile, saveRecordingBuffer } from "@/lib/ai/recordingStore";
 
 const MAX_TTS_CHARS = 520;
 
@@ -48,6 +50,25 @@ export async function POST(request: Request) {
   const style = body?.voiceSettings?.style ?? ELEVENLABS_CONFIG.style;
   const speed = body?.voiceSettings?.speed ?? ELEVENLABS_CONFIG.speed;
 
+  // Compute a unique hash of the speech parameters
+  const hash = crypto
+    .createHash("sha256")
+    .update(JSON.stringify({ text, voiceId, stability, similarityBoost, style, speed }))
+    .digest("hex");
+
+  // Check if we have this audio cached locally
+  const cachedAudio = await readRecordingFile(hash);
+  if (cachedAudio) {
+    return new Response(new Uint8Array(cachedAudio), {
+      status: 200,
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "x-recording-hash": hash,
+      },
+    });
+  }
+
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
     {
@@ -79,11 +100,17 @@ export async function POST(request: Request) {
   }
 
   const audioBuffer = await response.arrayBuffer();
-  return new Response(audioBuffer, {
+  const buffer = Buffer.from(audioBuffer);
+
+  // Cache on disk
+  await saveRecordingBuffer(hash, buffer);
+
+  return new Response(new Uint8Array(buffer), {
     status: 200,
     headers: {
       "Content-Type": "audio/mpeg",
       "Cache-Control": "no-store",
+      "x-recording-hash": hash,
     },
   });
 }
