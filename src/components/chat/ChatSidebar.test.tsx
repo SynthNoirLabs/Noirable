@@ -243,7 +243,12 @@ describe("ChatSidebar", () => {
     ];
 
     const { rerender } = render(
-      <ChatSidebar messages={testMessages} sendMessage={mockSendMessage} isLoading={false} />
+      <ChatSidebar
+        messages={testMessages}
+        sendMessage={mockSendMessage}
+        isLoading={false}
+        ttsEnabled={false}
+      />
     );
 
     await waitFor(() => {
@@ -263,7 +268,12 @@ describe("ChatSidebar", () => {
     ];
 
     rerender(
-      <ChatSidebar messages={updatedMessages} sendMessage={mockSendMessage} isLoading={false} />
+      <ChatSidebar
+        messages={updatedMessages}
+        sendMessage={mockSendMessage}
+        isLoading={false}
+        ttsEnabled={false}
+      />
     );
 
     await waitFor(() => {

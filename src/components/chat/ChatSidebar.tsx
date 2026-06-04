@@ -97,6 +97,7 @@ export function ChatSidebar({
 
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
   const ttsUrlRef = useRef<string | null>(null);
+  const ttsTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const soundSetting = soundEnabled;
   const ttsSetting = ttsEnabled ?? true;
@@ -145,6 +146,10 @@ export function ChatSidebar({
   const triggeredAtmosphericRef = useRef<Record<string, Set<string>>>({});
 
   useEffect(() => {
+    // If TTS is enabled, atmospheric events will trigger in sync with the spoken voice.
+    // Otherwise, trigger them on the streaming/typewritten text.
+    if (ttsSetting) return;
+
     if (messages.length === 0) return;
 
     // Find the last assistant message
@@ -198,7 +203,7 @@ export function ChatSidebar({
     if (keys.length > 10) {
       delete triggeredAtmosphericRef.current[keys[0]];
     }
-  }, [messages, sfxControls]);
+  }, [messages, sfxControls, ttsSetting]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,6 +239,10 @@ export function ChatSidebar({
   const sendShortcut = formatShortcut(["mod", "enter"]);
 
   const stopTts = useCallback(() => {
+    // Clear any scheduled atmospheric timeouts
+    ttsTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    ttsTimeoutsRef.current = [];
+
     if (ttsAudioRef.current) {
       ttsAudioRef.current.pause();
       try {
@@ -315,6 +324,53 @@ export function ChatSidebar({
         setTtsLoadingId(null);
         setTtsPlayingId(message.id);
         await audio.play();
+
+        // When audio starts playing, schedule the atmospheric effects based on estimated speaking timings
+        if (sfxControls) {
+          const contentLower = text.toLowerCase();
+          const msPerChar = 65; // Heuristic: average 65ms per character speaking rate
+
+          // 1. Check for thunder/lightning keywords
+          const THUNDER_KEYWORDS = ["lightning", "thunder", "relámpago", "trueno"];
+          THUNDER_KEYWORDS.forEach((kw) => {
+            const index = contentLower.indexOf(kw);
+            if (index !== -1) {
+              const delay = index * msPerChar;
+              const timer = setTimeout(() => {
+                sfxControls.playThunder();
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("noir-lightning"));
+                }
+              }, delay);
+              ttsTimeoutsRef.current.push(timer);
+            }
+          });
+
+          // 2. Check for phone ringing keywords
+          const PHONE_KEYWORDS = [
+            "phone rang",
+            "phone ring",
+            "phone-ring",
+            "telephone rang",
+            "telephone ring",
+            "phone rings",
+            "telephone rings",
+            "phone ringing",
+            "telephone ringing",
+            "teléfono sonó",
+            "teléfono sonando",
+          ];
+          PHONE_KEYWORDS.forEach((kw) => {
+            const index = contentLower.indexOf(kw);
+            if (index !== -1) {
+              const delay = index * msPerChar;
+              const timer = setTimeout(() => {
+                sfxControls.playPhoneRing();
+              }, delay);
+              ttsTimeoutsRef.current.push(timer);
+            }
+          });
+        }
       } catch (error) {
         console.error("TTS playback failed:", error);
         // Fully tear down so a partially-created Audio/object URL is revoked
@@ -322,7 +378,7 @@ export function ChatSidebar({
         stopTts();
       }
     },
-    [elevenLabsConfigured, stopTts, ttsPlayingId, ttsSetting]
+    [elevenLabsConfigured, stopTts, ttsPlayingId, ttsSetting, sfxControls]
   );
 
   const ttsDisabledReason = !ttsSetting
