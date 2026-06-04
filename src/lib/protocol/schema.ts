@@ -86,7 +86,10 @@ const listSchema = z.object({
 
 const tableSchema = z.object({
   type: z.literal("table"),
-  columns: z.array(z.string()).min(1),
+  // Allow an empty column list — normalizeA2UI maps `headers`→`columns` and the
+  // renderer tolerates missing headers; a strict min(1) would reject otherwise
+  // valid tables a model produces with a different key.
+  columns: z.array(z.string()),
   rows: z.array(z.array(z.string())).default([]),
   style: styleSchema.optional(),
 });
@@ -404,6 +407,21 @@ export function normalizeA2UI(input: unknown): unknown {
     !Array.isArray(normalized.children)
   ) {
     normalized = { ...normalized, children: [] };
+  }
+
+  // Table: models frequently name the columns `headers` (or `header`) instead of
+  // `columns`, and may omit `rows`. Coerce to the required shape so one synonym
+  // doesn't reject the whole tree.
+  if (type === "table") {
+    const cols = normalized.columns ?? normalized.headers ?? normalized.header;
+    const next = { ...normalized };
+    delete (next as Record<string, unknown>).headers;
+    delete (next as Record<string, unknown>).header;
+    next.columns = Array.isArray(cols) ? cols.map(String) : [];
+    next.rows = Array.isArray(normalized.rows)
+      ? (normalized.rows as unknown[]).map((r) => (Array.isArray(r) ? r.map(String) : [String(r)]))
+      : [];
+    normalized = next;
   }
 
   // Types that require a string `label` — default to "" (or lift `text`/`content`)

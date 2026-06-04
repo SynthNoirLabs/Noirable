@@ -134,4 +134,27 @@ describe("flattenLegacyToCatalog", () => {
     });
     expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
   });
+
+  it("accepts a table whose columns are named `headers` (common model synonym)", () => {
+    // Regression: a deeply-nested table using `headers` instead of `columns`
+    // previously failed validation and discarded the ENTIRE tree, leaving only
+    // an "Unrenderable component" node.
+    const { components } = flattenLegacyToCatalog({
+      type: "container",
+      children: [
+        { type: "heading", text: "Evidence", level: 2 },
+        {
+          type: "table",
+          headers: ["Item", "Location", "Status"],
+          rows: [["Cyberdeck", "Alley", "Analyzing"]],
+        },
+      ],
+    });
+    expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
+    const tableNode = components.find((c) => c.component === "Table") as
+      | (SurfaceComponent & { columns?: unknown })
+      | undefined;
+    expect(tableNode).toBeDefined();
+    expect(tableNode?.columns).toEqual(["Item", "Location", "Status"]);
+  });
 });
