@@ -29,7 +29,7 @@ export function CrackleAudio({ enabled, volume = 0.35, soundEnabled = true }: Cr
   const fadeTo = useCallback(
     (audio: HTMLAudioElement, nextVolume: number, durationMs: number, onDone?: () => void) => {
       if (typeof window === "undefined") {
-        audio.volume = nextVolume;
+        audio.volume = Math.max(0, Math.min(1, nextVolume));
         onDone?.();
         return;
       }
@@ -42,8 +42,10 @@ export function CrackleAudio({ enabled, volume = 0.35, soundEnabled = true }: Cr
       const duration = Math.max(0, durationMs);
 
       const tick = (now: number) => {
-        const t = duration === 0 ? 1 : Math.min(1, (now - start) / duration);
-        audio.volume = from + (to - from) * t;
+        const t = duration === 0 ? 1 : Math.min(1, Math.max(0, (now - start) / duration));
+        // Clamp to the valid [0,1] range — floating-point interpolation can land
+        // just outside it and the HTMLMediaElement.volume setter throws otherwise.
+        audio.volume = Math.max(0, Math.min(1, from + (to - from) * t));
         if (t < 1) {
           fadeFrameRef.current = window.requestAnimationFrame(tick);
         } else {

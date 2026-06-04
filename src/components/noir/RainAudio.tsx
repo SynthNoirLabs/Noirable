@@ -49,7 +49,7 @@ export function RainAudio({
   const fadeTo = useCallback(
     (audio: HTMLAudioElement, nextVolume: number, durationMs: number, onDone?: () => void) => {
       if (typeof window === "undefined") {
-        audio.volume = nextVolume;
+        audio.volume = Math.max(0, Math.min(1, nextVolume));
         onDone?.();
         return;
       }

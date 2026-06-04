@@ -6,6 +6,7 @@ import { getProviderWithOverrides } from "@/lib/ai/factory";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { tools, coerceComponentInput } from "@/lib/ai/tools";
 import { resolveA2UIImagePrompts } from "@/lib/ai/images";
+import { generateNarration } from "@/lib/ai/narration";
 import { a2uiInputSchema, normalizeA2UI } from "@/lib/protocol/schema";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
 import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
@@ -197,16 +198,19 @@ export async function POST(req: NextRequest): Promise<Response> {
         };
         controller.enqueue(encoder.encode(formatSSE(createSurfaceMsg)));
 
-        // 2. Stream AI response (provider is non-null after mock check above)
+        // Kick off the detective's narration in parallel with the UI generation.
+        // A dedicated tool-less call is far more reliable than coaxing a second
+        // text step out of the tool-calling model (which usually just stops).
+        const narrationPromise = generateNarration(auth, prompt);
+
+        // 2. Stream AI response (provider is non-null after mock check above).
+        // Only expose generate_ui (the v0.9 surface is about producing UI;
+        // set_aesthetic is irrelevant) and force it by name — without a named
+        // choice, Gemini often picks the wrong tool and the surface ends up empty.
         const result = streamText({
           model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
           system: buildSystemPrompt(),
-          // Only expose generate_ui here (the v0.9 surface is about producing
-          // UI; set_aesthetic is irrelevant) and force exactly that tool.
-          // Without a *named* toolChoice, models satisfy "required" by calling
-          // whatever tool is cheapest — Gemini often picks set_aesthetic and the
-          // surface ends up empty.
           tools: { generate_ui: tools.generate_ui },
           toolChoice: { type: "tool", toolName: "generate_ui" },
         });
@@ -271,7 +275,12 @@ export async function POST(req: NextRequest): Promise<Response> {
           }
         }
 
-        // 4. Send [DONE] sentinel
+        // 4. Send the detective's narration (from the parallel call) for the
+        // chat log, then [DONE].
+        const narration = (await narrationPromise)?.trim();
+        if (narration) {
+          controller.enqueue(encoder.encode(formatSSE({ type: "narration", text: narration })));
+        }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
         controller.close();

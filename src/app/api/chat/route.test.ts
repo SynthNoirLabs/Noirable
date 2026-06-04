@@ -14,11 +14,19 @@ vi.mock("ai", async (importOriginal) => {
       toDataStreamResponse: vi.fn(() => new Response("mock-stream")), // Keep for compat
       toUIMessageStreamResponse: vi.fn(() => new Response("mock-stream")),
       toTextStreamResponse: vi.fn(() => new Response("mock-stream")),
+      // The route now merges this into a createUIMessageStream; return an empty
+      // readable so the merge completes.
+      toUIMessageStream: vi.fn(() => new ReadableStream({ start: (c) => c.close() })),
     }),
     convertToModelMessages: vi.fn(async (msgs) => msgs), // Make async
     tool: vi.fn((config) => config),
   };
 });
+
+// The real generate_ui narration uses a dedicated AI call; stub it out.
+vi.mock("@/lib/ai/narration", () => ({
+  generateNarration: vi.fn(async () => "Filed it."),
+}));
 
 // Mock Provider Factory
 vi.mock("@/lib/ai/factory", () => ({
@@ -46,8 +54,11 @@ describe("/api/chat", () => {
 
     const res = await POST(req);
     expect(res).toBeInstanceOf(Response);
+    expect(res.status).toBe(200);
+    // The response is a UI message stream; it should include the appended
+    // narration text delta from the (stubbed) generateNarration call.
     const text = await res.text();
-    expect(text).toBe("mock-stream");
+    expect(text).toContain("Filed it.");
   });
 
   it("returns local simulation tool output when provider is mock", async () => {

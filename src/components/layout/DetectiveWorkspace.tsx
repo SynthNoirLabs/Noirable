@@ -97,11 +97,17 @@ export function DetectiveWorkspace() {
 
   // A2UI v0.9 hook
   const useV09 = settings.useA2UIv09 ?? false;
+  // The v0.9 stream delivers the detective's narration mid-stream (before the
+  // promise resolves), so stash it here for the send handler to read afterward.
+  const v09NarrationRef = useRef<string | null>(null);
   const {
     sendPrompt: sendV09Prompt,
     isStreaming: isV09Streaming,
     error: v09Error,
   } = useA2UIStream({
+    onNarration: (text) => {
+      v09NarrationRef.current = text;
+    },
     onComplete: (surfaceId) => {
       if (process.env.NODE_ENV !== "production") {
         console.log("[A2UI v0.9] Surface completed:", surfaceId);
@@ -390,22 +396,22 @@ export function DetectiveWorkspace() {
         trackAndSend(text);
       }
 
-      // Use A2UI v0.9 endpoint when enabled. The v0.9 stream only produces UI
-      // components (no chat text), so mirror the exchange into the chat log
-      // ourselves: the user's line, then an in-character acknowledgement once the
-      // surface is built. This keeps the Interrogation Log populated and lets the
-      // TTS voice read the detective's reply, matching the legacy path's feel.
+      // Use A2UI v0.9 endpoint when enabled. The v0.9 stream produces UI
+      // components plus a `narration` message (captured via onNarration into
+      // v09NarrationRef); mirror the exchange into the chat log ourselves so the
+      // Interrogation Log stays populated and TTS can read the detective's reply.
       if (useV09 && text) {
         const stamp = Date.now();
+        v09NarrationRef.current = null;
         setMessages((prev) => [
           ...prev,
           { id: `v09-user-${stamp}`, role: "user", parts: [{ type: "text", text }] },
         ]);
         try {
           await sendV09Prompt(text);
-          // The v0.9 stream is UI-only (no narration channel), so vary an
-          // in-character line client-side instead of repeating one canned reply.
-          const V09_REPLIES = [
+          // Prefer the model's real narration; fall back to a varied in-character
+          // line if the stream didn't provide one this run.
+          const V09_FALLBACK_REPLIES = [
             "Case file's on the board. The evidence speaks for itself — read it and weep.",
             "Pulled the threads together. It's pinned up and waiting. Don't touch the photos.",
             "Filed it. The rain's still coming down, but the board's lit. Take a look.",
@@ -413,7 +419,9 @@ export function DetectiveWorkspace() {
             "Wired the report to the board. Cold facts, warm coffee. Your move, detective.",
             "It's all laid out — the leads, the faces, the loose ends. Make of it what you will.",
           ];
-          const reply = V09_REPLIES[stamp % V09_REPLIES.length];
+          const narrated = (v09NarrationRef.current ?? "") as string;
+          const reply =
+            narrated.trim() || V09_FALLBACK_REPLIES[stamp % V09_FALLBACK_REPLIES.length];
           setMessages((prev) => [
             ...prev,
             { id: `v09-asst-${stamp}`, role: "assistant", parts: [{ type: "text", text: reply }] },
