@@ -235,6 +235,16 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
         value: node.value ? [node.value] : [],
       });
 
+    case "slider":
+      return emit(builder, {
+        id,
+        component: "Slider",
+        ...(node.label ? { label: node.label } : {}),
+        ...(typeof node.min === "number" ? { min: node.min } : {}),
+        ...(typeof node.max === "number" ? { max: node.max } : {}),
+        ...(node.value !== undefined ? { value: node.value } : {}),
+      });
+
     case "checkbox":
       return emit(builder, {
         id,
@@ -289,17 +299,67 @@ export function flattenLegacyToCatalog(
   // Normalize common LLM output variations (badge text→label, card-as-container,
   // text/content, image alt) before strict validation so reasonable model
   // output isn't rejected outright.
-  const parsed = a2uiInputSchema.safeParse(normalizeA2UI(node));
-  if (!parsed.success) {
-    builder.components.push({
-      id: rootId,
-      component: "Text",
-      text: "Unrenderable component",
-      variant: "caption",
-    });
+  const normalized = normalizeA2UI(node);
+  const parsed = a2uiInputSchema.safeParse(normalized);
+  if (parsed.success) {
+    walk(builder, parsed.data, rootId);
     return { components: builder.components, rootId };
   }
 
-  walk(builder, parsed.data, rootId);
+  // Strict parse failed. Rather than blanking the ENTIRE surface to one
+  // "Unrenderable component" node (which is what made a single bad child wipe a
+  // whole form), salvage the valid children: keep every child that parses on
+  // its own and wrap them in a Column. Only if nothing can be salvaged do we
+  // fall back to the placeholder.
+  const salvagedChildren = salvageChildren(builder, normalized);
+  if (salvagedChildren.length > 0) {
+    builder.components.push({ id: rootId, component: "Column", children: salvagedChildren });
+    return { components: builder.components, rootId };
+  }
+
+  builder.components.push({
+    id: rootId,
+    component: "Text",
+    text: "Unrenderable component",
+    variant: "caption",
+  });
   return { components: builder.components, rootId };
+}
+
+/**
+ * Best-effort recovery when a tree fails strict validation as a whole. Walks the
+ * normalized node's `children` (or modal trigger/content), parsing each subtree
+ * independently: valid subtrees are emitted, invalid ones are recursively
+ * salvaged, and anything irrecoverable is dropped. Returns the ids of the
+ * salvaged top-level children (in order).
+ */
+function salvageChildren(builder: Builder, normalized: unknown): string[] {
+  if (!normalized || typeof normalized !== "object") return [];
+  const node = normalized as Record<string, unknown>;
+
+  // Collect candidate subtrees from the shapes that carry nested components.
+  const candidates: unknown[] = [];
+  if (Array.isArray(node.children)) candidates.push(...node.children);
+  if (Array.isArray(node.tabs)) {
+    for (const tab of node.tabs as unknown[]) {
+      if (tab && typeof tab === "object") {
+        const t = tab as Record<string, unknown>;
+        if (t.content) candidates.push(t.content);
+      }
+    }
+  }
+  if (node.trigger) candidates.push(node.trigger);
+  if (node.content) candidates.push(node.content);
+
+  const ids: string[] = [];
+  for (const candidate of candidates) {
+    const parsed = a2uiInputSchema.safeParse(normalizeA2UI(candidate));
+    if (parsed.success) {
+      ids.push(walk(builder, parsed.data));
+    } else {
+      // Recurse: the child itself may be a container with some valid grandchildren.
+      ids.push(...salvageChildren(builder, normalizeA2UI(candidate)));
+    }
+  }
+  return ids;
 }

@@ -125,7 +125,9 @@ const inputSchema = z.object({
   type: z.literal("input"),
   name: z.string().optional(),
   label: z.string(),
-  placeholder: z.string(),
+  // `placeholder` is optional: models routinely omit it, and a missing
+  // placeholder must not reject the whole form.
+  placeholder: z.string().optional(),
   value: z.string().optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
@@ -135,7 +137,7 @@ const textareaSchema = z.object({
   type: z.literal("textarea"),
   name: z.string().optional(),
   label: z.string(),
-  placeholder: z.string(),
+  placeholder: z.string().optional(),
   value: z.string().optional(),
   rows: z.number().int().min(2).max(12).optional(),
   variant: variantToken.optional(),
@@ -149,6 +151,18 @@ const selectSchema = z.object({
   options: z.array(z.string()).min(1),
   value: z.string().optional(),
   variant: variantToken.optional(),
+  style: styleSchema.optional(),
+});
+
+// Slider: a real catalog component (range input). Models ask for it directly
+// ("a threat-level slider from 0 to 10"); without a schema entry the invented
+// `type: "slider"` node fails validation and previously blanked the whole tree.
+const sliderSchema = z.object({
+  type: z.literal("slider"),
+  label: z.string().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  value: z.union([z.number(), z.string()]).optional(),
   style: styleSchema.optional(),
 });
 
@@ -188,6 +202,7 @@ type ImageInputComponent = z.infer<typeof imageInputSchema>;
 type InputComponent = z.infer<typeof inputSchema>;
 type TextareaComponent = z.infer<typeof textareaSchema>;
 type SelectComponent = z.infer<typeof selectSchema>;
+type SliderComponent = z.infer<typeof sliderSchema>;
 type CheckboxComponent = z.infer<typeof checkboxSchema>;
 type ButtonComponent = z.infer<typeof buttonSchema>;
 
@@ -243,6 +258,7 @@ export type A2UIComponent =
   | InputComponent
   | TextareaComponent
   | SelectComponent
+  | SliderComponent
   | CheckboxComponent
   | ButtonComponent;
 
@@ -306,9 +322,41 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   inputSchema,
   textareaSchema,
   selectSchema,
+  sliderSchema,
   checkboxSchema,
   buttonSchema,
 ]) as z.ZodType<A2UIComponent>;
+
+/**
+ * Coerce a single table row to a string[]. Models emit rows as a cell array, an
+ * object keyed by column name (or any object), or a scalar. An object row is
+ * mapped into `columnNames` order when those keys exist; otherwise its values
+ * are used in insertion order. This prevents the "[object Object]" cells that
+ * appear when an object row is naively String()-ed.
+ */
+function coerceTableRow(row: unknown, columnNames: string[]): string[] {
+  if (Array.isArray(row)) {
+    return row.map((c) => (c == null ? "" : String(c)));
+  }
+  if (row && typeof row === "object") {
+    const obj = row as Record<string, unknown>;
+    // Prefer column-name lookup so cells land in the right column. Match keys
+    // loosely — lowercased with non-alphanumerics stripped — so "Last Seen"
+    // (column) lines up with `lastSeen`/`last_seen` (object key).
+    const loose = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const looseKeys = new Map(Object.keys(obj).map((k) => [loose(k), k]));
+    const matched = columnNames.length > 0 && columnNames.some((c) => looseKeys.has(loose(c)));
+    if (matched) {
+      return columnNames.map((c) => {
+        const key = looseKeys.get(loose(c));
+        const v = key ? obj[key] : undefined;
+        return v == null ? "" : String(v);
+      });
+    }
+    return Object.values(obj).map((v) => (v == null ? "" : String(v)));
+  }
+  return [row == null ? "" : String(row)];
+}
 
 export function normalizeA2UI(input: unknown): unknown {
   if (Array.isArray(input)) {
@@ -417,9 +465,13 @@ export function normalizeA2UI(input: unknown): unknown {
     const next = { ...normalized };
     delete (next as Record<string, unknown>).headers;
     delete (next as Record<string, unknown>).header;
-    next.columns = Array.isArray(cols) ? cols.map(String) : [];
+    const columnNames = Array.isArray(cols) ? cols.map(String) : [];
+    next.columns = columnNames;
+    // Rows come in three shapes from models: an array of cell arrays, an array
+    // of objects keyed by column name (→ map into column order so they don't
+    // stringify to "[object Object]"), or a scalar. Coerce all to string[].
     next.rows = Array.isArray(normalized.rows)
-      ? (normalized.rows as unknown[]).map((r) => (Array.isArray(r) ? r.map(String) : [String(r)]))
+      ? (normalized.rows as unknown[]).map((r) => coerceTableRow(r, columnNames))
       : [];
     normalized = next;
   }
@@ -580,6 +632,7 @@ export type A2UIInput =
   | InputComponent
   | TextareaComponent
   | SelectComponent
+  | SliderComponent
   | CheckboxComponent
   | ButtonComponent;
 
@@ -638,6 +691,7 @@ export const a2uiInputSchema = z.preprocess(
     inputSchema,
     textareaSchema,
     selectSchema,
+    sliderSchema,
     checkboxSchema,
     buttonSchema,
   ])

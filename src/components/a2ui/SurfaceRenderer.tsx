@@ -274,7 +274,7 @@ function ListRenderer({ component }: ComponentProps) {
 // ============================================================================
 
 function CardRenderer({ component }: ComponentProps) {
-  const { getComponent, theme } = useSurfaceContext();
+  const { getComponent } = useSurfaceContext();
   const card = component as SurfaceComponent & { child?: string };
 
   const childComponent = card.child ? getComponent(card.child) : null;

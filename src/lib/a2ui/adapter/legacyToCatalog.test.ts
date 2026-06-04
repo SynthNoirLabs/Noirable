@@ -257,4 +257,80 @@ describe("flattenLegacyToCatalog", () => {
     expect(tableNode).toBeDefined();
     expect(tableNode?.columns).toEqual(["Item", "Location", "Status"]);
   });
+
+  it("maps object-shaped table rows into column order (no '[object Object]')", () => {
+    // Regression: models often emit rows as objects keyed by column name. These
+    // were naively String()-ed into "[object Object]" cells.
+    const { components } = flattenLegacyToCatalog({
+      type: "table",
+      columns: ["Name", "Last Seen", "Status"],
+      rows: [
+        { name: "Vance", lastSeen: "Sector 4", status: "missing" },
+        { Name: "Doe", "Last Seen": "Pier 9", Status: "cleared" },
+      ],
+    });
+    const tableNode = components.find((c) => c.component === "Table") as
+      | (SurfaceComponent & { rows?: unknown })
+      | undefined;
+    expect(tableNode?.rows).toEqual([
+      ["Vance", "Sector 4", "missing"],
+      ["Doe", "Pier 9", "cleared"],
+    ]);
+    expect(JSON.stringify(tableNode?.rows)).not.toContain("[object Object]");
+  });
+
+  it("renders a slider (a type the legacy schema previously rejected outright)", () => {
+    const { components } = flattenLegacyToCatalog({
+      type: "slider",
+      label: "Threat level",
+      min: 0,
+      max: 10,
+    });
+    expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
+    const slider = components.find((c) => c.component === "Slider") as
+      | (SurfaceComponent & { min?: number; max?: number })
+      | undefined;
+    expect(slider).toBeDefined();
+    expect(slider?.min).toBe(0);
+    expect(slider?.max).toBe(10);
+  });
+
+  it("renders an intake form (inputs without placeholders + slider + modal)", () => {
+    const { components } = flattenLegacyToCatalog({
+      type: "container",
+      children: [
+        { type: "input", label: "Name" },
+        { type: "textarea", label: "Notes" },
+        { type: "checkbox", label: "Confidential source" },
+        { type: "select", label: "Precinct", options: ["12th", "9th", "Harbor"] },
+        { type: "slider", label: "Threat level", min: 0, max: 10 },
+        { type: "button", label: "File Report", action: "submit" },
+        {
+          type: "modal",
+          trigger: { type: "button", label: "View Priors" },
+          content: { type: "text", content: "priors" },
+        },
+      ],
+    });
+    expect(components.some((c) => c.text === "Unrenderable component")).toBe(false);
+    expect(components.some((c) => c.component === "Slider")).toBe(true);
+    expect(components.some((c) => c.component === "Modal")).toBe(true);
+    expect(components.some((c) => c.component === "ChoicePicker")).toBe(true);
+  });
+
+  it("salvages valid siblings instead of blanking the whole tree on one bad node", () => {
+    // Regression: a single unrenderable child previously collapsed the ENTIRE
+    // surface to one "Unrenderable component" placeholder. Now valid siblings
+    // survive.
+    const { components } = flattenLegacyToCatalog({
+      type: "container",
+      children: [
+        { type: "heading", text: "Form", level: 2 },
+        { type: "totally-bogus-type", foo: 1 } as never,
+        { type: "input", label: "Name" },
+      ],
+    });
+    expect(components.some((c) => c.component === "Text" && c.text === "Form")).toBe(true);
+    expect(components.some((c) => c.component === "TextField")).toBe(true);
+  });
 });
