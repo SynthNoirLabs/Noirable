@@ -353,11 +353,11 @@ export function ChatSidebar({
         {messages.length === 0 && (
           <div className="text-center py-12 text-[var(--aesthetic-text)]/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
             <Image
-              src="/assets/noir/search-icon.jpg"
+              src="/assets/noir/search-icon.png"
               alt="Search icon"
               width={80}
               height={80}
-              className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 opacity-10 pointer-events-none"
+              className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 opacity-25 pointer-events-none mix-blend-screen"
             />
             <span className="relative z-10">No record found. Begin interrogation.</span>
             <div className="relative z-10 mt-5 flex flex-col gap-2 max-w-xs mx-auto">
