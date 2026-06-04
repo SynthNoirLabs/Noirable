@@ -41,6 +41,23 @@ function headingVariant(level: number | undefined): string {
   }
 }
 
+/**
+ * Infer a badge variant from its label when the model didn't set one (it
+ * usually doesn't, even when asked). Threat/alert words → danger, positive
+ * status → primary, unknown/inactive → ghost; everything else stays neutral.
+ */
+function inferBadgeVariant(label: string): string {
+  const l = label.toLowerCase();
+  const danger =
+    /\b(armed|danger|critical|wanted|fleeing|lockdown|high|hostile|threat|fugitive|urgent|alert|breach|unstable|cyborg|cyber|hacker|infiltrator)\b/;
+  const positive = /\b(active|online|stable|secure|clear|safe|cleared|verified|resolved)\b/;
+  const ghost = /\b(unknown|cold|masked|inactive|offline|missing|n\/?a|pending|unconfirmed)\b/;
+  if (danger.test(l)) return "danger";
+  if (positive.test(l)) return "primary";
+  if (ghost.test(l)) return "ghost";
+  return "secondary";
+}
+
 /** Push a catalog component and return its id (for parent wiring). */
 function emit(builder: Builder, component: SurfaceComponent): string {
   builder.components.push(component);
@@ -88,12 +105,13 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
     }
 
     case "badge":
-      // Render as a styled pill rather than plain caption text.
+      // Render as a styled pill. Models rarely set `variant`, so infer a
+      // sensible color from the label when it's absent.
       return emit(builder, {
         id,
         component: "Badge",
         label: node.label,
-        ...(node.variant ? { variant: node.variant } : {}),
+        variant: node.variant ?? inferBadgeVariant(node.label),
       });
 
     case "card": {

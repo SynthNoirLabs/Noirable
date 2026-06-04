@@ -137,6 +137,27 @@ describe("flattenLegacyToCatalog", () => {
     }
   });
 
+  it("infers a badge variant from the label when the model omits it", () => {
+    const danger = flattenLegacyToCatalog({ type: "badge", label: "Armed" });
+    expect((danger.components[0] as SurfaceComponent & { variant?: string }).variant).toBe(
+      "danger"
+    );
+
+    const ghost = flattenLegacyToCatalog({ type: "badge", label: "Unknown Location" });
+    expect((ghost.components[0] as SurfaceComponent & { variant?: string }).variant).toBe("ghost");
+
+    const positive = flattenLegacyToCatalog({ type: "badge", label: "Active" });
+    expect((positive.components[0] as SurfaceComponent & { variant?: string }).variant).toBe(
+      "primary"
+    );
+
+    // An explicit variant from the model is respected, not overridden.
+    const explicit = flattenLegacyToCatalog({ type: "badge", label: "Armed", variant: "ghost" });
+    expect((explicit.components[0] as SurfaceComponent & { variant?: string }).variant).toBe(
+      "ghost"
+    );
+  });
+
   it("renders a card with children (card-as-container) without dropping content", () => {
     const { components } = flattenLegacyToCatalog({
       type: "card",
