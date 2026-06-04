@@ -141,6 +141,65 @@ export function ChatSidebar({
     }
   }, [elevenLabsConfigured, onUpdateSettings, ttsSetting]);
 
+  // Atmospheric Triggering Effect Scanner
+  const triggeredAtmosphericRef = useRef<Record<string, Set<string>>>({});
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    // Find the last assistant message
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!lastAssistant) return;
+
+    const messageId = lastAssistant.id;
+    const content = lastAssistant.content.toLowerCase();
+
+    if (!triggeredAtmosphericRef.current[messageId]) {
+      triggeredAtmosphericRef.current[messageId] = new Set();
+    }
+
+    const triggered = triggeredAtmosphericRef.current[messageId];
+
+    // 1. Thunder & Lightning keywords
+    const THUNDER_KEYWORDS = ["lightning", "thunder", "relámpago", "trueno"];
+    if (THUNDER_KEYWORDS.some((kw) => content.includes(kw)) && !triggered.has("thunder")) {
+      if (sfxControls) {
+        triggered.add("thunder");
+        sfxControls.playThunder();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("noir-lightning"));
+        }
+      }
+    }
+
+    // 2. Phone ringing keywords
+    const PHONE_KEYWORDS = [
+      "phone rang",
+      "phone ring",
+      "phone-ring",
+      "telephone rang",
+      "telephone ring",
+      "phone rings",
+      "telephone rings",
+      "phone ringing",
+      "telephone ringing",
+      "teléfono sonó",
+      "teléfono sonando",
+    ];
+    if (PHONE_KEYWORDS.some((kw) => content.includes(kw)) && !triggered.has("phone")) {
+      if (sfxControls) {
+        triggered.add("phone");
+        sfxControls.playPhoneRing();
+      }
+    }
+
+    // Gc triggeredAtmosphericRef to avoid memory leak
+    const keys = Object.keys(triggeredAtmosphericRef.current);
+    if (keys.length > 10) {
+      delete triggeredAtmosphericRef.current[keys[0]];
+    }
+  }, [messages, sfxControls]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

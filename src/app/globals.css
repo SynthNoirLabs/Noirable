@@ -245,6 +245,38 @@ body {
   animation: eq-bounce 0.9s ease-in-out infinite;
 }
 
+/* Lightning Flash Animation */
+@keyframes lightning-flash-anim {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  15% {
+    opacity: 0.25;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  25% {
+    opacity: 0.15;
+  }
+  35% {
+    opacity: 0.8;
+  }
+  45% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-lightning {
+  animation: lightning-flash-anim 1.2s ease-out forwards;
+}
+
 /* --- GLOBAL REDUCED-MOTION RESET --- */
 
 /* Honour the user's reduced-motion preference everywhere, including effects

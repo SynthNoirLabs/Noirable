@@ -6,6 +6,7 @@ import { CrackleOverlay } from "@/components/noir/CrackleOverlay";
 import { FogOverlay } from "@/components/noir/FogOverlay";
 import { NoirMusic } from "@/components/noir/NoirMusic";
 import { RainAudio } from "@/components/noir/RainAudio";
+import { LightningOverlay } from "@/components/noir/LightningOverlay";
 import type { AmbientSettings, AestheticId } from "@/lib/store/useA2UIStore";
 import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 
@@ -37,6 +38,7 @@ export function NoirEffects({
   const audioPack = getAudioPack(aestheticId);
   return (
     <>
+      <LightningOverlay />
       <RainOverlay enabled={ambient.rainEnabled} intensity={ambient.intensity} />
       <FogOverlay enabled={ambient.fogEnabled} intensity={ambient.intensity} />
       {ambient.crackleEnabled && (
