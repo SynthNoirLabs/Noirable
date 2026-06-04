@@ -233,13 +233,15 @@ function RowRenderer({ component }: ComponentProps) {
   return (
     <div
       className={cn(
-        "flex flex-row gap-2",
+        // flex-wrap so a tight row (e.g. a strip of badges) wraps instead of
+        // overflowing/compressing its children.
+        "flex flex-row flex-wrap gap-2",
         row.justify === "center" && "justify-center",
         row.justify === "end" && "justify-end",
         row.justify === "spaceBetween" && "justify-between",
         row.justify === "spaceAround" && "justify-around",
         row.justify === "spaceEvenly" && "justify-evenly",
-        row.align === "center" && "items-center",
+        row.align === "center" ? "items-center" : "items-start",
         row.align === "end" && "items-end",
         row.align === "stretch" && "items-stretch"
       )}
@@ -400,7 +402,9 @@ function BadgeRenderer({ component }: ComponentProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center w-fit rounded-full border px-2.5 py-0.5 font-typewriter text-[10px] uppercase tracking-widest",
+        // shrink-0 + whitespace-nowrap keep the pill intact in a tight Row
+        // (otherwise flex compresses it and the text clips against the border).
+        "inline-flex shrink-0 items-center w-fit whitespace-nowrap rounded-full border px-3 py-1 font-typewriter text-[10px] uppercase tracking-wider leading-none",
         variantClass
       )}
     >
