@@ -257,7 +257,7 @@ const cyberFixerProfile: AestheticProfile = {
   theme: cyberFixerTheme,
   audio: cyberFixerAudio,
   persona: cyberFixerPersona,
-  voiceId: "pNInz6obpgqjGQtfua8D",
+  voiceId: "pNInz6obpgDQGcFmaJgB",
 };
 
 // =============================================================================

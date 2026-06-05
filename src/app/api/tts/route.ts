@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const response = await fetch(
+  let response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
     {
       method: "POST",
@@ -102,6 +102,41 @@ export async function POST(request: Request) {
       }),
     }
   );
+
+  if (!response.ok && voiceId !== ELEVENLABS_CONFIG.voiceId) {
+    try {
+      const clone = response.clone();
+      const errText = await clone.text();
+      if (errText.includes("voice_not_found")) {
+        console.warn(
+          `Voice ID ${voiceId} not found. Falling back to default voice ID: ${ELEVENLABS_CONFIG.voiceId}`
+        );
+        response = await fetch(
+          `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_CONFIG.voiceId}?output_format=mp3_44100_128`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "xi-api-key": apiKey,
+              Accept: "audio/mpeg",
+            },
+            body: JSON.stringify({
+              text,
+              model_id: ELEVENLABS_CONFIG.model,
+              voice_settings: {
+                stability,
+                similarity_boost: similarityBoost,
+                style,
+                speed,
+              },
+            }),
+          }
+        );
+      }
+    } catch (e) {
+      console.error("Failed to fallback voice:", e);
+    }
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

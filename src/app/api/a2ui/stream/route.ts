@@ -234,6 +234,8 @@ export async function POST(req: NextRequest): Promise<Response> {
           const validated = a2uiInputSchema.safeParse(normalizeA2UI(component));
           if (validated.success) {
             component = (await resolveA2UIImagePrompts(validated.data)) as Record<string, unknown>;
+          } else {
+            component = (await resolveA2UIImagePrompts(component)) as Record<string, unknown>;
           }
           const components = toCatalogComponents(component, callIndex === 0, callIndex);
           callIndex++;

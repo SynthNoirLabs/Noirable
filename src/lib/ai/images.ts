@@ -145,54 +145,62 @@ async function persistDataUrl(dataUrl: string) {
   return saved?.url ?? null;
 }
 
-export async function resolveA2UIImagePrompts(input: A2UIInput): Promise<A2UIComponent> {
+export async function resolveA2UIImagePrompts(input: unknown): Promise<unknown> {
   if (!input || typeof input !== "object") {
-    return input as A2UIComponent;
+    return input;
   }
 
-  const node = input as A2UIInput;
+  if (Array.isArray(input)) {
+    return Promise.all(input.map((item) => resolveA2UIImagePrompts(item)));
+  }
 
-  switch (node.type) {
-    case "container":
-    case "row":
-    case "column":
-    case "grid": {
-      const children = await Promise.all(
-        node.children.map((child) => resolveA2UIImagePrompts(child))
-      );
-      return { ...node, children } as A2UIComponent;
-    }
-    case "tabs": {
-      const tabs = await Promise.all(
-        node.tabs.map(async (tab) => ({
-          ...tab,
-          content: await resolveA2UIImagePrompts(tab.content),
-        }))
-      );
-      return { ...node, tabs } as A2UIComponent;
-    }
-    case "image": {
-      const { prompt, alt, src, ...rest } = node;
-      let resolvedSrc: string | null | undefined = src;
-      if (resolvedSrc?.startsWith("data:")) {
-        resolvedSrc = await persistDataUrl(resolvedSrc);
-      }
-      if (!resolvedSrc && prompt) {
-        const generated = await generateImageDataUrl(prompt);
-        resolvedSrc = generated ? await persistDataUrl(generated) : null;
-      }
-      if (!resolvedSrc) {
-        resolvedSrc = fallbackSvgDataUrl("IMAGE UNAVAILABLE");
-      }
+  const node = input as Record<string, unknown>;
 
+  // Legacy image resolution
+  if (node.type === "image") {
+    const prompt = typeof node.prompt === "string" ? node.prompt : "";
+    let resolvedSrc = typeof node.src === "string" ? node.src : null;
+    if (resolvedSrc?.startsWith("data:")) {
+      resolvedSrc = await persistDataUrl(resolvedSrc);
+    }
+    if (!resolvedSrc && prompt) {
+      const generated = await generateImageDataUrl(prompt);
+      resolvedSrc = generated ? await persistDataUrl(generated) : null;
+    }
+    if (!resolvedSrc) {
+      resolvedSrc = fallbackSvgDataUrl("IMAGE UNAVAILABLE");
+    }
+
+    return {
+      ...node,
+      type: "image",
+      src: resolvedSrc,
+      alt: typeof node.alt === "string" ? node.alt : prompt || "Generated image",
+    };
+  }
+
+  // Catalog Image resolution (if the url is a prompt instead of a URL)
+  if (node.component === "Image" && typeof node.url === "string") {
+    const url = node.url.trim();
+    const isUrl =
+      url.startsWith("http://") ||
+      url.startsWith("https://") ||
+      url.startsWith("/api/images/") ||
+      url.startsWith("data:");
+    if (!isUrl && url.length > 0) {
+      const generated = await generateImageDataUrl(url);
+      const resolvedSrc = generated ? await persistDataUrl(generated) : null;
       return {
-        ...rest,
-        type: "image",
-        src: resolvedSrc,
-        alt: alt ?? prompt ?? "Generated image",
-      } as A2UIComponent;
+        ...node,
+        url: resolvedSrc || fallbackSvgDataUrl("IMAGE UNAVAILABLE"),
+      };
     }
-    default:
-      return node as A2UIComponent;
   }
+
+  // Recurse into all properties of the object
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    result[key] = await resolveA2UIImagePrompts(value);
+  }
+  return result;
 }
