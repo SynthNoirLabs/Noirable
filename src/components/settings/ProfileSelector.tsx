@@ -6,7 +6,7 @@ import { ChevronDown, Check, Plus, Copy, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
-import type { CustomProfileId, AestheticId } from "@/lib/aesthetic/types";
+import type { BuiltInAestheticId, CustomProfileId, AestheticId } from "@/lib/aesthetic/types";
 import { isBuiltInAestheticId } from "@/lib/aesthetic/types";
 
 interface ProfileOption {
@@ -18,13 +18,16 @@ interface ProfileOption {
 const BUILT_IN_PROFILES: ProfileOption[] = [
   { id: "noir", name: "Noir Detective", isBuiltIn: true },
   { id: "minimal", name: "Minimal", isBuiltIn: true },
+  { id: "cyber-fixer", name: "Cyber Fixer", isBuiltIn: true },
+  { id: "nostromo-console", name: "Nostromo Console", isBuiltIn: true },
+  { id: "gothic-manor", name: "Gothic Manor", isBuiltIn: true },
 ];
 
 export function ProfileSelector() {
   const [isOpen, setIsOpen] = useState(false);
   const [showNewProfileDialog, setShowNewProfileDialog] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
-  const [newProfileBase, setNewProfileBase] = useState<"noir" | "minimal">("noir");
+  const [newProfileBase, setNewProfileBase] = useState<BuiltInAestheticId>("noir");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { customProfiles, createProfile, deleteProfile, cloneProfile, setActiveProfile } =
@@ -243,11 +246,14 @@ export function ProfileSelector() {
               <div className="flex gap-2">
                 <select
                   value={newProfileBase}
-                  onChange={(e) => setNewProfileBase(e.target.value as "noir" | "minimal")}
+                  onChange={(e) => setNewProfileBase(e.target.value as BuiltInAestheticId)}
                   className="flex-1 px-3 py-2 text-xs bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-accent)]"
                 >
                   <option value="noir">Based on Noir</option>
                   <option value="minimal">Based on Minimal</option>
+                  <option value="cyber-fixer">Based on Cyber Fixer</option>
+                  <option value="nostromo-console">Based on Nostromo Console</option>
+                  <option value="gothic-manor">Based on Gothic Manor</option>
                 </select>
               </div>
               <div className="flex gap-2">
