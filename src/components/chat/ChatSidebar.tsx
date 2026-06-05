@@ -13,6 +13,7 @@ import {
   Copy,
   Check,
   Loader2,
+  Palette,
 } from "lucide-react";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
@@ -59,6 +60,7 @@ interface ChatSidebarProps {
     hash: string;
     createdAt: number;
   }>;
+  onOpenCustomization?: () => void;
 }
 
 export function ChatSidebar({
@@ -78,6 +80,7 @@ export function ChatSidebar({
   onToggleCollapse,
   inputRef,
   generatedTapes = [],
+  onOpenCustomization,
 }: ChatSidebarProps) {
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
@@ -447,6 +450,17 @@ export function ChatSidebar({
               aria-label="Collapse sidebar"
             >
               <PanelRightClose className="w-4 h-4" />
+            </button>
+          )}
+          {onOpenCustomization && (
+            <button
+              type="button"
+              onClick={onOpenCustomization}
+              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+              title="Theme Customization Lab"
+              aria-label="Open theme customization lab"
+            >
+              <Palette className="w-4 h-4" />
             </button>
           )}
           {onUpdateSettings && (

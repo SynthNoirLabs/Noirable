@@ -9,8 +9,8 @@ describe("audio-packs", () => {
       expect(AUDIO_PACKS).toHaveProperty("minimal");
     });
 
-    it("should have exactly 2 audio packs", () => {
-      expect(Object.keys(AUDIO_PACKS)).toHaveLength(2);
+    it("should have exactly 5 audio packs", () => {
+      expect(Object.keys(AUDIO_PACKS)).toHaveLength(5);
     });
   });
 

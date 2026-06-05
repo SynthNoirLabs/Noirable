@@ -11,12 +11,15 @@ import { a2uiInputSchema, normalizeA2UI } from "@/lib/protocol/schema";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
 import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
 import { apiSecurityCheck } from "@/lib/api/security";
+import type { AestheticId } from "@/lib/aesthetic/types";
 
 /**
  * Request body for A2UI stream endpoint
  */
 interface A2UIStreamRequest {
   prompt: string;
+  aestheticId?: AestheticId;
+  customSystemPrompt?: string;
 }
 
 /**
@@ -137,7 +140,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   // Validate prompt
-  const { prompt } = body;
+  const { prompt, aestheticId, customSystemPrompt } = body;
   if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
     return new Response("Missing or invalid prompt", { status: 400 });
   }
@@ -200,8 +203,8 @@ export async function POST(req: NextRequest): Promise<Response> {
 
         // Kick off the detective's narration in parallel with the UI generation.
         // A dedicated tool-less call is far more reliable than coaxing a second
-        // text step out of the tool-calling model (which usually just stops).
-        const narrationPromise = generateNarration(auth, prompt);
+        // text step out of the model (which usually just stops).
+        const narrationPromise = generateNarration(auth, prompt, aestheticId, customSystemPrompt);
 
         // 2. Stream AI response (provider is non-null after mock check above).
         // Only expose generate_ui (the v0.9 surface is about producing UI;
@@ -210,7 +213,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         const result = streamText({
           model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
-          system: buildSystemPrompt(),
+          system: buildSystemPrompt(undefined, aestheticId, customSystemPrompt),
           tools: { generate_ui: tools.generate_ui },
           toolChoice: { type: "tool", toolName: "generate_ui" },
         });

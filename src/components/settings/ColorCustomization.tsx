@@ -5,18 +5,64 @@ import { RotateCcw } from "lucide-react";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { injectProfileStyles } from "@/lib/customization/css-injection";
 import type { ProfileColors } from "@/lib/customization/types";
-import type { CustomProfileId } from "@/lib/aesthetic/types";
+import type { CustomProfileId, BuiltInAestheticId } from "@/lib/aesthetic/types";
 
-const DEFAULT_COLORS: Required<ProfileColors> = {
-  background: "#0f0f0f",
-  surface: "#1a1a1a",
-  surfaceAlt: "#2a2a2a",
-  text: "#e0e0e0",
-  textMuted: "#a0a0a0",
-  accent: "#ffbf00",
-  accentMuted: "#b5a642",
-  border: "#2a2a2a",
-  error: "#8a0000",
+const PRESET_COLORS: Record<BuiltInAestheticId, Required<ProfileColors>> = {
+  noir: {
+    background: "#0f0f0f",
+    surface: "#1a1a1a",
+    surfaceAlt: "#2a2a2a",
+    text: "#e0e0e0",
+    textMuted: "#a0a0a0",
+    accent: "#ffbf00",
+    accentMuted: "#b5a642",
+    border: "#2a2a2a",
+    error: "#8a0000",
+  },
+  minimal: {
+    background: "#ffffff",
+    surface: "#f4f4f5",
+    surfaceAlt: "#e4e4e7",
+    text: "#18181b",
+    textMuted: "#71717a",
+    accent: "#2563eb",
+    accentMuted: "#3b82f6",
+    border: "#e4e4e7",
+    error: "#dc2626",
+  },
+  "cyber-fixer": {
+    background: "#0a0512",
+    surface: "#140c24",
+    surfaceAlt: "#251642",
+    text: "#f0e6ff",
+    textMuted: "#8b72af",
+    accent: "#00ffcc",
+    accentMuted: "#ff007f",
+    border: "#3a1f66",
+    error: "#ff3333",
+  },
+  "nostromo-console": {
+    background: "#020804",
+    surface: "#05160b",
+    surfaceAlt: "#0a2815",
+    text: "#33ff66",
+    textMuted: "#1d8c3b",
+    accent: "#33ff66",
+    accentMuted: "#ff9900",
+    border: "#0d3b1f",
+    error: "#ff3300",
+  },
+  "gothic-manor": {
+    background: "#08080a",
+    surface: "#121217",
+    surfaceAlt: "#22222b",
+    text: "#e1e1e6",
+    textMuted: "#82828c",
+    accent: "#990011",
+    accentMuted: "#4a0008",
+    border: "#2a2a35",
+    error: "#ff0011",
+  },
 };
 
 const COLOR_GROUPS = [
@@ -45,11 +91,12 @@ function formatLabel(key: string) {
 
 interface ColorEditorProps {
   initialColors: Required<ProfileColors>;
+  defaultColors: Required<ProfileColors>;
   profileId: CustomProfileId;
   onUpdate: (colors: Required<ProfileColors> | undefined) => void;
 }
 
-function ColorEditor({ initialColors, onUpdate }: ColorEditorProps) {
+function ColorEditor({ initialColors, defaultColors, onUpdate }: ColorEditorProps) {
   const [colors, setColors] = useState<Required<ProfileColors>>(initialColors);
 
   const handleColorChange = (key: keyof ProfileColors, value: string) => {
@@ -59,7 +106,7 @@ function ColorEditor({ initialColors, onUpdate }: ColorEditorProps) {
   };
 
   const handleReset = () => {
-    setColors(DEFAULT_COLORS);
+    setColors(defaultColors);
     onUpdate(undefined); // undefined means "use defaults"
   };
 
@@ -149,8 +196,11 @@ export function ColorCustomization() {
     );
   }
 
+  const baseAestheticId = activeProfile.baseAestheticId || "noir";
+  const defaultColors = PRESET_COLORS[baseAestheticId];
+
   const initialColors = {
-    ...DEFAULT_COLORS,
+    ...defaultColors,
     ...activeProfile.colors,
   };
 
@@ -158,6 +208,7 @@ export function ColorCustomization() {
     <ColorEditor
       key={activeProfile.id}
       initialColors={initialColors}
+      defaultColors={defaultColors}
       profileId={activeProfile.id}
       onUpdate={handleUpdate}
     />

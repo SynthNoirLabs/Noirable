@@ -23,6 +23,8 @@ import { createTrainingExample, shouldCapture } from "@/lib/training";
 import { useA2UIStream } from "@/lib/a2ui/hooks/useA2UIStream";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
 import { A2UIv09Preview } from "@/components/a2ui/A2UIv09Preview";
+import { CustomizationPanel } from "@/components/settings/CustomizationPanel";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 
 const DEFAULT_JSON = JSON.stringify(
   {
@@ -69,6 +71,7 @@ export function DetectiveWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showTraining, setShowTraining] = useState(false);
+  const [showCustomization, setShowCustomization] = useState(false);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -88,6 +91,12 @@ export function DetectiveWorkspace() {
     addPrompt,
     addTrainingExample,
   } = useA2UIStore();
+
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const customSystemPrompt = activeProfile?.systemPrompt;
 
   const modelConfig = useMemo(
     () => settings.modelConfig ?? { provider: "auto", model: "" },
@@ -146,8 +155,9 @@ export function DetectiveWorkspace() {
           ? { provider: modelConfig.provider, model: modelConfig.model }
           : undefined,
       aestheticId: settings.aestheticId,
+      customSystemPrompt,
     }),
-    [evidence, modelConfig, settings.aestheticId]
+    [evidence, modelConfig, settings.aestheticId, customSystemPrompt]
   );
 
   const chat = useChat({
@@ -409,7 +419,7 @@ export function DetectiveWorkspace() {
           { id: `v09-user-${stamp}`, role: "user", parts: [{ type: "text", text }] },
         ]);
         try {
-          await sendV09Prompt(text);
+          await sendV09Prompt(text, settings.aestheticId, customSystemPrompt);
           // Prefer the model's real narration; fall back to a varied in-character
           // line if the stream didn't provide one this run.
           const V09_FALLBACK_REPLIES = [
@@ -435,7 +445,15 @@ export function DetectiveWorkspace() {
 
       return sendMessageWithContext(message, options);
     },
-    [sendMessageWithContext, trackAndSend, useV09, sendV09Prompt, setMessages]
+    [
+      sendMessageWithContext,
+      trackAndSend,
+      useV09,
+      sendV09Prompt,
+      setMessages,
+      settings.aestheticId,
+      customSystemPrompt,
+    ]
   );
 
   // Retry last failed prompt
@@ -463,131 +481,135 @@ export function DetectiveWorkspace() {
   });
 
   return (
-    <DeskLayout
-      showEditor={layout.showEditor}
-      showSidebar={layout.showSidebar}
-      showEject={layout.showEject}
-      showDictaphone={layout.showDictaphone}
-      showTemplates={showTemplates}
-      showTraining={showTraining}
-      editorWidth={layout.editorWidth}
-      sidebarWidth={layout.sidebarWidth}
-      ambient={settings.ambient}
-      soundEnabled={settings.soundEnabled}
-      musicEnabled={settings.musicEnabled}
-      customMusicUrl={settings.customMusicUrl}
-      aestheticId={settings.aestheticId}
-      onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
-      onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
-      onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
-      onToggleDictaphone={() => updateLayout({ showDictaphone: !layout.showDictaphone })}
-      onToggleTemplates={() => setShowTemplates(!showTemplates)}
-      onToggleTraining={() => setShowTraining(!showTraining)}
-      onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
-      onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
-      templatePanel={
-        <TemplatePanel onSelect={handleSelectTemplate} onClose={() => setShowTemplates(false)} />
-      }
-      trainingPanel={<TrainingDataPanel onClose={() => setShowTraining(false)} />}
-      dictaphonePanel={
-        <NoirErrorBoundary>
-          <DictaphonePanel
-            tapes={settings.generatedTapes ?? []}
-            onDeleteTape={(hash) => {
-              const updated = (settings.generatedTapes ?? []).filter((t) => t.hash !== hash);
-              updateSettings({ generatedTapes: updated });
-            }}
-            onClose={() => updateLayout({ showDictaphone: false })}
-          />
-        </NoirErrorBoundary>
-      }
-      ejectPanel={
-        <NoirErrorBoundary>
-          <EjectPanel evidence={evidence} onClose={() => updateLayout({ showEject: false })} />
-        </NoirErrorBoundary>
-      }
-      editor={
-        <div className="h-full min-h-0 flex flex-col">
-          <textarea
-            aria-label="Edit JSON case file"
-            className="w-full flex-1 min-h-0 bg-[var(--aesthetic-background)]/30 text-[var(--aesthetic-text)]/95 font-mono text-sm leading-relaxed resize-none focus:outline-none p-3 border border-[var(--aesthetic-border)]/30 rounded-sm shadow-inner"
-            id="json-editor"
-            name="json-editor"
-            value={json}
-            onChange={handleEditorChange}
-            spellCheck={false}
-          />
-          {error && (
-            <div className="text-[var(--aesthetic-error)] font-typewriter text-xs mt-2 border-t border-[var(--aesthetic-error)] pt-2">
-              Error: {error}
-            </div>
-          )}
-        </div>
-      }
-      preview={
-        <NoirErrorBoundary>
-          {isLoading ? (
-            <EvidenceSkeleton />
-          ) : error || v09Error ? (
-            <div className="max-w-md space-y-4">
-              <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm">
-                <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
-                  CASE FILE ERROR
-                </h3>
-                <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
-                  {error || v09Error?.message}
-                </p>
-              </div>
-              {lastFailedPrompt && (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleRetry}
-                    className="px-4 py-2 bg-[var(--aesthetic-accent)]/20 border border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-accent)]/30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
-                  >
-                    Retry Last Command
-                  </button>
-                  <span className="text-[var(--aesthetic-text)]/50 font-mono text-xs truncate max-w-[200px]">
-                    &ldquo;{lastFailedPrompt}&rdquo;
-                  </span>
-                </div>
-              )}
-            </div>
-          ) : useV09 ? (
-            <A2UIv09Preview />
-          ) : evidence ? (
-            <EvidenceBoard
-              entries={evidenceHistory}
-              activeId={activeEvidenceId}
-              onSelect={handleSelectEvidence}
-              fallbackEvidence={evidence}
+    <>
+      <DeskLayout
+        showEditor={layout.showEditor}
+        showSidebar={layout.showSidebar}
+        showEject={layout.showEject}
+        showDictaphone={layout.showDictaphone}
+        showTemplates={showTemplates}
+        showTraining={showTraining}
+        editorWidth={layout.editorWidth}
+        sidebarWidth={layout.sidebarWidth}
+        ambient={settings.ambient}
+        soundEnabled={settings.soundEnabled}
+        musicEnabled={settings.musicEnabled}
+        customMusicUrl={settings.customMusicUrl}
+        aestheticId={settings.aestheticId}
+        onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
+        onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
+        onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
+        onToggleDictaphone={() => updateLayout({ showDictaphone: !layout.showDictaphone })}
+        onToggleTemplates={() => setShowTemplates(!showTemplates)}
+        onToggleTraining={() => setShowTraining(!showTraining)}
+        onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
+        onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
+        templatePanel={
+          <TemplatePanel onSelect={handleSelectTemplate} onClose={() => setShowTemplates(false)} />
+        }
+        trainingPanel={<TrainingDataPanel onClose={() => setShowTraining(false)} />}
+        dictaphonePanel={
+          <NoirErrorBoundary>
+            <DictaphonePanel
+              tapes={settings.generatedTapes ?? []}
+              onDeleteTape={(hash) => {
+                const updated = (settings.generatedTapes ?? []).filter((t) => t.hash !== hash);
+                updateSettings({ generatedTapes: updated });
+              }}
+              onClose={() => updateLayout({ showDictaphone: false })}
             />
-          ) : (
-            // No evidence yet (true first run, after removing the seed): show
-            // the inviting case-board empty state instead of an alarm.
-            <CaseBoardEmptyState />
-          )}
-        </NoirErrorBoundary>
-      }
-      sidebar={
-        <ChatSidebar
-          messages={uiMessages}
-          sendMessage={handleSendMessage}
-          isLoading={isLoading}
-          typewriterSpeed={settings.typewriterSpeed}
-          soundEnabled={settings.soundEnabled}
-          ttsEnabled={settings.ttsEnabled}
-          musicEnabled={settings.musicEnabled}
-          ambient={settings.ambient}
-          modelConfig={modelConfig}
-          useA2UIv09={useV09}
-          onUpdateSettings={updateSettings}
-          onModelConfigChange={(config) => updateSettings({ modelConfig: config })}
-          onToggleCollapse={() => updateLayout({ showSidebar: false })}
-          inputRef={chatInputRef}
-          generatedTapes={settings.generatedTapes}
-        />
-      }
-    />
+          </NoirErrorBoundary>
+        }
+        ejectPanel={
+          <NoirErrorBoundary>
+            <EjectPanel evidence={evidence} onClose={() => updateLayout({ showEject: false })} />
+          </NoirErrorBoundary>
+        }
+        editor={
+          <div className="h-full min-h-0 flex flex-col">
+            <textarea
+              aria-label="Edit JSON case file"
+              className="w-full flex-1 min-h-0 bg-[var(--aesthetic-background)]/30 text-[var(--aesthetic-text)]/95 font-mono text-sm leading-relaxed resize-none focus:outline-none p-3 border border-[var(--aesthetic-border)]/30 rounded-sm shadow-inner"
+              id="json-editor"
+              name="json-editor"
+              value={json}
+              onChange={handleEditorChange}
+              spellCheck={false}
+            />
+            {error && (
+              <div className="text-[var(--aesthetic-error)] font-typewriter text-xs mt-2 border-t border-[var(--aesthetic-error)] pt-2">
+                Error: {error}
+              </div>
+            )}
+          </div>
+        }
+        preview={
+          <NoirErrorBoundary>
+            {isLoading ? (
+              <EvidenceSkeleton />
+            ) : error || v09Error ? (
+              <div className="max-w-md space-y-4">
+                <div className="bg-[var(--aesthetic-error)]/10 border-2 border-[var(--aesthetic-error)] p-4 rounded-sm">
+                  <h3 className="text-[var(--aesthetic-error)] font-typewriter font-bold mb-2">
+                    CASE FILE ERROR
+                  </h3>
+                  <p className="text-[var(--aesthetic-error)]/80 font-mono text-xs">
+                    {error || v09Error?.message}
+                  </p>
+                </div>
+                {lastFailedPrompt && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="px-4 py-2 bg-[var(--aesthetic-accent)]/20 border border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] font-typewriter text-xs uppercase tracking-wider rounded-sm hover:bg-[var(--aesthetic-accent)]/30 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+                    >
+                      Retry Last Command
+                    </button>
+                    <span className="text-[var(--aesthetic-text)]/50 font-mono text-xs truncate max-w-[200px]">
+                      &ldquo;{lastFailedPrompt}&rdquo;
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : useV09 ? (
+              <A2UIv09Preview />
+            ) : evidence ? (
+              <EvidenceBoard
+                entries={evidenceHistory}
+                activeId={activeEvidenceId}
+                onSelect={handleSelectEvidence}
+                fallbackEvidence={evidence}
+              />
+            ) : (
+              // No evidence yet (true first run, after removing the seed): show
+              // the inviting case-board empty state instead of an alarm.
+              <CaseBoardEmptyState />
+            )}
+          </NoirErrorBoundary>
+        }
+        sidebar={
+          <ChatSidebar
+            messages={uiMessages}
+            sendMessage={handleSendMessage}
+            isLoading={isLoading}
+            typewriterSpeed={settings.typewriterSpeed}
+            soundEnabled={settings.soundEnabled}
+            ttsEnabled={settings.ttsEnabled}
+            musicEnabled={settings.musicEnabled}
+            ambient={settings.ambient}
+            modelConfig={modelConfig}
+            useA2UIv09={useV09}
+            onUpdateSettings={updateSettings}
+            onModelConfigChange={(config) => updateSettings({ modelConfig: config })}
+            onToggleCollapse={() => updateLayout({ showSidebar: false })}
+            inputRef={chatInputRef}
+            generatedTapes={settings.generatedTapes}
+            onOpenCustomization={() => setShowCustomization(true)}
+          />
+        }
+      />
+      <CustomizationPanel isOpen={showCustomization} onClose={() => setShowCustomization(false)} />
+    </>
   );
 }

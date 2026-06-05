@@ -16,8 +16,12 @@ export const SYSTEM_PROMPT = getPersonaPrompt("noir");
  * @param aestheticId - Aesthetic profile ID (defaults to "noir")
  * @returns Complete system prompt string
  */
-export function buildSystemPrompt(evidence?: unknown, aestheticId?: AestheticId): string {
-  const basePrompt = getPersonaPrompt(aestheticId);
+export function buildSystemPrompt(
+  evidence?: unknown,
+  aestheticId?: AestheticId,
+  customSystemPrompt?: string
+): string {
+  const basePrompt = customSystemPrompt || getPersonaPrompt(aestheticId);
 
   if (!evidence) return basePrompt;
 

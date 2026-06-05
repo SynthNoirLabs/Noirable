@@ -69,7 +69,7 @@ export const customProfileSchema = z.object({
   id: z.custom<CustomProfileId>((val) => typeof val === "string" && val.startsWith("custom-")),
   name: z.string().min(1).max(50),
   description: z.string().max(200).optional(),
-  baseAestheticId: z.enum(["noir", "minimal"]), // Which built-in to extend
+  baseAestheticId: z.enum(["noir", "minimal", "cyber-fixer", "nostromo-console", "gothic-manor"]), // Which built-in to extend
   createdAt: z.number(),
   updatedAt: z.number(),
   // Customization overrides
@@ -79,6 +79,7 @@ export const customProfileSchema = z.object({
   voice: profileVoiceSchema.optional(),
   effects: profileEffectsSchema.optional(),
   imageStylePrompt: z.string().max(500).optional(),
+  systemPrompt: z.string().max(3000).optional(),
 });
 export type CustomProfile = z.infer<typeof customProfileSchema>;
 

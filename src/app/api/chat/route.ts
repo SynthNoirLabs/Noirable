@@ -19,6 +19,7 @@ type ChatRequestBody = {
   modelConfig?: ModelOverride;
   /** Active aesthetic profile ID for persona selection */
   aestheticId?: AestheticId;
+  customSystemPrompt?: string;
 };
 
 type UIMessagePartType = UIMessage["parts"][number];
@@ -239,7 +240,7 @@ export async function POST(req: Request) {
       console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
     }
 
-    const { messages, evidence, modelConfig, aestheticId } = json;
+    const { messages, evidence, modelConfig, aestheticId, customSystemPrompt } = json;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Messages missing or invalid", { status: 400 });
@@ -291,7 +292,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: auth.provider!(auth.model),
       messages: convertedMessages,
-      system: buildSystemPrompt(evidence, aestheticId),
+      system: buildSystemPrompt(evidence, aestheticId, customSystemPrompt),
       tools,
     });
 
@@ -304,7 +305,7 @@ export async function POST(req: Request) {
       const u = [...messages].reverse().find((m) => m.role === "user");
       return u ? extractMessageText(u as UIMessage & { content?: string }) : "";
     })();
-    const narrationPromise = generateNarration(auth, lastUserText, aestheticId);
+    const narrationPromise = generateNarration(auth, lastUserText, aestheticId, customSystemPrompt);
 
     const stream = createUIMessageStream({
       originalMessages: normalizedMessages,

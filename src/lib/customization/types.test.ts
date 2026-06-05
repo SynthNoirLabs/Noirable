@@ -18,6 +18,7 @@ describe("customProfileSchema", () => {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       colors: { accent: "#ff0000" },
+      systemPrompt: "You are a cybernetic detective.",
     };
     expect(customProfileSchema.safeParse(profile).success).toBe(true);
   });

@@ -9,6 +9,8 @@ import type {
   ThemeConfig,
 } from "./types";
 
+import { CYBER_FIXER_PERSONA, NOSTROMO_CONSOLE_PERSONA, GOTHIC_MANOR_PERSONA } from "./personas";
+
 // =============================================================================
 // NOIR PROFILE
 // =============================================================================
@@ -189,6 +191,207 @@ const minimalProfile: AestheticProfile = {
 };
 
 // =============================================================================
+// CYBER FIXER PROFILE
+// =============================================================================
+
+const cyberFixerTheme: ThemeConfig = {
+  colors: {
+    background: "#0a0512",
+    surface: "#140c24",
+    surfaceAlt: "#251642",
+    text: "#f0e6ff",
+    textMuted: "#8b72af",
+    accent: "#00ffcc",
+    accentMuted: "#ff007f",
+    border: "#3a1f66",
+    error: "#ff3333",
+  },
+  fonts: {
+    body: "var(--font-mono)",
+    mono: "var(--font-mono)",
+    heading: "var(--font-sans)",
+  },
+};
+
+const cyberFixerAudio: AudioPack = {
+  sfx: {
+    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.7 },
+    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.8 },
+    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.75 },
+  },
+  music: {
+    src: "/assets/noir/noir-jazz-loop.mp3",
+    volume: 0.25,
+  },
+  ambient: {
+    rain: {
+      src: "/assets/noir/rain-loop.wav",
+      intensityVolume: {
+        low: 0.2,
+        medium: 0.3,
+        high: 0.4,
+      },
+    },
+    crackle: {
+      src: "/assets/noir/vinyl-crackle.wav",
+      volume: 0.4,
+    },
+  },
+};
+
+const cyberFixerPersona: PersonaConfig = {
+  systemPrompt: CYBER_FIXER_PERSONA,
+  terminology: {
+    component: "widget",
+    generate: "inject grid load",
+    error: "connection dropped",
+  },
+};
+
+const cyberFixerProfile: AestheticProfile = {
+  id: "cyber-fixer",
+  name: "Cyber Fixer",
+  description: "Futuristic neon aesthetic with electronic crackle and street slang persona",
+  theme: cyberFixerTheme,
+  audio: cyberFixerAudio,
+  persona: cyberFixerPersona,
+};
+
+// =============================================================================
+// NOSTROMO CONSOLE PROFILE
+// =============================================================================
+
+const nostromoConsoleTheme: ThemeConfig = {
+  colors: {
+    background: "#020804",
+    surface: "#05160b",
+    surfaceAlt: "#0a2815",
+    text: "#33ff66",
+    textMuted: "#1d8c3b",
+    accent: "#33ff66",
+    accentMuted: "#ff9900",
+    border: "#0d3b1f",
+    error: "#ff3300",
+  },
+  fonts: {
+    body: "var(--font-mono)",
+    mono: "var(--font-mono)",
+    heading: "var(--font-mono)",
+  },
+};
+
+const nostromoConsoleAudio: AudioPack = {
+  sfx: {
+    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.5 },
+    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.3 },
+    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.5 },
+  },
+  music: {
+    src: "/assets/noir/noir-jazz-loop.mp3",
+    volume: 0.1,
+  },
+  ambient: {
+    rain: {
+      src: "/assets/noir/rain-loop.wav",
+      intensityVolume: {
+        low: 0.05,
+        medium: 0.08,
+        high: 0.12,
+      },
+    },
+    crackle: {
+      src: "/assets/noir/vinyl-crackle.wav",
+      volume: 0.6,
+    },
+  },
+};
+
+const nostromoConsolePersona: PersonaConfig = {
+  systemPrompt: NOSTROMO_CONSOLE_PERSONA,
+  terminology: {
+    component: "module",
+    generate: "compile log",
+    error: "system error",
+  },
+};
+
+const nostromoConsoleProfile: AestheticProfile = {
+  id: "nostromo-console",
+  name: "Nostromo Console",
+  description: "Retro terminal phosphor green theme with Weyland-Yutani computer persona",
+  theme: nostromoConsoleTheme,
+  audio: nostromoConsoleAudio,
+  persona: nostromoConsolePersona,
+};
+
+// =============================================================================
+// GOTHIC MANOR PROFILE
+// =============================================================================
+
+const gothicManorTheme: ThemeConfig = {
+  colors: {
+    background: "#08080a",
+    surface: "#121217",
+    surfaceAlt: "#22222b",
+    text: "#e1e1e6",
+    textMuted: "#82828c",
+    accent: "#990011",
+    accentMuted: "#4a0008",
+    border: "#2a2a35",
+    error: "#ff0011",
+  },
+  fonts: {
+    body: "var(--font-typewriter)",
+    mono: "var(--font-mono)",
+    heading: "var(--font-typewriter)",
+  },
+};
+
+const gothicManorAudio: AudioPack = {
+  sfx: {
+    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.55 },
+    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.95 },
+    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.6 },
+  },
+  music: {
+    src: "/assets/noir/noir-jazz-loop.mp3",
+    volume: 0.15,
+  },
+  ambient: {
+    rain: {
+      src: "/assets/noir/rain-loop.wav",
+      intensityVolume: {
+        low: 0.22,
+        medium: 0.32,
+        high: 0.42,
+      },
+    },
+    crackle: {
+      src: "/assets/noir/vinyl-crackle.wav",
+      volume: 0.3,
+    },
+  },
+};
+
+const gothicManorPersona: PersonaConfig = {
+  systemPrompt: GOTHIC_MANOR_PERSONA,
+  terminology: {
+    component: "artifact",
+    generate: "manifest chronicle",
+    error: "trail lost to the dark",
+  },
+};
+
+const gothicManorProfile: AestheticProfile = {
+  id: "gothic-manor",
+  name: "Gothic Manor",
+  description: "Brooding dark gothic vampire theme with nineteenth-century poetry persona",
+  theme: gothicManorTheme,
+  audio: gothicManorAudio,
+  persona: gothicManorPersona,
+};
+
+// =============================================================================
 // REGISTRY
 // =============================================================================
 
@@ -198,6 +401,9 @@ const minimalProfile: AestheticProfile = {
 export const AESTHETIC_REGISTRY: AestheticRegistry = {
   noir: noirProfile,
   minimal: minimalProfile,
+  "cyber-fixer": cyberFixerProfile,
+  "nostromo-console": nostromoConsoleProfile,
+  "gothic-manor": gothicManorProfile,
 };
 
 /**

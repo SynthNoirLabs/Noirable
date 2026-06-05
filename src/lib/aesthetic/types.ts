@@ -9,7 +9,12 @@
  * Each ID corresponds to a full AestheticProfile in the registry.
  */
 // Keep existing for backwards compat
-export type BuiltInAestheticId = "noir" | "minimal";
+export type BuiltInAestheticId =
+  | "noir"
+  | "minimal"
+  | "cyber-fixer"
+  | "nostromo-console"
+  | "gothic-manor";
 
 // Custom profiles use prefixed IDs
 export type CustomProfileId = `custom-${string}`;
@@ -23,7 +28,13 @@ export function isCustomProfileId(id: string): id is CustomProfileId {
 }
 
 export function isBuiltInAestheticId(id: string): id is BuiltInAestheticId {
-  return id === "noir" || id === "minimal";
+  return (
+    id === "noir" ||
+    id === "minimal" ||
+    id === "cyber-fixer" ||
+    id === "nostromo-console" ||
+    id === "gothic-manor"
+  );
 }
 
 /**

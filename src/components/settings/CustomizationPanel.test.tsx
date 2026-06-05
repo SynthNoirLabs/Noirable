@@ -45,7 +45,7 @@ describe("CustomizationPanel", () => {
     fireEvent.click(colorsTab);
 
     expect(colorsTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("Color Customization")).toBeInTheDocument();
+    expect(screen.getByText(/custom profile/i)).toBeInTheDocument();
   });
 
   it("calls onClose when close button clicked", () => {
@@ -72,6 +72,6 @@ describe("CustomizationPanel", () => {
 
   it("shows profile tab content by default", () => {
     render(<CustomizationPanel {...defaultProps} />);
-    expect(screen.getByText("Profile Management")).toBeInTheDocument();
+    expect(screen.getByText(/Active Profile/i)).toBeInTheDocument();
   });
 });

@@ -59,12 +59,93 @@ const minimalAudio: AudioPack = {
   },
 };
 
+const cyberFixerAudio: AudioPack = {
+  sfx: {
+    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.7 },
+    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.8 },
+    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.75 },
+  },
+  music: {
+    src: "/assets/noir/noir-jazz-loop.mp3",
+    volume: 0.25,
+  },
+  ambient: {
+    rain: {
+      src: "/assets/noir/rain-loop.wav",
+      intensityVolume: {
+        low: 0.2,
+        medium: 0.3,
+        high: 0.4,
+      },
+    },
+    crackle: {
+      src: "/assets/noir/vinyl-crackle.wav",
+      volume: 0.4,
+    },
+  },
+};
+
+const nostromoConsoleAudio: AudioPack = {
+  sfx: {
+    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.5 },
+    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.3 },
+    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.5 },
+  },
+  music: {
+    src: "/assets/noir/noir-jazz-loop.mp3",
+    volume: 0.1,
+  },
+  ambient: {
+    rain: {
+      src: "/assets/noir/rain-loop.wav",
+      intensityVolume: {
+        low: 0.05,
+        medium: 0.08,
+        high: 0.12,
+      },
+    },
+    crackle: {
+      src: "/assets/noir/vinyl-crackle.wav",
+      volume: 0.6,
+    },
+  },
+};
+
+const gothicManorAudio: AudioPack = {
+  sfx: {
+    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.55 },
+    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.95 },
+    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.6 },
+  },
+  music: {
+    src: "/assets/noir/noir-jazz-loop.mp3",
+    volume: 0.15,
+  },
+  ambient: {
+    rain: {
+      src: "/assets/noir/rain-loop.wav",
+      intensityVolume: {
+        low: 0.22,
+        medium: 0.32,
+        high: 0.42,
+      },
+    },
+    crackle: {
+      src: "/assets/noir/vinyl-crackle.wav",
+      volume: 0.3,
+    },
+  },
+};
+
 /**
  * Registry of audio packs by aesthetic ID.
  */
 export const AUDIO_PACKS: Record<AestheticId, AudioPack> = {
   noir: noirAudio,
   minimal: minimalAudio,
+  "cyber-fixer": cyberFixerAudio,
+  "nostromo-console": nostromoConsoleAudio,
+  "gothic-manor": gothicManorAudio,
 };
 
 /**

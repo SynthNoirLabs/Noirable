@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { CustomProfile } from "@/lib/customization/types";
-import type { CustomProfileId } from "@/lib/aesthetic/types";
+import type { BuiltInAestheticId, CustomProfileId } from "@/lib/aesthetic/types";
 import {
   saveCustomProfile,
   loadCustomProfiles,
@@ -17,7 +17,7 @@ interface CustomProfileState {
 
   // Actions
   loadProfiles: () => void;
-  createProfile: (name: string, baseAestheticId: "noir" | "minimal") => CustomProfile;
+  createProfile: (name: string, baseAestheticId: BuiltInAestheticId) => CustomProfile;
   updateProfile: (
     id: CustomProfileId,
     updates: Partial<Omit<CustomProfile, "id" | "createdAt">>
@@ -33,7 +33,7 @@ interface CustomProfileState {
   getProfileList: () => Array<{
     id: CustomProfileId;
     name: string;
-    baseAestheticId: "noir" | "minimal";
+    baseAestheticId: BuiltInAestheticId;
   }>;
 }
 
