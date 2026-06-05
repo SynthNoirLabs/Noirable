@@ -152,7 +152,12 @@ describe("DetectiveWorkspace", () => {
     mockMessages = [];
 
     render(<DetectiveWorkspace />);
-    const sendMessageMock = useChatMock.mock.results[0]?.value
+    // The component re-renders once on mount (loadProfiles populates the custom
+    // profile store), and the useChat mock returns a fresh sendMessage each
+    // render — so read the LATEST result, which is the one the component holds.
+    // (In production useChat memoizes sendMessage, so this is a test artifact.)
+    const results = useChatMock.mock.results;
+    const sendMessageMock = results[results.length - 1]?.value
       ?.sendMessage as unknown as ReturnType<typeof vi.fn>;
     expect(sendMessageMock).toBeTruthy();
     await act(async () => {

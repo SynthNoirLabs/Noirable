@@ -22,6 +22,13 @@ interface A2UIStreamRequest {
   customSystemPrompt?: string;
   customImageStylePrompt?: string;
   imageModel?: string;
+  /**
+   * The currently-rendered surface's component list, threaded back in so the
+   * model can AMEND the live UI (the buildSystemPrompt "Current Evidence" +
+   * Update Rules path) instead of regenerating from scratch. Optional: absent
+   * on a fresh "new case", present when iterating on an existing surface.
+   */
+  baselineComponents?: unknown;
 }
 
 /**
@@ -232,6 +239,12 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // Validate prompt
   const { prompt, aestheticId, customSystemPrompt, customImageStylePrompt, imageModel } = body;
+  // Only treat a non-empty component list as a baseline; an empty surface is a
+  // fresh start and must not inject an empty "Current Evidence" block.
+  const baselineComponents =
+    Array.isArray(body.baselineComponents) && body.baselineComponents.length > 0
+      ? body.baselineComponents
+      : undefined;
   if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
     return new Response("Missing or invalid prompt", { status: 400 });
   }
@@ -304,7 +317,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         const result = streamText({
           model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
-          system: buildSystemPrompt(undefined, aestheticId, customSystemPrompt),
+          system: buildSystemPrompt(baselineComponents, aestheticId, customSystemPrompt),
           tools: {
             generate_ui: {
               ...tools.generate_ui,

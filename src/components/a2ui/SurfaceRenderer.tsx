@@ -1,6 +1,79 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import {
+  Activity,
+  AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Bell,
+  Book,
+  BookOpen,
+  Bookmark,
+  Calendar,
+  Camera,
+  Check,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  Cloud,
+  Code,
+  Cpu,
+  Database,
+  DollarSign,
+  Download,
+  Droplet,
+  Edit3,
+  ExternalLink,
+  Eye,
+  Feather,
+  File,
+  FileText,
+  Flag,
+  Flame,
+  Folder,
+  Heart,
+  HelpCircle,
+  Home,
+  Image as ImageIcon,
+  Info,
+  Key,
+  Link as LinkIcon,
+  Lock,
+  Mail,
+  MapPin,
+  Mic,
+  Minus,
+  Moon,
+  Music,
+  Pause,
+  Phone,
+  Play,
+  Plus,
+  Search,
+  Server,
+  Settings,
+  Shield,
+  Skull,
+  Star,
+  Sun,
+  Tag,
+  Terminal,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Unlock,
+  Upload,
+  User,
+  Users,
+  Video,
+  Volume2,
+  Wifi,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { SurfaceState, SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
 import { resolvePointer } from "@/lib/a2ui/binding/pointer";
 import { isFunctionCall, evaluateFunctionCall } from "@/lib/a2ui/binding/functions";
@@ -638,15 +711,94 @@ function ImageRenderer({ component }: ComponentProps) {
   );
 }
 
+// Curated semantic-name → lucide glyph map. Keys are normalized (lowercase,
+// non-alphanumerics stripped) so both `file-text` and `fileText`/`filetext`
+// resolve to the same icon. Unmapped names fall back to HelpCircle.
+const ICON_MAP: Record<string, LucideIcon> = {
+  help: HelpCircle,
+  search: Search,
+  user: User,
+  users: Users,
+  file: File,
+  filetext: FileText,
+  folder: Folder,
+  lock: Lock,
+  unlock: Unlock,
+  alert: AlertTriangle,
+  alerttriangle: AlertTriangle,
+  alertcircle: AlertCircle,
+  check: Check,
+  checkcircle: CheckCircle,
+  x: X,
+  info: Info,
+  star: Star,
+  heart: Heart,
+  mail: Mail,
+  phone: Phone,
+  calendar: Calendar,
+  clock: Clock,
+  settings: Settings,
+  home: Home,
+  mappin: MapPin,
+  camera: Camera,
+  image: ImageIcon,
+  eye: Eye,
+  shield: Shield,
+  key: Key,
+  database: Database,
+  server: Server,
+  cpu: Cpu,
+  wifi: Wifi,
+  zap: Zap,
+  activity: Activity,
+  trendingup: TrendingUp,
+  trendingdown: TrendingDown,
+  dollarsign: DollarSign,
+  tag: Tag,
+  bookmark: Bookmark,
+  flag: Flag,
+  bell: Bell,
+  download: Download,
+  upload: Upload,
+  trash: Trash2,
+  edit: Edit3,
+  plus: Plus,
+  minus: Minus,
+  arrowright: ArrowRight,
+  arrowleft: ArrowLeft,
+  chevronright: ChevronRight,
+  externallink: ExternalLink,
+  link: LinkIcon,
+  play: Play,
+  pause: Pause,
+  music: Music,
+  volume: Volume2,
+  mic: Mic,
+  video: Video,
+  terminal: Terminal,
+  code: Code,
+  book: Book,
+  bookopen: BookOpen,
+  feather: Feather,
+  skull: Skull,
+  moon: Moon,
+  sun: Sun,
+  cloud: Cloud,
+  droplet: Droplet,
+  flame: Flame,
+};
+
+/** Normalize an incoming icon name: lowercase + strip non-alphanumerics. */
+function normalizeIconName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function IconRenderer({ component }: ComponentProps) {
   const resolve = useResolve();
   const icon = component as SurfaceComponent & { name?: unknown };
   const name = String(resolve(icon.name) ?? "help");
-  return (
-    <span className="text-[var(--aesthetic-text)] text-xl" aria-label={name} role="img">
-      [{name}]
-    </span>
-  );
+  const Glyph = ICON_MAP[normalizeIconName(name)] ?? HelpCircle;
+  return <Glyph className="w-5 h-5 text-[var(--aesthetic-accent)]" aria-label={name} role="img" />;
 }
 
 function VideoRenderer({ component }: ComponentProps) {
@@ -1063,68 +1215,31 @@ function KanbanBoardRenderer({ component }: ComponentProps) {
   const boardTitle = board.title ? String(resolve(board.title)) : "";
   const columns = board.columns || [];
 
-  // Theme-specific styles
-  let containerClass = "";
-  let columnClass = "";
-  let cardClass = "";
-  let textClass = "";
-  let titleClass = "";
-  let headerClass = "";
+  // Shared, var-driven base styling. Color comes entirely from the aesthetic
+  // CSS vars, so noir/minimal/gothic and every custom profile adapt for free
+  // without their own switch arm. Only nostromo + cyber add decoration on top.
+  const isNostromo = baseAestheticId === "nostromo-console";
+  const isCyber = baseAestheticId === "cyber-fixer";
 
-  switch (baseAestheticId) {
-    case "gothic-manor":
-      containerClass =
-        "font-serif text-[#3e2723] p-4 bg-[#eae2cf] border border-[#a1947b]/40 rounded-sm";
-      columnClass =
-        "bg-[#eae2cf]/80 border border-[#a1947b]/60 rounded-md p-3 min-w-[280px] max-w-[320px] shadow-sm";
-      cardClass =
-        "bg-[#f2ebd9] border border-[#a1947b] p-3 rounded-md shadow-md text-[#3e2723] break-words whitespace-normal";
-      textClass = "text-sm text-[#5d4037] leading-relaxed";
-      titleClass = "font-semibold text-lg text-[#3e2723] mb-2";
-      headerClass =
-        "font-serif font-bold text-xl mb-4 text-[#3e2723] border-b border-[#a1947b] pb-2";
-      break;
-
-    case "nostromo-console":
-      containerClass =
-        "crt-scanlines font-mono text-green-500 bg-black/95 p-4 border border-green-500/50 rounded-sm";
-      columnClass =
-        "bg-neutral-950 border border-green-500/30 rounded-none p-3 min-w-[280px] max-w-[320px]";
-      cardClass =
-        "bg-neutral-900 border border-green-500/40 p-3 rounded-none text-green-400 break-words whitespace-normal shadow-[0_0_4px_rgba(34,197,94,0.2)]";
-      textClass = "text-xs text-green-500/80 leading-normal";
-      titleClass = "font-bold text-sm text-green-400 mb-1";
-      headerClass =
-        "font-mono font-bold text-lg mb-4 text-green-500 uppercase tracking-wider border-b border-green-500/40 pb-2";
-      break;
-
-    case "cyber-fixer":
-      containerClass =
-        "font-mono text-cyan-400 bg-slate-950 p-4 border border-cyan-500 shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4] rounded-sm";
-      columnClass =
-        "bg-slate-900/60 border border-magenta-500/30 rounded-md p-3 min-w-[280px] max-w-[320px] shadow-[0_0_5px_rgba(217,70,239,0.1)]";
-      cardClass =
-        "bg-slate-900 border border-magenta-500/60 p-3 rounded-md text-magenta-400 break-words whitespace-normal shadow-[0_0_8px_#d946ef] hover:shadow-[0_0_12px_#d946ef] transition-shadow duration-200";
-      textClass = "text-xs text-cyan-300/80 leading-normal";
-      titleClass = "font-bold text-sm text-cyan-400 mb-1";
-      headerClass =
-        "font-mono font-bold text-lg mb-4 text-cyan-400 uppercase tracking-widest border-b border-cyan-500/30 pb-2";
-      break;
-
-    case "noir":
-    default:
-      containerClass =
-        "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm";
-      columnClass =
-        "bg-[var(--aesthetic-surface)]/40 border border-[var(--aesthetic-border)]/20 rounded-sm p-3 min-w-[280px] max-w-[320px]";
-      cardClass =
-        "bg-[var(--aesthetic-surface)]/80 border border-[var(--aesthetic-border)]/30 p-3 rounded-sm text-[var(--aesthetic-text)] break-words whitespace-normal shadow-sm hover:border-[var(--aesthetic-accent)]/55 transition-colors";
-      textClass = "text-xs text-[var(--aesthetic-text)]/75 leading-relaxed font-typewriter";
-      titleClass = "font-bold text-sm text-[var(--aesthetic-accent)] mb-1 font-typewriter";
-      headerClass =
-        "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
-      break;
-  }
+  const containerClass = cn(
+    "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm",
+    isNostromo && "crt-scanlines",
+    isCyber && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
+  );
+  const columnClass = cn(
+    "bg-[var(--aesthetic-surface)]/40 border border-[var(--aesthetic-border)]/20 rounded-sm p-3 min-w-[280px] max-w-[320px]",
+    isCyber && "shadow-[0_0_5px_rgba(6,182,212,0.1)]"
+  );
+  const cardClass = cn(
+    "bg-[var(--aesthetic-surface)]/80 border border-[var(--aesthetic-border)]/30 p-3 rounded-sm text-[var(--aesthetic-text)] break-words whitespace-normal shadow-sm hover:border-[var(--aesthetic-accent)]/55 transition-colors",
+    isNostromo && "shadow-[0_0_4px_rgba(34,197,94,0.2)]",
+    isCyber &&
+      "border-[var(--aesthetic-accent-muted)]/60 shadow-[0_0_8px_#06b6d4] hover:shadow-[0_0_12px_#06b6d4] transition-shadow duration-200"
+  );
+  const textClass = "text-xs text-[var(--aesthetic-text)]/75 leading-relaxed font-typewriter";
+  const titleClass = "font-bold text-sm text-[var(--aesthetic-accent)] mb-1 font-typewriter";
+  const headerClass =
+    "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
 
   // Handle zero columns or zero cards gracefully
   if (columns.length === 0) {
@@ -1211,68 +1326,36 @@ function DataDashboardRenderer({ component }: ComponentProps) {
   const dashTitle = dash.title ? String(resolve(dash.title)) : "";
   const widgets = dash.widgets || [];
 
-  // Theme-specific styles
-  let containerClass = "";
-  let widgetClass = "";
-  let textClass = "";
-  let valueClass = "";
-  let headerClass = "";
-  let progressBg = "";
-  let progressFill = "";
+  // Shared, var-driven base styling (see KanbanBoardRenderer): noir/minimal/
+  // gothic and custom profiles ride the CSS vars; only nostromo + cyber layer
+  // their phosphor / neon decoration on top.
+  const isNostromo = baseAestheticId === "nostromo-console";
+  const isCyber = baseAestheticId === "cyber-fixer";
 
-  switch (baseAestheticId) {
-    case "gothic-manor":
-      containerClass =
-        "font-serif text-[#3e2723] p-4 bg-[#eae2cf] border border-[#a1947b]/40 rounded-sm";
-      widgetClass = "bg-[#f2ebd9] border border-[#a1947b] p-4 rounded-md shadow-sm";
-      textClass = "text-xs text-[#5d4037]";
-      valueClass = "text-2xl font-bold font-serif text-[#3e2723]";
-      headerClass =
-        "font-serif font-bold text-xl mb-4 text-[#3e2723] border-b border-[#a1947b] pb-2";
-      progressBg = "bg-[#eae2cf] border border-[#a1947b]/40";
-      progressFill = "bg-[#8d6e63]";
-      break;
-
-    case "nostromo-console":
-      containerClass =
-        "crt-scanlines font-mono text-green-500 bg-black/95 p-4 border border-green-500/50 rounded-sm";
-      widgetClass = "bg-neutral-950 border border-green-500/30 p-4 rounded-none";
-      textClass = "text-xs text-green-500/70";
-      valueClass =
-        "text-2xl font-bold font-mono text-green-400 tracking-wider shadow-[0_0_2px_#22c55e]";
-      headerClass =
-        "font-mono font-bold text-lg mb-4 text-green-500 uppercase tracking-wider border-b border-green-500/40 pb-2";
-      progressBg = "bg-neutral-900 border border-green-500/20";
-      progressFill = "bg-green-500 shadow-[0_0_6px_#22c55e]";
-      break;
-
-    case "cyber-fixer":
-      containerClass =
-        "font-mono text-cyan-400 bg-slate-950 p-4 border border-cyan-500 shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4] rounded-sm";
-      widgetClass =
-        "bg-slate-900/80 border border-magenta-500/50 p-4 rounded-md shadow-[0_0_5px_rgba(217,70,239,0.2)]";
-      textClass = "text-xs text-cyan-300/70";
-      valueClass = "text-2xl font-bold font-mono text-cyan-400 shadow-[0_0_4px_#06b6d4]";
-      headerClass =
-        "font-mono font-bold text-lg mb-4 text-cyan-400 uppercase tracking-widest border-b border-cyan-500/30 pb-2";
-      progressBg = "bg-slate-950 border border-cyan-500/30";
-      progressFill = "bg-cyan-500 shadow-[0_0_8px_#06b6d4]";
-      break;
-
-    case "noir":
-    default:
-      containerClass =
-        "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm";
-      widgetClass =
-        "bg-[var(--aesthetic-surface)]/60 border border-[var(--aesthetic-border)]/30 p-4 rounded-sm shadow-sm";
-      textClass = "text-xs text-[var(--aesthetic-text)]/65 font-typewriter";
-      valueClass = "text-2xl font-bold text-[var(--aesthetic-accent)] font-typewriter";
-      headerClass =
-        "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
-      progressBg = "bg-[var(--aesthetic-background)]/60 border border-[var(--aesthetic-border)]/20";
-      progressFill = "bg-[var(--aesthetic-accent)] shadow-[0_2px_8px_rgba(255,191,0,0.15)]";
-      break;
-  }
+  const containerClass = cn(
+    "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm",
+    isNostromo && "crt-scanlines",
+    isCyber && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
+  );
+  const widgetClass = cn(
+    "bg-[var(--aesthetic-surface)]/60 border border-[var(--aesthetic-border)]/30 p-4 rounded-sm shadow-sm",
+    isCyber && "border-[var(--aesthetic-accent-muted)]/50 shadow-[0_0_5px_rgba(6,182,212,0.2)]"
+  );
+  const textClass = "text-xs text-[var(--aesthetic-text)]/65 font-typewriter";
+  const valueClass = cn(
+    "text-2xl font-bold text-[var(--aesthetic-accent)] font-typewriter",
+    isNostromo && "tracking-wider shadow-[0_0_2px_#22c55e]",
+    isCyber && "shadow-[0_0_4px_#06b6d4]"
+  );
+  const headerClass =
+    "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
+  const progressBg =
+    "bg-[var(--aesthetic-background)]/60 border border-[var(--aesthetic-border)]/20";
+  const progressFill = cn(
+    "bg-[var(--aesthetic-accent)] shadow-[0_2px_8px_color-mix(in_srgb,var(--aesthetic-accent)_15%,transparent)]",
+    isNostromo && "shadow-[0_0_6px_#22c55e]",
+    isCyber && "shadow-[0_0_8px_#06b6d4]"
+  );
 
   // Handle missing metrics or invalid dataset structures gracefully
   if (widgets.length === 0) {

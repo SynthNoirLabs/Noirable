@@ -12,6 +12,8 @@ import {
   Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useResolvedAesthetic } from "@/lib/aesthetic/useResolvedAesthetic";
+import { getAestheticCopy } from "@/lib/aesthetic/identity";
 
 interface Tape {
   id: string;
@@ -35,6 +37,9 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
   const [vuValue, setVuValue] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const { baseId } = useResolvedAesthetic();
+  const copy = getAestheticCopy(baseId);
 
   // Keep the selection in range when tapes are deleted: if the list shrinks
   // below the selected index, clamp to the last remaining tape so the deck
@@ -191,7 +196,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[var(--aesthetic-accent)] animate-pulse" />
           <h2 className="text-xs uppercase tracking-[0.25em] font-semibold text-[var(--aesthetic-text)]/80">
-            Dictaphone Logs
+            {copy.dictaphoneTitle}
           </h2>
         </div>
         {onClose && (
@@ -309,10 +314,12 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
           {/* Subtitle / Loaded tape info */}
           <div className="w-full text-center border-t border-[var(--aesthetic-border)]/15 pt-3">
             <span className="text-[10px] text-[var(--aesthetic-text)]/50 tracking-wider block uppercase">
-              {activeTape ? `Cassette Log #${selectedTapeIndex + 1}` : "NO TAPE MOUNTED"}
+              {activeTape
+                ? `${copy.dictaphoneItemLabel} #${selectedTapeIndex + 1}`
+                : "NO TAPE MOUNTED"}
             </span>
             <span className="text-[11px] text-[var(--aesthetic-text)]/85 truncate block mt-0.5 px-2">
-              {activeTape ? activeTape.text.slice(0, 48) : "Load a recording from the archive"}
+              {activeTape ? activeTape.text.slice(0, 48) : copy.dictaphoneEmptyHint}
             </span>
           </div>
         </div>
@@ -337,7 +344,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
             className={cn(
               "w-12 h-12 flex items-center justify-center rounded border transition-colors active:bg-[var(--aesthetic-surface)]",
               isPlaying && !isPaused
-                ? "bg-[var(--aesthetic-accent)]/15 border-[var(--aesthetic-accent)]/60 text-[var(--aesthetic-accent)] shadow-[0_0_10px_rgba(255,191,0,0.2)]"
+                ? "bg-[var(--aesthetic-accent)]/15 border-[var(--aesthetic-accent)]/60 text-[var(--aesthetic-accent)] shadow-[0_0_10px_color-mix(in_srgb,var(--aesthetic-accent)_20%,transparent)]"
                 : "border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)] text-[var(--aesthetic-text)]/80 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/50",
               !activeTape && "opacity-35 pointer-events-none"
             )}
@@ -416,7 +423,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
                   className={cn(
                     "border transition-all duration-200 rounded-sm p-3 relative group flex items-start justify-between gap-3 cursor-pointer",
                     isSelected
-                      ? "bg-[var(--aesthetic-accent)]/5 border-[var(--aesthetic-accent)]/45 shadow-[0_0_8px_rgba(255,191,0,0.1)]"
+                      ? "bg-[var(--aesthetic-accent)]/5 border-[var(--aesthetic-accent)]/45 shadow-[0_0_8px_color-mix(in_srgb,var(--aesthetic-accent)_10%,transparent)]"
                       : "bg-[var(--aesthetic-surface)]/40 border-[var(--aesthetic-border)]/40 hover:border-[var(--aesthetic-border)]/75 hover:bg-[var(--aesthetic-surface)]/60"
                   )}
                   onClick={() => setSelectedTapeIndex(idx)}
@@ -438,7 +445,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
                           : "text-[var(--aesthetic-text)]/45"
                       )}
                     >
-                      Tape Log #{idx + 1}
+                      {copy.dictaphoneItemLabel} #{idx + 1}
                     </span>
                     <span className="text-[11px] text-[var(--aesthetic-text)]/85 truncate block mt-0.5 font-medium leading-tight">
                       {tape.text}
@@ -455,7 +462,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
                       if (isSelected) handleStop();
                       onDeleteTape(tape.hash);
                     }}
-                    title="Incinerate Tape (Delete)"
+                    title={`${copy.dictaphoneDeleteLabel} (Delete)`}
                     className="text-[var(--aesthetic-text)]/30 hover:text-[var(--aesthetic-error)] transition-colors p-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 self-center"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

@@ -566,10 +566,15 @@ describe("A2UI Templates Aesthetic Styles", () => {
     const { container: container1, rerender } = render(
       <SurfaceRenderer surface={surface} theme="noir" />
     );
+    // Boards are now var-driven (color via CSS vars so custom profiles adapt);
+    // only genuinely preset-unique DECORATION stays keyed on the aesthetic.
+    // Nostromo keeps its CRT scanlines and uses the shared --aesthetic-* text.
     expect(container1.querySelector(".crt-scanlines")).toBeInTheDocument();
-    expect(container1.querySelector(".text-green-500")).toBeInTheDocument();
+    // Var-driven: the board container styles via --aesthetic-* CSS vars.
+    expect(container1.querySelector('[class*="--aesthetic-"]')).toBeInTheDocument();
 
-    // 2. Gothic Manor
+    // 2. Gothic Manor — fully var-driven now (no hardcoded #eae2cf parchment);
+    // it differs from nostromo only by CSS vars, so it carries no scanlines.
     act(() => {
       useA2UIStore.setState({
         settings: {
@@ -579,10 +584,10 @@ describe("A2UI Templates Aesthetic Styles", () => {
       });
     });
     rerender(<SurfaceRenderer surface={surface} theme="noir" />);
-    expect(container1.querySelector(".font-serif")).toBeInTheDocument();
-    expect(container1.querySelector(".bg-\\[\\#eae2cf\\]")).toBeInTheDocument();
+    expect(container1.querySelector(".crt-scanlines")).not.toBeInTheDocument();
+    expect(container1.querySelector('[class*="--aesthetic-"]')).toBeInTheDocument();
 
-    // 3. Cyber-Fixer
+    // 3. Cyber-Fixer — keeps its neon glow box-shadow decoration.
     act(() => {
       useA2UIStore.setState({
         settings: {
@@ -592,7 +597,6 @@ describe("A2UI Templates Aesthetic Styles", () => {
       });
     });
     rerender(<SurfaceRenderer surface={surface} theme="noir" />);
-    expect(container1.querySelector(".border-cyan-500")).toBeInTheDocument();
     expect(
       container1.querySelector(".shadow-\\[0_0_10px_\\#06b6d4\\,inset_0_0_5px_\\#06b6d4\\]")
     ).toBeInTheDocument();

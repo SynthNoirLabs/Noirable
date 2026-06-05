@@ -44,6 +44,11 @@
   --aesthetic-error: #8a0000;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
+  /* Multiplier for accent-driven glow effects (desk-lamp rim, CRT bloom).
+     Atmospheric effects scale their intensity by this so e.g. minimal (0)
+     reads flat while cyber-fixer (1.4) glows harder. Mirrors the
+     `glowStrength` field in src/lib/aesthetic/definitions.ts. */
+  --aesthetic-glow-strength: 1;
 }
 
 [data-aesthetic="noir"] {
@@ -58,6 +63,7 @@
   --aesthetic-error: #8a0000;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
+  --aesthetic-glow-strength: 1;
   --aesthetic-bg-image: url("/assets/noir/rainy-bg.jpg");
   --aesthetic-case-file-image: url("/assets/noir/Gemini_Generated_Image_hgsjjdhgsjjdhgsj.jpeg");
 }
@@ -74,6 +80,7 @@
   --aesthetic-error: #dc2626;
   --aesthetic-font-body: system-ui, -apple-system, sans-serif;
   --aesthetic-font-heading: system-ui, -apple-system, sans-serif;
+  --aesthetic-glow-strength: 0;
   --aesthetic-bg-image: none;
   --aesthetic-case-file-image: none;
 }
@@ -90,6 +97,7 @@
   --aesthetic-error: #ff3333;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
+  --aesthetic-glow-strength: 1.4;
   --aesthetic-bg-image: url("/assets/cyber-fixer/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -106,6 +114,7 @@
   --aesthetic-error: #ff3300;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
+  --aesthetic-glow-strength: 1.1;
   --aesthetic-bg-image: url("/assets/nostromo-console/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -122,6 +131,7 @@
   --aesthetic-error: #ff0011;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
+  --aesthetic-glow-strength: 0.8;
   --aesthetic-bg-image: url("/assets/gothic-manor/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -200,8 +210,8 @@ body {
    when the user has not asked for reduced motion. */
 .crt-glow {
   text-shadow:
-    0 0 2px rgba(255, 191, 0, 0.3),
-    0 0 4px rgba(255, 191, 0, 0.1);
+    0 0 2px color-mix(in srgb, var(--aesthetic-accent) 30%, transparent),
+    0 0 4px color-mix(in srgb, var(--aesthetic-accent) 10%, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -299,7 +309,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ffbf00; /* noir-amber */
+  background: var(--aesthetic-accent); /* theme accent */
+}
+
+/* Firefox fallback: theme the thumb with the accent over a neutral track. */
+html {
+  scrollbar-color: var(--aesthetic-accent) transparent;
 }
 
 /* Wire-tap equalizer (TTS playing indicator) */

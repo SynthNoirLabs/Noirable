@@ -5,6 +5,7 @@ import { ELEVENLABS_CONFIG } from "@/lib/elevenlabs/config";
 import { apiSecurityCheck } from "@/lib/api/security";
 import { readRecordingFile, saveRecordingBuffer } from "@/lib/ai/recordingStore";
 import { getAestheticProfile } from "@/lib/aesthetic/registry";
+import { getVoiceDirection } from "@/lib/aesthetic/voice-defaults";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
 const MAX_TTS_CHARS = 520;
@@ -56,11 +57,22 @@ export async function POST(request: Request) {
     }
   }
 
+  // Per-preset voice DIRECTION layer: explicit voiceSettings win, then the
+  // preset's voiceDirection, then the single global ELEVENLABS_CONFIG. The
+  // direction values are always defined (getVoiceDirection falls back to noir
+  // for undefined/custom ids), so the trailing `?? ELEVENLABS_CONFIG` is just
+  // belt-and-suspenders.
+  const direction = getVoiceDirection(body?.aestheticId as AestheticId | undefined);
+
   const voiceId = body?.voiceSettings?.voiceId ?? body?.voiceId ?? defaultVoiceId;
-  const stability = body?.voiceSettings?.stability ?? ELEVENLABS_CONFIG.stability;
-  const similarityBoost = body?.voiceSettings?.similarityBoost ?? ELEVENLABS_CONFIG.similarityBoost;
-  const style = body?.voiceSettings?.style ?? ELEVENLABS_CONFIG.style;
-  const rawSpeed = body?.voiceSettings?.speed ?? ELEVENLABS_CONFIG.speed;
+  const stability =
+    body?.voiceSettings?.stability ?? direction.stability ?? ELEVENLABS_CONFIG.stability;
+  const similarityBoost =
+    body?.voiceSettings?.similarityBoost ??
+    direction.similarityBoost ??
+    ELEVENLABS_CONFIG.similarityBoost;
+  const style = body?.voiceSettings?.style ?? direction.style ?? ELEVENLABS_CONFIG.style;
+  const rawSpeed = body?.voiceSettings?.speed ?? direction.speed ?? ELEVENLABS_CONFIG.speed;
   // `??` only substitutes for null/undefined; a non-numeric value would survive
   // as NaN and be sent to ElevenLabs / folded into the cache hash. Coerce.
   const numericSpeed =

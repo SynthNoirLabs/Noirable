@@ -33,7 +33,8 @@ export interface UseA2UIStreamResult {
     aestheticId?: string,
     customSystemPrompt?: string,
     customImageStylePrompt?: string,
-    imageModel?: string
+    imageModel?: string,
+    baselineComponents?: SurfaceComponent[]
   ) => Promise<void>;
   /** Whether currently streaming */
   isStreaming: boolean;
@@ -163,7 +164,8 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
       aestheticId?: string,
       customSystemPrompt?: string,
       customImageStylePrompt?: string,
-      imageModel?: string
+      imageModel?: string,
+      baselineComponents?: SurfaceComponent[]
     ) => {
       // Abort any existing stream
       if (abortControllerRef.current) {
@@ -191,6 +193,7 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
             customSystemPrompt,
             customImageStylePrompt,
             imageModel,
+            baselineComponents,
           }),
           signal: abortController.signal,
         });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
-import { getDefaultVoiceId } from "@/lib/aesthetic/voice-defaults";
+import { getDefaultVoiceId, getVoicePreviewLine } from "@/lib/aesthetic/voice-defaults";
 import { cn } from "@/lib/utils";
 import {
   Mic,
@@ -160,7 +160,7 @@ export function VoiceCustomization() {
 
     setIsPlaying(true);
     try {
-      const text = "The rain never stops in this town. Neither does the code.";
+      const text = getVoicePreviewLine(activeAestheticId);
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };

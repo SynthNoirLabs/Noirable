@@ -17,6 +17,8 @@ import { ModelSelector } from "@/components/settings/ModelSelector";
 import { ImageModelSelector } from "@/components/settings/ImageModelSelector";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
+import { useResolvedAesthetic } from "@/lib/aesthetic/useResolvedAesthetic";
+import { getMusicPresets, getMusicStylePrompt } from "@/lib/aesthetic/identity";
 
 interface ChatSettingsPanelProps {
   typewriterSpeed: number;
@@ -36,33 +38,6 @@ interface ChatSettingsPanelProps {
   onModelConfigChange?: (config: ModelConfig) => void;
 }
 
-const MUSIC_PRESETS = [
-  {
-    icon: "🎷",
-    name: "Sax Solo",
-    prompt:
-      "A slow, smoky 1940s film noir jazz track with a melancholic saxophone solo, gentle upright bass, and quiet brushed snare drum.",
-  },
-  {
-    icon: "🎺",
-    name: "Muted Trumpet",
-    prompt:
-      "A dark, suspenseful detective theme with a muted trumpet melody, distant sirens, low piano chords, and a rainy atmosphere.",
-  },
-  {
-    icon: "🎹",
-    name: "Rainy Piano",
-    prompt:
-      "A slow, solitary piano melody echoing in a rainy alleyway, wet pavement ambience, minor chords, reflective and nostalgic mood.",
-  },
-  {
-    icon: "🎻",
-    name: "Low Strings",
-    prompt:
-      "Low, brooding orchestral string chords with a slow tempo, building tension, cinematic and mysterious detective atmosphere.",
-  },
-];
-
 export function ChatSettingsPanel({
   typewriterSpeed,
   soundEnabled,
@@ -77,6 +52,8 @@ export function ChatSettingsPanel({
   onModelConfigChange,
 }: ChatSettingsPanelProps) {
   const { settings, updateSettings } = useA2UIStore();
+  const { baseId } = useResolvedAesthetic();
+  const musicPresets = getMusicPresets(baseId);
 
   const [showComposer, setShowComposer] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -326,7 +303,7 @@ export function ChatSettingsPanel({
                 Atmosphere Presets
               </span>
               <div className="grid grid-cols-2 gap-1.5">
-                {MUSIC_PRESETS.map((preset) => (
+                {musicPresets.map((preset) => (
                   <button
                     key={preset.name}
                     type="button"
@@ -354,7 +331,7 @@ export function ChatSettingsPanel({
                   setPrompt(e.target.value);
                   setComposerError(null);
                 }}
-                placeholder="Describe the melody, tempo, and instrumentation..."
+                placeholder={getMusicStylePrompt(baseId)}
                 rows={3}
                 className="w-full bg-[var(--aesthetic-background)]/60 border border-[var(--aesthetic-border)]/45 rounded-sm p-2 text-xs font-mono text-[var(--aesthetic-text)] placeholder-[var(--aesthetic-text-muted)]/50 focus:outline-none focus:border-[var(--aesthetic-accent)]/80 resize-none"
               />

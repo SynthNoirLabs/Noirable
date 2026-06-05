@@ -25,6 +25,7 @@ import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
 import { A2UIv09Preview } from "@/components/a2ui/A2UIv09Preview";
 import { CustomizationPanel } from "@/components/settings/CustomizationPanel";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
+import { injectProfileStyles } from "@/lib/customization/css-injection";
 
 const DEFAULT_JSON = JSON.stringify(
   {
@@ -93,6 +94,7 @@ export function DetectiveWorkspace() {
   } = useA2UIStore();
 
   const loadProfiles = useCustomProfileStore((state) => state.loadProfiles);
+  const customProfiles = useCustomProfileStore((state) => state.customProfiles);
   const activeProfile = useCustomProfileStore((state) => {
     if (!state.activeCustomProfileId) return null;
     return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
@@ -101,6 +103,19 @@ export function DetectiveWorkspace() {
   useEffect(() => {
     loadProfiles();
   }, [loadProfiles]);
+
+  // Live-apply custom-profile CSS. injectProfileStyles was previously only
+  // called from the Colors tab, so a saved profile rendered as its bare base
+  // preset on load and on switch. Inject every loaded profile's scoped
+  // `[data-custom-profile]` rule whenever the set or any profile changes, so
+  // the rule always exists and flipping DeskLayout's data-custom-profile
+  // attribute (on activation) immediately repaints. injectProfileStyles is
+  // idempotent (marker-splice) and no-ops server-side.
+  useEffect(() => {
+    for (const profile of customProfiles) {
+      injectProfileStyles(profile);
+    }
+  }, [customProfiles]);
 
   const customSystemPrompt = activeProfile?.systemPrompt;
 
@@ -444,6 +459,20 @@ export function DetectiveWorkspace() {
       if (useV09 && text) {
         const stamp = Date.now();
         v09NarrationRef.current = null;
+        // Capture the currently-rendered surface BEFORE sending — sendV09Prompt
+        // clear()s the surface store at the start, so the baseline must be read
+        // now. Threading it back lets the model AMEND the live UI (Update Rules)
+        // instead of regenerating from scratch. The active surface is the most
+        // recent one, mirroring A2UIv09Preview.
+        const surfaceStore = useSurfaceStore.getState();
+        const surfaceIds = surfaceStore.getAllSurfaceIds();
+        const activeSurface =
+          surfaceIds.length > 0
+            ? surfaceStore.getSurface(surfaceIds[surfaceIds.length - 1])
+            : undefined;
+        const baselineComponents = activeSurface
+          ? Array.from(activeSurface.components.values())
+          : undefined;
         setMessages((prev) => [
           ...prev,
           { id: `v09-user-${stamp}`, role: "user", parts: [{ type: "text", text }] },
@@ -454,7 +483,8 @@ export function DetectiveWorkspace() {
             activeProfile?.baseAestheticId ?? settings.aestheticId,
             customSystemPrompt,
             activeProfile?.imageStylePrompt,
-            settings.imageModel
+            settings.imageModel,
+            baselineComponents
           );
           // Prefer the model's real narration; fall back to a varied in-character
           // line if the stream didn't provide one this run.
@@ -624,7 +654,7 @@ export function DetectiveWorkspace() {
             ) : (
               // No evidence yet (true first run, after removing the seed): show
               // the inviting case-board empty state instead of an alarm.
-              <CaseBoardEmptyState />
+              <CaseBoardEmptyState onSelectPrompt={(text) => handleSendMessage({ text })} />
             )}
           </NoirErrorBoundary>
         }

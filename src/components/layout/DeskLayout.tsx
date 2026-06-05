@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { NoirEffects } from "@/components/noir/NoirEffects";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
 import type { AmbientSettings, AestheticId } from "@/lib/store/useA2UIStore";
+import { getAestheticCopy } from "@/lib/aesthetic/identity";
 import { ResizeHandle } from "./ResizeHandle";
 
 interface DeskLayoutProps {
@@ -103,6 +104,10 @@ export function DeskLayout({
   };
   const soundSetting = soundEnabled ?? true;
   const musicSetting = musicEnabled ?? false;
+  // Per-preset chrome copy so the workspace/editor labels read as the active
+  // world (e.g. "MAIN DISPLAY" on nostromo) instead of always-noir. Resolved
+  // from the base aesthetic id; custom profiles inherit their base preset copy.
+  const copy = getAestheticCopy(aestheticId);
 
   const getGridColsClass = () => {
     const cols: string[] = [];
@@ -172,14 +177,21 @@ export function DeskLayout({
         }}
         aria-hidden="true"
       />
-      {/* Warm desk-lamp rim glow, biased toward the evidence-board side so it
-          reads in the default 3-pane layout. */}
+      {/* Desk-lamp rim glow, biased toward the evidence-board side so it reads
+          in the default 3-pane layout. color-mix keeps it theme-aware (the
+          accent replaces the old hardcoded amber), and the stop opacities are
+          scaled by --aesthetic-glow-strength so minimal (0) goes dark while
+          cyber-fixer (1.4) glows harder. Noir's strength is 1, so 10%/4% of the
+          #ffbf00 accent matches the previous rgba(255,191,0) values. */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
         aria-hidden="true"
         style={{
           background:
-            "radial-gradient(60% 50% at 38% 90%, rgba(255,191,0,0.10), rgba(255,191,0,0.04) 40%, transparent 72%)",
+            "radial-gradient(60% 50% at 38% 90%, " +
+            "color-mix(in srgb, var(--aesthetic-accent) calc(10% * var(--aesthetic-glow-strength)), transparent), " +
+            "color-mix(in srgb, var(--aesthetic-accent) calc(4% * var(--aesthetic-glow-strength)), transparent) 40%, " +
+            "transparent 72%)",
         }}
       />
       {!isEditorVisible && onToggleEditor && (
@@ -229,7 +241,7 @@ export function DeskLayout({
           <div className="relative z-10 flex flex-col flex-1 min-h-0">
             <div className="mb-4 border-b border-[var(--aesthetic-border)]/20 pb-2 flex items-center justify-between gap-2">
               <h2 className="font-typewriter text-sm text-[var(--aesthetic-text)]/70">
-                CASE FILE // JSON DATA
+                {copy.editorTitle}
               </h2>
               {onToggleEditor && (
                 <button
@@ -264,7 +276,7 @@ export function DeskLayout({
         <div className="sticky top-0 z-20 px-6 py-3 bg-[var(--aesthetic-background)]/30 border-b border-[var(--aesthetic-border)]/20 backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3">
             <span className="font-typewriter text-xs text-[var(--aesthetic-accent)]/60 uppercase tracking-[0.3em]">
-              Evidence Board
+              {copy.workspaceTitle}
             </span>
             <div className="flex items-center gap-2 overflow-x-auto">
               {onToggleTraining && (
