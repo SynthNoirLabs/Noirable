@@ -21,7 +21,9 @@ async function injectE2EStyles(
   await page.evaluate(
     ({ id, colors, bgImageUrl }) => {
       const style = document.createElement("style");
-      let content = `[data-aesthetic="${id}"] {\n`;
+      // Custom profiles inherit their base via data-aesthetic and layer
+      // overrides via data-custom-profile (see css-injection.buildProfileCSS).
+      let content = `[data-custom-profile="${id}"] {\n`;
       if (colors) {
         if (colors.background)
           content += `  --aesthetic-background: ${colors.background} !important;\n`;
@@ -312,7 +314,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     const messages = parseSSEMessages(body);
     const updateMsg = messages.find((m) => m.type === "updateComponents");
     expect(updateMsg).toBeDefined();
-    const componentTypes = (updateMsg.components as Record<string, unknown>[]).map(
+    const componentTypes = (updateMsg!.components as Record<string, unknown>[]).map(
       (c) => c.component as string
     );
     expect(componentTypes).toContain("KanbanBoard");
@@ -331,7 +333,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     const messages = parseSSEMessages(body);
     const updateMsg = messages.find((m) => m.type === "updateComponents");
     expect(updateMsg).toBeDefined();
-    const componentTypes = (updateMsg.components as Record<string, unknown>[]).map(
+    const componentTypes = (updateMsg!.components as Record<string, unknown>[]).map(
       (c) => c.component as string
     );
     expect(componentTypes).toContain("DataDashboard");
@@ -730,7 +732,12 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
     await page.locator("select").selectOption("noir");
     await page.getByRole("button", { name: "Create", exact: true }).click();
 
-    await expect(page.locator("[data-aesthetic]")).toHaveAttribute("data-aesthetic", /custom-/);
+    // The active custom profile inherits its base on data-aesthetic and is
+    // identified by data-custom-profile.
+    await expect(page.locator("[data-custom-profile]")).toHaveAttribute(
+      "data-custom-profile",
+      /custom-/
+    );
 
     // Upload background image in Colors tab
     const colorsTab = page.getByRole("tab", { name: "Colors" });
@@ -838,7 +845,10 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
     await page.waitForTimeout(500);
     await page.reload();
     await page.waitForSelector('[data-testid="desk-layout"]');
-    await expect(page.locator("[data-aesthetic]")).toHaveAttribute("data-aesthetic", /custom-/);
+    await expect(page.locator("[data-custom-profile]")).toHaveAttribute(
+      "data-custom-profile",
+      /custom-/
+    );
 
     // Switch back to Noir
     await page.getByLabel("Open theme customization lab").click();

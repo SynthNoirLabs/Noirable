@@ -218,10 +218,19 @@ function formatDateWithPattern(date: Date, pattern: string): string {
     a: hours24 < 12 ? "AM" : "PM",
   };
 
-  // Match longest tokens first so `yyyy` wins over `yy`, `MMMM` over `MM`, etc.
+  // Match quoted literals first (LDML-style: text in single quotes is emitted
+  // verbatim, '' is a literal apostrophe), then longest tokens so `yyyy` wins
+  // over `yy`, `MMMM` over `MM`, etc. Without the quote branch a literal letter
+  // like the `a` in `'at'` would be replaced with AM/PM.
   return pattern.replace(
-    /yyyy|yy|MMMM|MMM|MM|M|dd|d|HH|H|hh|h|mm|m|ss|s|a/g,
-    (match) => tokens[match] ?? match
+    /'(?:[^']|'')*'|yyyy|yy|MMMM|MMM|MM|M|dd|d|HH|H|hh|h|mm|m|ss|s|a/g,
+    (match) => {
+      if (match.startsWith("'") && match.endsWith("'")) {
+        // Strip the surrounding quotes; collapse doubled '' to a single '.
+        return match.slice(1, -1).replace(/''/g, "'") || "'";
+      }
+      return tokens[match] ?? match;
+    }
   );
 }
 
@@ -434,25 +443,67 @@ export const functionRegistry: Record<string, BuiltinFunction> = {
   // --- Actions --------------------------------------------------------------
   openUrl: (args, named) => {
     const url = coerceString(pick(named, "url", args, 0));
-    if (url && typeof window !== "undefined" && typeof window.open === "function") {
-      window.open(url, "_blank");
+    if (
+      isSafeNavigationUrl(url) &&
+      typeof window !== "undefined" &&
+      typeof window.open === "function"
+    ) {
+      window.open(url, "_blank", "noopener,noreferrer");
     }
     return undefined;
   },
 };
 
 /**
+ * Restrict openUrl to http(s) absolute URLs or same-origin relative paths.
+ * Blocks `javascript:`, `data:`, `vbscript:`, `blob:`, etc., so a generated
+ * (untrusted) binding can't smuggle script execution into window.open. Surfaces
+ * are model-generated, so this guard applies regardless of how openUrl is
+ * reached (action dispatch or value resolution).
+ */
+export function isSafeNavigationUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  // Same-origin relative path (but not protocol-relative "//host").
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return true;
+  try {
+    const base = typeof window !== "undefined" ? window.location?.href : undefined;
+    const parsed = new URL(trimmed, base);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Function names that perform side effects (navigation, etc.) rather than
+ * returning a pure value. These must only run from an explicit user action, not
+ * while resolving a binding for display, so a generated surface can't trigger
+ * them simply by rendering.
+ */
+const SIDE_EFFECT_FUNCTIONS = new Set(["openUrl"]);
+
+/**
  * Evaluate a `functionCall` against the data model. Unknown calls return
  * `undefined`. Functions receive both resolved positional args and a resolved
  * named-arg map (see {@link functionRegistry}).
+ *
+ * Side-effecting functions (see {@link SIDE_EFFECT_FUNCTIONS}) are NOT executed
+ * unless `allowSideEffects` is set — value resolution during render passes the
+ * default (false), while action dispatch opts in.
  */
 export function evaluateFunctionCall(
   fc: FunctionCall,
   dataModel: Record<string, unknown>,
-  scope?: unknown
+  scope?: unknown,
+  options?: { allowSideEffects?: boolean }
 ): unknown {
   const fn = functionRegistry[fc.call];
   if (fn === undefined) {
+    return undefined;
+  }
+
+  if (SIDE_EFFECT_FUNCTIONS.has(fc.call) && !options?.allowSideEffects) {
     return undefined;
   }
 

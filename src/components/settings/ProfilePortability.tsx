@@ -66,6 +66,15 @@ export function ProfilePortability() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Guard against loading a huge file fully into memory on the main thread.
+    const MAX_IMPORT_BYTES = 5 * 1024 * 1024; // 5MB — generous for profile JSON
+    if (file.size > MAX_IMPORT_BYTES) {
+      setErrorMessage("Failed to import: file is too large (max 5MB).");
+      setSuccessMessage(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {

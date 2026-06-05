@@ -14,13 +14,19 @@ interface PersonaEditorProps {
   ) => void;
 }
 
+// Must match customProfileSchema.systemPrompt's cap (types.ts). Persisting a
+// longer value would fail validation on the next load and silently drop the
+// entire profile, so we hard-cap input here.
+const MAX_SYSTEM_PROMPT_LENGTH = 3000;
+
 function PersonaEditor({ activeProfile, updateProfile }: PersonaEditorProps) {
   const [promptValue, setPromptValue] = useState(activeProfile.systemPrompt || "");
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = () => {
     updateProfile(activeProfile.id, {
-      systemPrompt: promptValue.trim() || undefined,
+      // Guard against persisting an over-cap value even if maxLength is bypassed.
+      systemPrompt: promptValue.trim().slice(0, MAX_SYSTEM_PROMPT_LENGTH) || undefined,
     });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
@@ -59,14 +65,21 @@ function PersonaEditor({ activeProfile, updateProfile }: PersonaEditorProps) {
         <textarea
           id="system-prompt-editor"
           value={promptValue}
+          maxLength={MAX_SYSTEM_PROMPT_LENGTH}
           onChange={(e) => {
-            setPromptValue(e.target.value);
+            setPromptValue(e.target.value.slice(0, MAX_SYSTEM_PROMPT_LENGTH));
             setIsSaved(false);
           }}
           placeholder="Override the AI's core instructions. E.g. 'You are a cyberpunk tech dealer. Use slang like flatlined, chombatta, chrome...'"
           rows={10}
           className="w-full bg-[var(--aesthetic-surface)]/30 border border-[var(--aesthetic-border)]/30 rounded-sm p-3 text-xs font-mono text-[var(--aesthetic-text)] placeholder:text-[var(--aesthetic-text-muted)]/30 focus:outline-none focus:border-[var(--aesthetic-accent)] focus-visible:ring-1 focus-visible:ring-[var(--aesthetic-accent)] resize-y leading-relaxed"
         />
+        <span
+          className="absolute bottom-2 right-2 text-[9px] font-mono tabular-nums text-[var(--aesthetic-text-muted)]/60 pointer-events-none"
+          aria-hidden="true"
+        >
+          {promptValue.length}/{MAX_SYSTEM_PROMPT_LENGTH}
+        </span>
       </div>
 
       <div className="flex items-center justify-between gap-3">

@@ -70,7 +70,7 @@ describe("buildProfileCSS", () => {
     };
 
     const css = buildProfileCSS(profile);
-    expect(css).toContain('[data-aesthetic="custom-test-123"]');
+    expect(css).toContain('[data-custom-profile="custom-test-123"]');
     expect(css).toContain("--aesthetic-accent: #ff0000;");
   });
 

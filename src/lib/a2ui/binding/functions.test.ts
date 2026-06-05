@@ -350,6 +350,24 @@ describe("evaluateFunctionCall - formatting", () => {
     expect(evaluateFunctionCall({ call: "formatDate", args: { value: "garbage" } }, {})).toBe("");
   });
 
+  it("formatDate treats single-quoted text as a literal (does not mangle letters)", () => {
+    const local = new Date(2026, 5, 4).toISOString();
+    // The `a` in 'at' and letters in 'year' must NOT be replaced with AM/PM etc.
+    expect(
+      evaluateFunctionCall(
+        { call: "formatDate", args: { value: local, format: "MMM d 'at' yyyy" } },
+        {}
+      )
+    ).toBe("Jun 4 at 2026");
+    // Doubled '' collapses to a single literal apostrophe.
+    expect(
+      evaluateFunctionCall(
+        { call: "formatDate", args: { value: local, format: "yyyy '''quoted'''" } },
+        {}
+      )
+    ).toBe("2026 'quoted'");
+  });
+
   it("pluralize selects a plural form by count", () => {
     const args = { one: "1 case", other: "{} cases" };
     expect(evaluateFunctionCall({ call: "pluralize", args: { value: 1, ...args } }, {})).toBe(
@@ -362,15 +380,38 @@ describe("evaluateFunctionCall - formatting", () => {
 });
 
 describe("evaluateFunctionCall - openUrl", () => {
-  it("calls window.open with the url and returns undefined", () => {
+  it("calls window.open only when side effects are allowed (explicit action)", () => {
     const open = vi.fn();
     vi.stubGlobal("window", { open });
     const result = evaluateFunctionCall(
       { call: "openUrl", args: { url: "https://example.test" } },
-      {}
+      {},
+      undefined,
+      { allowSideEffects: true }
     );
-    expect(open).toHaveBeenCalledWith("https://example.test", "_blank");
+    expect(open).toHaveBeenCalledWith("https://example.test", "_blank", "noopener,noreferrer");
     expect(result).toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+  it("does NOT navigate during value resolution (no side effects by default)", () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    // This is the render path: a binding value that happens to be an openUrl call.
+    evaluateFunctionCall({ call: "openUrl", args: { url: "https://example.test" } }, {});
+    expect(open).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses unsafe protocols (javascript:/data:) even with side effects allowed", () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    for (const url of ["javascript:alert(1)", "data:text/html,<script>1</script>", "vbscript:x"]) {
+      evaluateFunctionCall({ call: "openUrl", args: { url } }, {}, undefined, {
+        allowSideEffects: true,
+      });
+    }
+    expect(open).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 });

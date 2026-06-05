@@ -1,6 +1,31 @@
 import { z } from "zod";
 import type { CustomProfileId } from "@/lib/aesthetic/types";
 
+/**
+ * Accept only safe media URLs: a root-relative path (e.g. an upload at
+ * `/api/uploads/...`) or an absolute http(s) URL. Rejects `javascript:`,
+ * `data:`, `blob:`, `file:`, and protocol-relative `//host` so an imported
+ * profile can't smuggle a script-bearing or surprising scheme into the CSS
+ * `url()` / `new Audio()` sinks. External http(s) URLs remain allowed because
+ * custom music/background URLs are an intended feature.
+ */
+function isSafeMediaUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("//")) return false; // protocol-relative
+  if (trimmed.startsWith("/")) return true; // same-origin path
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const mediaUrlSchema = z
+  .string()
+  .refine(isSafeMediaUrl, { message: "Must be a relative path or http(s) URL" });
+
 // Profile color overrides (all optional, fall back to base aesthetic)
 export const profileColorsSchema = z.object({
   background: z.string().optional(),
@@ -40,10 +65,18 @@ export const profileAudioSchema = z.object({
   ambientRainVolume: z.number().min(0).max(1).optional(),
   ambientCrackleVolume: z.number().min(0).max(1).optional(),
   // Custom audio URLs (optional overrides)
-  customMusicUrl: z.string().optional(),
-  customRainUrl: z.string().optional(),
+  customMusicUrl: mediaUrlSchema.optional(),
+  customRainUrl: mediaUrlSchema.optional(),
 });
 export type ProfileAudio = z.infer<typeof profileAudioSchema>;
+
+// ElevenLabs enforces speed within [0.7, 1.2]. Clamp on input rather than
+// reject so profiles exported by older builds (which allowed 0.5–2) still
+// import — out-of-range values are coerced to the supported bound.
+const clampedSpeed = z.preprocess((val) => {
+  if (typeof val !== "number" || Number.isNaN(val)) return val;
+  return Math.min(1.2, Math.max(0.7, val));
+}, z.number().min(0.7).max(1.2).optional());
 
 // Voice settings
 export const profileVoiceSchema = z.object({
@@ -51,7 +84,7 @@ export const profileVoiceSchema = z.object({
   stability: z.number().min(0).max(1).optional(),
   similarityBoost: z.number().min(0).max(1).optional(),
   style: z.number().min(0).max(1).optional(),
-  speed: z.number().min(0.7).max(1.2).optional(),
+  speed: clampedSpeed,
 });
 export type ProfileVoice = z.infer<typeof profileVoiceSchema>;
 
@@ -80,7 +113,7 @@ export const customProfileSchema = z.object({
   effects: profileEffectsSchema.optional(),
   imageStylePrompt: z.string().max(500).optional(),
   systemPrompt: z.string().max(3000).optional(),
-  backgroundImageUrl: z.string().optional(),
+  backgroundImageUrl: mediaUrlSchema.optional(),
 });
 export type CustomProfile = z.infer<typeof customProfileSchema>;
 

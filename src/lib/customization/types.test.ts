@@ -86,6 +86,19 @@ describe("profileAudioSchema", () => {
     };
     expect(profileAudioSchema.safeParse(audio).success).toBe(true);
   });
+
+  it("rejects unsafe URL schemes for custom audio URLs", () => {
+    expect(profileAudioSchema.safeParse({ customMusicUrl: "javascript:alert(1)" }).success).toBe(
+      false
+    );
+    expect(
+      profileAudioSchema.safeParse({ customMusicUrl: "data:audio/mp3;base64,AAAA" }).success
+    ).toBe(false);
+    // protocol-relative is rejected to avoid surprising cross-origin fetches
+    expect(profileAudioSchema.safeParse({ customRainUrl: "//evil.example/x.mp3" }).success).toBe(
+      false
+    );
+  });
 });
 
 describe("profileVoiceSchema", () => {
@@ -94,9 +107,16 @@ describe("profileVoiceSchema", () => {
     expect(profileVoiceSchema.safeParse(voice).success).toBe(true);
   });
 
-  it("rejects speed out of bounds", () => {
-    const voice = { speed: 1.5 }; // max is 1.2
-    expect(profileVoiceSchema.safeParse(voice).success).toBe(false);
+  it("clamps speed out of bounds so older exports still import", () => {
+    // max is 1.2 — older builds allowed up to 2; clamp instead of reject.
+    const high = profileVoiceSchema.safeParse({ speed: 1.5 });
+    expect(high.success).toBe(true);
+    expect(high.success && high.data.speed).toBe(1.2);
+
+    // min is 0.7 — older builds allowed down to 0.5.
+    const low = profileVoiceSchema.safeParse({ speed: 0.5 });
+    expect(low.success).toBe(true);
+    expect(low.success && low.data.speed).toBe(0.7);
   });
 });
 

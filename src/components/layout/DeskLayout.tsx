@@ -42,8 +42,10 @@ interface DeskLayoutProps {
   soundEnabled?: boolean;
   musicEnabled?: boolean;
   musicVolume?: number;
-  /** Active aesthetic profile ID */
+  /** Base aesthetic to inherit (built-in id), drives CSS vars + audio pack */
   aestheticId?: AestheticId;
+  /** Active custom profile id, if any — scopes injected override CSS */
+  customProfileId?: string;
   customMusicUrl?: string;
   className?: string;
 }
@@ -78,6 +80,7 @@ export function DeskLayout({
   musicVolume,
   customMusicUrl,
   aestheticId,
+  customProfileId,
   className,
 }: DeskLayoutProps) {
   const isEditorVisible = showEditor;
@@ -119,6 +122,7 @@ export function DeskLayout({
     <div
       data-testid="desk-layout"
       data-aesthetic={aestheticId ?? "noir"}
+      data-custom-profile={customProfileId || undefined}
       className={cn(
         "min-h-screen grid gap-0 bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] relative isolate overflow-hidden film-grain vignette",
         gridColsClass,

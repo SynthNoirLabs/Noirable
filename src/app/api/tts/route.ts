@@ -61,7 +61,11 @@ export async function POST(request: Request) {
   const similarityBoost = body?.voiceSettings?.similarityBoost ?? ELEVENLABS_CONFIG.similarityBoost;
   const style = body?.voiceSettings?.style ?? ELEVENLABS_CONFIG.style;
   const rawSpeed = body?.voiceSettings?.speed ?? ELEVENLABS_CONFIG.speed;
-  const speed = Math.max(0.7, Math.min(1.2, rawSpeed));
+  // `??` only substitutes for null/undefined; a non-numeric value would survive
+  // as NaN and be sent to ElevenLabs / folded into the cache hash. Coerce.
+  const numericSpeed =
+    typeof rawSpeed === "number" && Number.isFinite(rawSpeed) ? rawSpeed : ELEVENLABS_CONFIG.speed;
+  const speed = Math.max(0.7, Math.min(1.2, numericSpeed));
 
   // Compute a unique hash of the speech parameters
   const hash = crypto

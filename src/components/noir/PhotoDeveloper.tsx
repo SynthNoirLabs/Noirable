@@ -30,7 +30,9 @@ export function PhotoDeveloper({
     for (let i = 0; i < src.length; i++) {
       hash = src.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const val = (hash % 50) / 10 - 2.5; // -2.5 to 2.5 degrees
+    // `hash` is a signed int32 and is often negative; JS `%` keeps the sign, so
+    // use the unsigned value to keep the rotation in a symmetric -2.5..+2.5 range.
+    const val = ((hash >>> 0) % 50) / 10 - 2.5; // -2.5 to 2.5 degrees
     return `${val}deg`;
   }, [src]);
 

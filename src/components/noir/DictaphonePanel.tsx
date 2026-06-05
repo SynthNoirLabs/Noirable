@@ -36,6 +36,17 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Keep the selection in range when tapes are deleted: if the list shrinks
+  // below the selected index, clamp to the last remaining tape so the deck
+  // never shows "NO TAPE MOUNTED" while tapes still exist. Reconcile during
+  // render (the sanctioned "adjust state when props change" pattern, as used by
+  // the prevActiveTapeId block below) rather than in an effect.
+  if (tapes.length === 0) {
+    if (selectedTapeIndex !== 0) setSelectedTapeIndex(0);
+  } else if (selectedTapeIndex > tapes.length - 1) {
+    setSelectedTapeIndex(tapes.length - 1);
+  }
+
   const activeTape = useMemo<Tape | null>(() => {
     if (selectedTapeIndex >= 0 && selectedTapeIndex < tapes.length) {
       return tapes[selectedTapeIndex];
@@ -84,10 +95,15 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
       setIsPaused(true);
     } else if (isPaused && audioRef.current) {
       // Resume
-      void audioRef.current.play();
+      audioRef.current.play().catch(() => {
+        setIsPlaying(false);
+        setIsPaused(false);
+      });
       setIsPaused(false);
     } else {
-      // Start fresh
+      // Start fresh — pause any prior instance so it doesn't keep playing.
+      audioRef.current?.pause();
+
       const audio = new Audio(`/api/tts/file/${activeTape.hash}.mp3`);
       audio.muted = isMuted;
       audioRef.current = audio;
@@ -102,9 +118,22 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
         setCurrentTime(0);
       };
 
+      // If the recording is missing/expired (404) or autoplay is blocked, the
+      // play() promise rejects — reset state so the deck doesn't stay stuck
+      // "playing" with no audio and no way to recover but Stop.
+      audio.onerror = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setCurrentTime(0);
+      };
+
       setIsPlaying(true);
       setIsPaused(false);
-      void audio.play();
+      audio.play().catch(() => {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setCurrentTime(0);
+      });
     }
   };
 
@@ -112,6 +141,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
     setIsPlaying(false);
     setIsPaused(false);

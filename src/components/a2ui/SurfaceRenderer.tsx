@@ -1609,6 +1609,15 @@ export function SurfaceRenderer({
             }
             break;
           }
+          case "openUrl": {
+            // Side-effecting navigation belongs to an explicit user action, not
+            // value resolution. Opt into side effects here; evaluateFunctionCall
+            // applies the http(s)/same-origin protocol guard.
+            evaluateFunctionCall({ call: "openUrl", args }, dataModel, undefined, {
+              allowSideEffects: true,
+            });
+            break;
+          }
           default:
             // Unknown client function — no-op (kept out of the way in the demo).
             break;

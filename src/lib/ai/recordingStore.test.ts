@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { saveRecordingBuffer, readRecordingFile } from "./recordingStore";
+import { saveRecordingBuffer, readRecordingFile, isValidRecordingHash } from "./recordingStore";
 
 describe("recordingStore", () => {
   const originalDir = process.env.A2UI_RECORDING_DIR;
@@ -21,8 +21,10 @@ describe("recordingStore", () => {
     }
   });
 
+  // Recording hashes are sha256 hex digests (64 lowercase hex chars).
+  const hash = "a".repeat(64);
+
   it("saves and retrieves a recording buffer by hash", async () => {
-    const hash = "dummyhash12345";
     const dummyBuffer = Buffer.from("dummy-tts-content");
     await saveRecordingBuffer(hash, dummyBuffer);
 
@@ -33,7 +35,17 @@ describe("recordingStore", () => {
   });
 
   it("returns null if a file does not exist", async () => {
-    const data = await readRecordingFile("nonexistenthash");
+    const data = await readRecordingFile("b".repeat(64));
     expect(data).toBeNull();
+  });
+
+  it("rejects hashes that aren't bare sha256 digests (path-traversal guard)", async () => {
+    expect(isValidRecordingHash("../../etc/passwd")).toBe(false);
+    expect(isValidRecordingHash("dummyhash12345")).toBe(false);
+    expect(isValidRecordingHash("a".repeat(64))).toBe(true);
+
+    // A traversal-style hash must not read or write outside the store.
+    await saveRecordingBuffer("../escape", Buffer.from("x"));
+    expect(await readRecordingFile("../escape")).toBeNull();
   });
 });

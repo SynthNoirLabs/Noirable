@@ -6,12 +6,14 @@ import { isValidAestheticId } from "@/lib/aesthetic/registry";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
 /**
- * Zod schema for aesthetic ID validation.
+ * Zod schema for aesthetic ID validation. Mirrors the built-in keys of
+ * AESTHETIC_REGISTRY so the AI can switch to every shipped aesthetic, not just
+ * noir/minimal.
  */
 const aestheticIdSchema = z
-  .enum(["noir", "minimal"])
+  .enum(["noir", "minimal", "cyber-fixer", "nostromo-console", "gothic-manor"])
   .describe(
-    "The aesthetic profile to switch to. 'noir' is a dark detective theme, 'minimal' is a clean light theme."
+    "The aesthetic profile to switch to. 'noir' is a dark detective theme, 'minimal' is a clean light theme, 'cyber-fixer' is a neon cyberpunk theme, 'nostromo-console' is a retro green-phosphor terminal, 'gothic-manor' is a dark Victorian gothic theme."
   );
 
 /**
@@ -89,7 +91,7 @@ export function createTools(
 
     set_aesthetic: tool({
       description:
-        "Switch the application's visual aesthetic and AI persona. Use this when the user requests a theme change or when the context suggests a different aesthetic would be more appropriate. Available aesthetics: 'noir' (dark detective theme with atmospheric persona), 'minimal' (clean light theme with professional persona).",
+        "Switch the application's visual aesthetic and AI persona. Use this when the user requests a theme change or when the context suggests a different aesthetic would be more appropriate. Available aesthetics: 'noir' (dark detective), 'minimal' (clean light), 'cyber-fixer' (neon cyberpunk), 'nostromo-console' (retro green terminal), 'gothic-manor' (Victorian gothic).",
       inputSchema: z.object({
         aestheticId: aestheticIdSchema,
         reason: z

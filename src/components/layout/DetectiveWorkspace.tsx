@@ -534,7 +534,8 @@ export function DetectiveWorkspace() {
         musicEnabled={settings.musicEnabled}
         musicVolume={activeMusicVolume}
         customMusicUrl={activeCustomMusicUrl}
-        aestheticId={activeProfile?.id ?? settings.aestheticId}
+        aestheticId={activeProfile?.baseAestheticId ?? settings.aestheticId}
+        customProfileId={activeProfile?.id}
         onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
         onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
         onToggleEject={() => updateLayout({ showEject: !layout.showEject })}

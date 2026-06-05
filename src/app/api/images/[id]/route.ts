@@ -7,6 +7,7 @@ import {
 import { generateImageDataUrl } from "@/lib/ai/images";
 import { NextRequest } from "next/server";
 import path from "node:path";
+import { Buffer } from "node:buffer";
 
 export const runtime = "nodejs";
 
@@ -34,10 +35,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           const mediaType = match[1];
           const base64 = match[2];
 
+          // Persist under the model's real extension (e.g. .png), which may
+          // differ from the requested .jpg url. Serve the freshly generated
+          // bytes directly so the response never depends on re-reading by the
+          // (possibly mismatched) requested filename.
           await saveImageWithId({ id: uuid, mediaType, base64 });
           await deletePendingImageMetadata(uuid);
 
-          file = await readImageFile(fileName);
+          file = { data: Buffer.from(base64, "base64"), contentType: mediaType };
         }
       }
     }

@@ -44,14 +44,13 @@ describe("/api/tts API endpoints", () => {
   });
 
   it("calls ElevenLabs on cache miss, caches buffer, and serves from cache on subsequent calls", async () => {
-    const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(
-      () =>
-        Promise.resolve(
-          new Response(Buffer.from("mock-audio-stream"), {
-            status: 200,
-            headers: { "Content-Type": "audio/mpeg" },
-          })
-        ) as unknown as Response
+    const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(() =>
+      Promise.resolve(
+        new Response(Buffer.from("mock-audio-stream"), {
+          status: 200,
+          headers: { "Content-Type": "audio/mpeg" },
+        })
+      )
     );
 
     const textToSpeak = "This is a test of voice cache.";
@@ -89,15 +88,24 @@ describe("/api/tts API endpoints", () => {
 
     // 3. GET /api/tts/file/[id] serves the cached file
     const getRequest = new NextRequest(`http://localhost/api/tts/file/${hash}`);
-    const getResponse = await GET(getRequest, { params: Promise.resolve({ id: hash }) });
+    const getResponse = await GET(getRequest, { params: Promise.resolve({ id: hash as string }) });
     expect(getResponse.status).toBe(200);
     const getData = await getResponse.arrayBuffer();
     expect(Buffer.from(getData).toString()).toBe("mock-audio-stream");
   });
 
-  it("returns 404 for missing cached file", async () => {
-    const getRequest = new NextRequest("http://localhost/api/tts/file/nonexistent");
-    const getResponse = await GET(getRequest, { params: Promise.resolve({ id: "nonexistent" }) });
+  it("returns 404 for a valid-format hash with no cached file", async () => {
+    const absentHash = "a".repeat(64); // valid sha256 shape, no file on disk
+    const getRequest = new NextRequest(`http://localhost/api/tts/file/${absentHash}`);
+    const getResponse = await GET(getRequest, { params: Promise.resolve({ id: absentHash }) });
     expect(getResponse.status).toBe(404);
+  });
+
+  it("returns 400 for a malformed id (path-traversal guard)", async () => {
+    const getRequest = new NextRequest("http://localhost/api/tts/file/..%2f..%2fsecret");
+    const getResponse = await GET(getRequest, {
+      params: Promise.resolve({ id: "../../secret" }),
+    });
+    expect(getResponse.status).toBe(400);
   });
 });

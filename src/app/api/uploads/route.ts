@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { apiSecurityCheck } from "@/lib/api/security";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,12 @@ const MIME_TO_EXT: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
+  // Same-origin + rate-limit gate, consistent with the other mutating routes
+  // (chat, tts, a2ui/*). Prevents anonymous cross-origin POSTs from filling the
+  // uploads dir.
+  const securityError = apiSecurityCheck(request);
+  if (securityError) return securityError;
+
   let formData;
   try {
     formData = await request.formData();
