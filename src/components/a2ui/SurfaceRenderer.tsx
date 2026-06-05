@@ -1,6 +1,79 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import {
+  Activity,
+  AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Bell,
+  Book,
+  BookOpen,
+  Bookmark,
+  Calendar,
+  Camera,
+  Check,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  Cloud,
+  Code,
+  Cpu,
+  Database,
+  DollarSign,
+  Download,
+  Droplet,
+  Edit3,
+  ExternalLink,
+  Eye,
+  Feather,
+  File,
+  FileText,
+  Flag,
+  Flame,
+  Folder,
+  Heart,
+  HelpCircle,
+  Home,
+  Image as ImageIcon,
+  Info,
+  Key,
+  Link as LinkIcon,
+  Lock,
+  Mail,
+  MapPin,
+  Mic,
+  Minus,
+  Moon,
+  Music,
+  Pause,
+  Phone,
+  Play,
+  Plus,
+  Search,
+  Server,
+  Settings,
+  Shield,
+  Skull,
+  Star,
+  Sun,
+  Tag,
+  Terminal,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Unlock,
+  Upload,
+  User,
+  Users,
+  Video,
+  Volume2,
+  Wifi,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { SurfaceState, SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
 import { resolvePointer } from "@/lib/a2ui/binding/pointer";
 import { isFunctionCall, evaluateFunctionCall } from "@/lib/a2ui/binding/functions";
@@ -9,7 +82,10 @@ import { runChecks, type CheckRule } from "@/lib/a2ui/validation";
 import { dispatchAction } from "@/lib/a2ui/events/dispatch";
 import type { ActionMessage, ServerMessage } from "@/lib/a2ui/schema/messages";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
+import { PhotoDeveloper } from "@/components/noir/PhotoDeveloper";
 import { cn } from "@/lib/utils";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 
 // ============================================================================
 // Context for component resolution
@@ -192,8 +268,19 @@ function FieldError({ error }: { error: string | null }) {
  * Render a component's children. `children` is the raw childList field: either
  * a static `string[]` or a template `{ componentId, path }`. Template-expanded
  * children carry a per-item scope, provided to descendants via ScopeContext.
+ *
+ * When `applyWeight` is set (Row/Column only, per the A2UI spec: `weight` is
+ * "similar to CSS flex-grow ... ONLY when a direct descendant of a Row or
+ * Column"), a child with a positive numeric `weight` is wrapped in a flex item
+ * that grows proportionally. Unweighted children stay as plain flex items.
  */
-function ChildList({ childList }: { childList: unknown }) {
+function ChildList({
+  childList,
+  applyWeight = false,
+}: {
+  childList: unknown;
+  applyWeight?: boolean;
+}) {
   const { getComponent, dataModel } = useSurfaceContext();
   const resolved = resolveChildList(childList, dataModel);
   return (
@@ -201,7 +288,15 @@ function ChildList({ childList }: { childList: unknown }) {
       {resolved.map(({ componentId, scope, key }) => {
         const child = getComponent(componentId);
         if (!child) return <MissingComponent key={key} id={componentId} />;
-        const node = <ComponentRenderer component={child} />;
+        let node = <ComponentRenderer component={child} />;
+        const weight = (child as { weight?: unknown }).weight;
+        if (applyWeight && typeof weight === "number" && weight > 0) {
+          node = (
+            <div style={{ flexGrow: weight }} className="min-w-0">
+              {node}
+            </div>
+          );
+        }
         return scope !== undefined ? (
           <ScopeContext.Provider key={key} value={scope}>
             {node}
@@ -232,7 +327,7 @@ function RowRenderer({ component }: ComponentProps) {
         row.align === "stretch" && "items-stretch"
       )}
     >
-      <ChildList childList={(component as { children?: unknown }).children} />
+      <ChildList childList={(component as { children?: unknown }).children} applyWeight />
     </div>
   );
 }
@@ -250,7 +345,7 @@ function ColumnRenderer({ component }: ComponentProps) {
         col.align === "stretch" && "items-stretch"
       )}
     >
-      <ChildList childList={(component as { children?: unknown }).children} />
+      <ChildList childList={(component as { children?: unknown }).children} applyWeight />
     </div>
   );
 }
@@ -291,7 +386,7 @@ function CardRenderer({ component }: ComponentProps) {
   return (
     <div
       className={cn(
-        "rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/60 p-5",
+        "a2ui-card rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/60 p-5",
         "border-t-2 border-t-[var(--aesthetic-accent)]/60 shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
       )}
     >
@@ -601,17 +696,6 @@ function ImageRenderer({ component }: ComponentProps) {
   const url = String(resolve(img.url) ?? "");
   const alt = img.accessibility?.label ? String(resolve(img.accessibility.label)) : "Image";
 
-  const sizeClasses = {
-    icon: "w-6 h-6",
-    avatar: "w-12 h-12 rounded-full",
-    smallFeature: "w-24 h-24",
-    mediumFeature: "w-48 h-48",
-    largeFeature: "w-96 h-64",
-    header: "w-full h-48",
-  };
-
-  const isInline = img.variant === "icon" || img.variant === "avatar";
-
   if (!url) {
     return (
       <div className="border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3 rounded-sm text-xs font-mono text-[var(--aesthetic-text)]/70">
@@ -620,47 +704,101 @@ function ImageRenderer({ component }: ComponentProps) {
     );
   }
 
-  const image = (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={url}
-      alt={alt}
-      className={cn(
-        "object-cover",
-        img.fit === "contain" && "object-contain",
-        img.fit === "fill" && "object-fill",
-        isInline
-          ? sizeClasses[img.variant as keyof typeof sizeClasses]
-          : "block w-full max-w-full sepia-[0.15]"
-      )}
-    />
-  );
-
-  if (isInline) {
-    return image;
-  }
+  const caption = img.accessibility?.label ? String(resolve(img.accessibility.label)) : undefined;
 
   return (
-    <figure className="inline-block bg-[#0d0d0d] p-2 pb-7 border border-[var(--aesthetic-border)]/50 rounded-sm rotate-[-0.6deg] shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
-      {image}
-      {Boolean(img.accessibility?.label) && (
-        <figcaption className="mt-2 px-1 font-typewriter text-[10px] uppercase tracking-[0.25em] text-[var(--aesthetic-text)]/60">
-          Exhibit — {alt}
-        </figcaption>
-      )}
-    </figure>
+    <PhotoDeveloper src={url} alt={alt} fit={img.fit} variant={img.variant} caption={caption} />
   );
+}
+
+// Curated semantic-name → lucide glyph map. Keys are normalized (lowercase,
+// non-alphanumerics stripped) so both `file-text` and `fileText`/`filetext`
+// resolve to the same icon. Unmapped names fall back to HelpCircle.
+const ICON_MAP: Record<string, LucideIcon> = {
+  help: HelpCircle,
+  search: Search,
+  user: User,
+  users: Users,
+  file: File,
+  filetext: FileText,
+  folder: Folder,
+  lock: Lock,
+  unlock: Unlock,
+  alert: AlertTriangle,
+  alerttriangle: AlertTriangle,
+  alertcircle: AlertCircle,
+  check: Check,
+  checkcircle: CheckCircle,
+  x: X,
+  info: Info,
+  star: Star,
+  heart: Heart,
+  mail: Mail,
+  phone: Phone,
+  calendar: Calendar,
+  clock: Clock,
+  settings: Settings,
+  home: Home,
+  mappin: MapPin,
+  camera: Camera,
+  image: ImageIcon,
+  eye: Eye,
+  shield: Shield,
+  key: Key,
+  database: Database,
+  server: Server,
+  cpu: Cpu,
+  wifi: Wifi,
+  zap: Zap,
+  activity: Activity,
+  trendingup: TrendingUp,
+  trendingdown: TrendingDown,
+  dollarsign: DollarSign,
+  tag: Tag,
+  bookmark: Bookmark,
+  flag: Flag,
+  bell: Bell,
+  download: Download,
+  upload: Upload,
+  trash: Trash2,
+  edit: Edit3,
+  plus: Plus,
+  minus: Minus,
+  arrowright: ArrowRight,
+  arrowleft: ArrowLeft,
+  chevronright: ChevronRight,
+  externallink: ExternalLink,
+  link: LinkIcon,
+  play: Play,
+  pause: Pause,
+  music: Music,
+  volume: Volume2,
+  mic: Mic,
+  video: Video,
+  terminal: Terminal,
+  code: Code,
+  book: Book,
+  bookopen: BookOpen,
+  feather: Feather,
+  skull: Skull,
+  moon: Moon,
+  sun: Sun,
+  cloud: Cloud,
+  droplet: Droplet,
+  flame: Flame,
+};
+
+/** Normalize an incoming icon name: lowercase + strip non-alphanumerics. */
+function normalizeIconName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function IconRenderer({ component }: ComponentProps) {
   const resolve = useResolve();
   const icon = component as SurfaceComponent & { name?: unknown };
   const name = String(resolve(icon.name) ?? "help");
-  return (
-    <span className="text-[var(--aesthetic-text)] text-xl" aria-label={name} role="img">
-      [{name}]
-    </span>
-  );
+  const Glyph = ICON_MAP[normalizeIconName(name)] ?? HelpCircle;
+  return <Glyph className="w-5 h-5 text-[var(--aesthetic-accent)]" aria-label={name} role="img" />;
 }
 
 function VideoRenderer({ component }: ComponentProps) {
@@ -873,12 +1011,14 @@ function SliderRenderer({ component }: ComponentProps) {
     label?: unknown;
     min?: number;
     max?: number;
+    step?: number;
     value?: unknown;
   };
 
   const label = slider.label ? String(resolve(slider.label)) : "Range";
   const min = typeof slider.min === "number" ? slider.min : 0;
   const max = typeof slider.max === "number" ? slider.max : 100;
+  const step = typeof slider.step === "number" && slider.step > 0 ? slider.step : undefined;
   const bindingPath = getBindingPath(slider.value);
   const resolved = resolve(slider.value);
   const value = typeof resolved === "number" ? resolved : Number(resolved) || min;
@@ -893,6 +1033,7 @@ function SliderRenderer({ component }: ComponentProps) {
         type="range"
         min={min}
         max={max}
+        {...(step !== undefined ? { step } : {})}
         {...(bindingPath ? { value } : { defaultValue: value })}
         onChange={(e) => {
           if (bindingPath) setData(bindingPath, Number(e.currentTarget.value));
@@ -990,15 +1131,22 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
   const { setData } = useSurfaceContext();
   const resolve = useResolve();
   const dti = component as SurfaceComponent & {
+    label?: unknown;
     value?: unknown;
     enableDate?: boolean;
     enableTime?: boolean;
+    min?: unknown;
+    max?: unknown;
     accessibility?: { label?: unknown };
   };
 
   const bindingPath = getBindingPath(dti.value);
   const value = String(resolve(dti.value) ?? "");
-  const label = dti.accessibility?.label ? String(resolve(dti.accessibility.label)) : undefined;
+  // Prefer the top-level `label`; fall back to the accessibility label.
+  const labelSource = dti.label ?? dti.accessibility?.label;
+  const label = labelSource ? String(resolve(labelSource)) : undefined;
+  const min = dti.min != null ? String(resolve(dti.min) ?? "") : undefined;
+  const max = dti.max != null ? String(resolve(dti.max) ?? "") : undefined;
   const { error, markTouched } = useFieldValidation(value, checksOf(component));
 
   // Default to date when neither flag is set; pick the closest native type.
@@ -1022,6 +1170,8 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
         id={fieldId}
         type={inputType}
         aria-invalid={Boolean(error)}
+        {...(min ? { min } : {})}
+        {...(max ? { max } : {})}
         {...(bindingPath ? { value } : { defaultValue: value })}
         onChange={(e) => {
           markTouched();
@@ -1031,6 +1181,300 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
         className="bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)]/30 rounded-sm px-3 py-2 text-[var(--aesthetic-text)] font-mono text-sm focus:border-[var(--aesthetic-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] [color-scheme:dark]"
       />
       <FieldError error={error} />
+    </div>
+  );
+}
+
+function useBaseAestheticId() {
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  return activeProfile?.baseAestheticId ?? fallbackAestheticId;
+}
+
+function KanbanBoardRenderer({ component }: ComponentProps) {
+  const board = component as SurfaceComponent & {
+    title?: unknown;
+    columns?: Array<{
+      id: string;
+      title: string;
+      cards: Array<{
+        id: string;
+        title: string;
+        description?: string;
+        assignee?: string;
+        tags?: string[];
+      }>;
+    }>;
+  };
+
+  const resolve = useResolve();
+  const baseAestheticId = useBaseAestheticId();
+  const boardTitle = board.title ? String(resolve(board.title)) : "";
+  const columns = board.columns || [];
+
+  // Shared, var-driven base styling. Color comes entirely from the aesthetic
+  // CSS vars, so noir/minimal/gothic and every custom profile adapt for free
+  // without their own switch arm. Only nostromo + cyber add decoration on top.
+  const isNostromo = baseAestheticId === "nostromo-console";
+  const isCyber = baseAestheticId === "cyber-fixer";
+
+  const containerClass = cn(
+    "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm",
+    isNostromo && "crt-scanlines",
+    isCyber && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
+  );
+  const columnClass = cn(
+    "bg-[var(--aesthetic-surface)]/40 border border-[var(--aesthetic-border)]/20 rounded-sm p-3 min-w-[280px] max-w-[320px]",
+    isCyber && "shadow-[0_0_5px_rgba(6,182,212,0.1)]"
+  );
+  const cardClass = cn(
+    "bg-[var(--aesthetic-surface)]/80 border border-[var(--aesthetic-border)]/30 p-3 rounded-sm text-[var(--aesthetic-text)] break-words whitespace-normal shadow-sm hover:border-[var(--aesthetic-accent)]/55 transition-colors",
+    isNostromo && "shadow-[0_0_4px_rgba(34,197,94,0.2)]",
+    isCyber &&
+      "border-[var(--aesthetic-accent-muted)]/60 shadow-[0_0_8px_#06b6d4] hover:shadow-[0_0_12px_#06b6d4] transition-shadow duration-200"
+  );
+  const textClass = "text-xs text-[var(--aesthetic-text)]/75 leading-relaxed font-typewriter";
+  const titleClass = "font-bold text-sm text-[var(--aesthetic-accent)] mb-1 font-typewriter";
+  const headerClass =
+    "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
+
+  // Handle zero columns or zero cards gracefully
+  if (columns.length === 0) {
+    return (
+      <div className={containerClass}>
+        {boardTitle && <div className={headerClass}>{boardTitle}</div>}
+        <div className="text-center py-8 opacity-65 text-xs">Empty board state</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={containerClass}>
+      {boardTitle && <div className={headerClass}>{boardTitle}</div>}
+      <div className="flex flex-row gap-4 overflow-x-auto pb-4 items-start scrollbar-thin scrollbar-thumb-neutral-800">
+        {columns.map((column) => (
+          <div key={column.id} className={columnClass}>
+            <div className={cn(titleClass, "font-bold border-b pb-1 mb-3 border-current/25")}>
+              {column.title} ({column.cards?.length || 0})
+            </div>
+            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
+              {!column.cards || column.cards.length === 0 ? (
+                <div className="text-center py-6 opacity-50 text-xs italic">No cards</div>
+              ) : (
+                column.cards.map((card) => (
+                  <div key={card.id} className={cardClass}>
+                    <div className="font-bold text-sm leading-snug mb-1.5 break-words whitespace-normal">
+                      {card.title}
+                    </div>
+                    {card.description && (
+                      <p className={cn(textClass, "mb-2 break-words whitespace-normal")}>
+                        {card.description}
+                      </p>
+                    )}
+                    {card.assignee && (
+                      <div className="text-[10px] opacity-75 mt-1 font-mono break-words whitespace-normal">
+                        👤 {card.assignee}
+                      </div>
+                    )}
+                    {card.tags && card.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {card.tags.map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wide bg-current/10 text-current break-words whitespace-normal"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DataDashboardRenderer({ component }: ComponentProps) {
+  const dash = component as SurfaceComponent & {
+    title?: unknown;
+    widgets?: Array<{
+      id: string;
+      title: string;
+      type: "metric" | "progress" | "chart";
+      value?: string | number;
+      unit?: string;
+      progress?: number;
+      chartType?: "line" | "bar" | "pie";
+      data?: Array<{ label: string; value: number }>;
+      trend?: {
+        value: number;
+        direction: "up" | "down" | "neutral";
+      };
+    }>;
+  };
+
+  const resolve = useResolve();
+  const baseAestheticId = useBaseAestheticId();
+  const dashTitle = dash.title ? String(resolve(dash.title)) : "";
+  const widgets = dash.widgets || [];
+
+  // Shared, var-driven base styling (see KanbanBoardRenderer): noir/minimal/
+  // gothic and custom profiles ride the CSS vars; only nostromo + cyber layer
+  // their phosphor / neon decoration on top.
+  const isNostromo = baseAestheticId === "nostromo-console";
+  const isCyber = baseAestheticId === "cyber-fixer";
+
+  const containerClass = cn(
+    "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm",
+    isNostromo && "crt-scanlines",
+    isCyber && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
+  );
+  const widgetClass = cn(
+    "bg-[var(--aesthetic-surface)]/60 border border-[var(--aesthetic-border)]/30 p-4 rounded-sm shadow-sm",
+    isCyber && "border-[var(--aesthetic-accent-muted)]/50 shadow-[0_0_5px_rgba(6,182,212,0.2)]"
+  );
+  const textClass = "text-xs text-[var(--aesthetic-text)]/65 font-typewriter";
+  const valueClass = cn(
+    "text-2xl font-bold text-[var(--aesthetic-accent)] font-typewriter",
+    isNostromo && "tracking-wider shadow-[0_0_2px_#22c55e]",
+    isCyber && "shadow-[0_0_4px_#06b6d4]"
+  );
+  const headerClass =
+    "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
+  const progressBg =
+    "bg-[var(--aesthetic-background)]/60 border border-[var(--aesthetic-border)]/20";
+  const progressFill = cn(
+    "bg-[var(--aesthetic-accent)] shadow-[0_2px_8px_color-mix(in_srgb,var(--aesthetic-accent)_15%,transparent)]",
+    isNostromo && "shadow-[0_0_6px_#22c55e]",
+    isCyber && "shadow-[0_0_8px_#06b6d4]"
+  );
+
+  // Handle missing metrics or invalid dataset structures gracefully
+  if (widgets.length === 0) {
+    return (
+      <div className={containerClass}>
+        {dashTitle && <div className={headerClass}>{dashTitle}</div>}
+        <div className="text-center py-8 opacity-65 text-xs">No widgets configured</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={containerClass}>
+      {dashTitle && <div className={headerClass}>{dashTitle}</div>}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {widgets.map((widget) => {
+          const trendIcon = widget.trend
+            ? widget.trend.direction === "up"
+              ? "▲"
+              : widget.trend.direction === "down"
+                ? "▼"
+                : "◀▶"
+            : "";
+          const trendColor = widget.trend
+            ? widget.trend.direction === "up"
+              ? "text-emerald-500"
+              : widget.trend.direction === "down"
+                ? "text-rose-500"
+                : "text-neutral-500"
+            : "";
+
+          return (
+            <div key={widget.id} className={widgetClass}>
+              <div className="font-bold text-xs uppercase tracking-wider mb-2 opacity-85">
+                {widget.title}
+              </div>
+
+              {/* Metric Widget */}
+              {widget.type === "metric" && (
+                <div className="flex flex-col">
+                  <div className="flex items-baseline gap-1">
+                    <span className={valueClass}>{widget.value ?? "—"}</span>
+                    {widget.unit && (
+                      <span className="text-xs opacity-60 ml-0.5">{widget.unit}</span>
+                    )}
+                  </div>
+                  {widget.trend && (
+                    <div
+                      className={cn(
+                        "text-[10px] mt-1 flex items-center gap-1 font-sans",
+                        trendColor
+                      )}
+                    >
+                      <span className="font-bold">
+                        {trendIcon} {widget.trend.value}%
+                      </span>
+                      <span className="opacity-70">since last check</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Progress Widget */}
+              {widget.type === "progress" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className={valueClass}>{widget.progress ?? 0}%</span>
+                    <span className={textClass}>Progress</span>
+                  </div>
+                  <div className={cn("w-full h-2 rounded-full overflow-hidden", progressBg)}>
+                    <div
+                      className={cn("h-full transition-all duration-300", progressFill)}
+                      style={{ width: `${Math.min(Math.max(widget.progress ?? 0, 0), 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Chart Widget */}
+              {widget.type === "chart" && (
+                <div className="flex flex-col gap-2 h-24 justify-end">
+                  {!widget.data || widget.data.length === 0 ? (
+                    <div className="text-center py-4 text-xs opacity-50 italic">No chart data</div>
+                  ) : (
+                    <>
+                      <div className="flex items-end gap-2 h-16 px-1">
+                        {widget.data.map((item, idx) => {
+                          const maxVal = Math.max(...(widget.data?.map((d) => d.value) || [1]));
+                          const percentage = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                          return (
+                            <div
+                              key={idx}
+                              className="flex-1 flex flex-col items-center h-full justify-end group relative"
+                            >
+                              <div
+                                className="w-full bg-current/25 hover:bg-current/45 transition-all rounded-t-sm"
+                                style={{ height: `${Math.max(percentage, 5)}%` }}
+                                title={`${item.label}: ${item.value}`}
+                              />
+                              {/* Small tooltip on hover */}
+                              <span className="absolute bottom-full mb-1 scale-0 group-hover:scale-100 transition-transform bg-neutral-900 text-white text-[9px] px-1 py-0.5 rounded shadow-md z-10 whitespace-nowrap">
+                                {item.value}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between text-[9px] opacity-65 font-sans border-t border-current/15 pt-1 px-1">
+                        <span>{widget.data[0]?.label}</span>
+                        <span>{widget.data[widget.data.length - 1]?.label}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1072,6 +1516,9 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
   Badge: BadgeRenderer,
   Grid: GridRenderer,
   Modal: ModalRenderer,
+  // Templates (2)
+  KanbanBoard: KanbanBoardRenderer,
+  DataDashboard: DataDashboardRenderer,
   // Content (5)
   Text: TextRenderer,
   Image: ImageRenderer,
@@ -1243,6 +1690,15 @@ export function SurfaceRenderer({
             if (typeof args.path === "string") {
               setData(args.path, !resolvePointer(dataModel, args.path));
             }
+            break;
+          }
+          case "openUrl": {
+            // Side-effecting navigation belongs to an explicit user action, not
+            // value resolution. Opt into side effects here; evaluateFunctionCall
+            // applies the http(s)/same-origin protocol guard.
+            evaluateFunctionCall({ call: "openUrl", args }, dataModel, undefined, {
+              allowSideEffects: true,
+            });
             break;
           }
           default:

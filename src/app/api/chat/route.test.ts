@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { POST } from "./route";
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
-import { tools } from "@/lib/ai/tools";
 import { getToolOutputFromSse } from "@/lib/sanity/sse";
 
 // Mock Vercel AI SDK
@@ -103,7 +102,8 @@ describe("/api/chat", () => {
 
     expect(streamText).toHaveBeenCalled();
     const call = vi.mocked(streamText).mock.calls[0]?.[0];
-    expect(call?.tools).toBe(tools);
+    expect(call?.tools).toHaveProperty("generate_ui");
+    expect(call?.tools).toHaveProperty("set_aesthetic");
   });
 
   it("includes evidence in system prompt when provided", async () => {

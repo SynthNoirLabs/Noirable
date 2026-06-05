@@ -28,7 +28,14 @@ export interface UseA2UIStreamOptions {
 
 export interface UseA2UIStreamResult {
   /** Send a prompt to generate UI */
-  sendPrompt: (prompt: string) => Promise<void>;
+  sendPrompt: (
+    prompt: string,
+    aestheticId?: string,
+    customSystemPrompt?: string,
+    customImageStylePrompt?: string,
+    imageModel?: string,
+    baselineComponents?: SurfaceComponent[]
+  ) => Promise<void>;
   /** Whether currently streaming */
   isStreaming: boolean;
   /** Last error if any */
@@ -152,7 +159,14 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
   );
 
   const sendPrompt = useCallback(
-    async (prompt: string) => {
+    async (
+      prompt: string,
+      aestheticId?: string,
+      customSystemPrompt?: string,
+      customImageStylePrompt?: string,
+      imageModel?: string,
+      baselineComponents?: SurfaceComponent[]
+    ) => {
       // Abort any existing stream
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -173,7 +187,14 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({
+            prompt,
+            aestheticId,
+            customSystemPrompt,
+            customImageStylePrompt,
+            imageModel,
+            baselineComponents,
+          }),
           signal: abortController.signal,
         });
 

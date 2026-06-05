@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { evaluateFunctionCall, functionRegistry, isFunctionCall } from "./functions";
 
@@ -192,5 +192,261 @@ describe("functionRegistry", () => {
     expect(typeof functionRegistry.concat).toBe("function");
     expect(typeof functionRegistry.eq).toBe("function");
     expect(functionRegistry.uppercase(["hi"])).toBe("HI");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Official A2UI basic-catalog functions (named-arg style)
+// ---------------------------------------------------------------------------
+
+describe("evaluateFunctionCall - arithmetic", () => {
+  it("add/subtract/multiply with named args", () => {
+    expect(evaluateFunctionCall({ call: "add", args: { a: 2, b: 3 } }, {})).toBe(5);
+    expect(evaluateFunctionCall({ call: "subtract", args: { a: 10, b: 4 } }, {})).toBe(6);
+    expect(evaluateFunctionCall({ call: "multiply", args: { a: 6, b: 7 } }, {})).toBe(42);
+  });
+
+  it("coerces string operands to numbers", () => {
+    expect(evaluateFunctionCall({ call: "add", args: { a: "2", b: "3" } }, {})).toBe(5);
+  });
+
+  it("divide returns Infinity on divide-by-zero and NaN on bad input", () => {
+    expect(evaluateFunctionCall({ call: "divide", args: { a: 8, b: 2 } }, {})).toBe(4);
+    expect(evaluateFunctionCall({ call: "divide", args: { a: 1, b: 0 } }, {})).toBe(Infinity);
+    expect(evaluateFunctionCall({ call: "divide", args: { a: "x", b: 2 } }, {})).toBeNaN();
+  });
+
+  it("resolves { path } args before arithmetic", () => {
+    const dataModel = { qty: 3, price: 4 };
+    expect(
+      evaluateFunctionCall(
+        { call: "multiply", args: { a: { path: "/qty" }, b: { path: "/price" } } },
+        dataModel
+      )
+    ).toBe(12);
+  });
+});
+
+describe("evaluateFunctionCall - comparison", () => {
+  it("equals/not_equals use strict equality", () => {
+    expect(evaluateFunctionCall({ call: "equals", args: { a: 1, b: 1 } }, {})).toBe(true);
+    expect(evaluateFunctionCall({ call: "equals", args: { a: 1, b: "1" } }, {})).toBe(false);
+    expect(evaluateFunctionCall({ call: "not_equals", args: { a: 1, b: 2 } }, {})).toBe(true);
+  });
+
+  it("greater_than/less_than compare numerically", () => {
+    expect(evaluateFunctionCall({ call: "greater_than", args: { a: 5, b: 3 } }, {})).toBe(true);
+    expect(evaluateFunctionCall({ call: "less_than", args: { a: 5, b: 3 } }, {})).toBe(false);
+  });
+});
+
+describe("evaluateFunctionCall - string predicates", () => {
+  it("contains/starts_with/ends_with", () => {
+    expect(
+      evaluateFunctionCall(
+        { call: "contains", args: { string: "noir city", substring: "city" } },
+        {}
+      )
+    ).toBe(true);
+    expect(
+      evaluateFunctionCall({ call: "starts_with", args: { string: "noir", prefix: "no" } }, {})
+    ).toBe(true);
+    expect(
+      evaluateFunctionCall({ call: "ends_with", args: { string: "noir", suffix: "ir" } }, {})
+    ).toBe(true);
+  });
+});
+
+describe("evaluateFunctionCall - validation", () => {
+  it("required is false for null/undefined/empty", () => {
+    expect(evaluateFunctionCall({ call: "required", args: { value: "" } }, {})).toBe(false);
+    expect(evaluateFunctionCall({ call: "required", args: { value: [] } }, {})).toBe(false);
+    expect(evaluateFunctionCall({ call: "required", args: { value: "x" } }, {})).toBe(true);
+  });
+
+  it("regex tests the pattern and never throws on a bad pattern", () => {
+    expect(
+      evaluateFunctionCall(
+        { call: "regex", args: { value: "abc123", pattern: "^[a-z]+\\d+$" } },
+        {}
+      )
+    ).toBe(true);
+    expect(evaluateFunctionCall({ call: "regex", args: { value: "x", pattern: "(" } }, {})).toBe(
+      false
+    );
+  });
+
+  it("length checks min/max bounds", () => {
+    expect(
+      evaluateFunctionCall({ call: "length", args: { value: "abcd", min: 2, max: 5 } }, {})
+    ).toBe(true);
+    expect(evaluateFunctionCall({ call: "length", args: { value: "a", min: 2 } }, {})).toBe(false);
+  });
+
+  it("numeric checks value range", () => {
+    expect(evaluateFunctionCall({ call: "numeric", args: { value: 5, min: 1, max: 10 } }, {})).toBe(
+      true
+    );
+    expect(evaluateFunctionCall({ call: "numeric", args: { value: "nope" } }, {})).toBe(false);
+  });
+
+  it("email recognizes a plausible address", () => {
+    expect(evaluateFunctionCall({ call: "email", args: { value: "sam@noir.co" } }, {})).toBe(true);
+    expect(evaluateFunctionCall({ call: "email", args: { value: "not-an-email" } }, {})).toBe(
+      false
+    );
+  });
+});
+
+describe("evaluateFunctionCall - formatting", () => {
+  it("formatString interpolates ${name} tokens from resolved named args", () => {
+    const dataModel = { user: { name: "Sam" } };
+    expect(
+      evaluateFunctionCall(
+        { call: "formatString", args: { value: "Agent ${who}", who: { path: "/user/name" } } },
+        dataModel
+      )
+    ).toBe("Agent Sam");
+  });
+
+  it("formatString leaves unknown tokens untouched", () => {
+    expect(
+      evaluateFunctionCall({ call: "formatString", args: { value: "Hi ${missing}" } }, {})
+    ).toBe("Hi ${missing}");
+  });
+
+  it("formatNumber applies decimals (locale-independent)", () => {
+    // Compare against a reference Intl call so the assertion holds regardless of
+    // the runner's locale (separators differ between en-US, de-DE, etc.).
+    const expected = new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(1234.5);
+    expect(
+      evaluateFunctionCall({ call: "formatNumber", args: { value: 1234.5, decimals: 2 } }, {})
+    ).toBe(expected);
+  });
+
+  it("formatCurrency formats with a currency code (locale-independent)", () => {
+    const expected = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "USD",
+    }).format(9.99);
+    expect(
+      evaluateFunctionCall({ call: "formatCurrency", args: { value: 9.99, currency: "USD" } }, {})
+    ).toBe(expected);
+  });
+
+  it("formatDate uses token patterns and ISO", () => {
+    const iso = "2026-06-04T13:05:09.000Z";
+    expect(
+      evaluateFunctionCall({ call: "formatDate", args: { value: iso, format: "ISO" } }, {})
+    ).toBe(iso);
+    // Use a local-time constructor so the date tokens are deterministic.
+    const local = new Date(2026, 5, 4).toISOString();
+    expect(
+      evaluateFunctionCall({ call: "formatDate", args: { value: local, format: "yyyy-MM-dd" } }, {})
+    ).toBe("2026-06-04");
+    expect(evaluateFunctionCall({ call: "formatDate", args: { value: "garbage" } }, {})).toBe("");
+  });
+
+  it("formatDate treats single-quoted text as a literal (does not mangle letters)", () => {
+    const local = new Date(2026, 5, 4).toISOString();
+    // The `a` in 'at' and letters in 'year' must NOT be replaced with AM/PM etc.
+    expect(
+      evaluateFunctionCall(
+        { call: "formatDate", args: { value: local, format: "MMM d 'at' yyyy" } },
+        {}
+      )
+    ).toBe("Jun 4 at 2026");
+    // Doubled '' collapses to a single literal apostrophe.
+    expect(
+      evaluateFunctionCall(
+        { call: "formatDate", args: { value: local, format: "yyyy '''quoted'''" } },
+        {}
+      )
+    ).toBe("2026 'quoted'");
+  });
+
+  it("pluralize selects a plural form by count", () => {
+    const args = { one: "1 case", other: "{} cases" };
+    expect(evaluateFunctionCall({ call: "pluralize", args: { value: 1, ...args } }, {})).toBe(
+      "1 case"
+    );
+    expect(evaluateFunctionCall({ call: "pluralize", args: { value: 5, ...args } }, {})).toBe(
+      "{} cases"
+    );
+  });
+});
+
+describe("evaluateFunctionCall - openUrl", () => {
+  it("calls window.open only when side effects are allowed (explicit action)", () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    const result = evaluateFunctionCall(
+      { call: "openUrl", args: { url: "https://example.test" } },
+      {},
+      undefined,
+      { allowSideEffects: true }
+    );
+    expect(open).toHaveBeenCalledWith("https://example.test", "_blank", "noopener,noreferrer");
+    expect(result).toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+  it("does NOT navigate during value resolution (no side effects by default)", () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    // This is the render path: a binding value that happens to be an openUrl call.
+    evaluateFunctionCall({ call: "openUrl", args: { url: "https://example.test" } }, {});
+    expect(open).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses unsafe protocols (javascript:/data:) even with side effects allowed", () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", { open });
+    for (const url of ["javascript:alert(1)", "data:text/html,<script>1</script>", "vbscript:x"]) {
+      evaluateFunctionCall({ call: "openUrl", args: { url } }, {}, undefined, {
+        allowSideEffects: true,
+      });
+    }
+    expect(open).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("functionRegistry - parity coverage", () => {
+  it("registers every official basic-catalog function name", () => {
+    const officialNames = [
+      "add",
+      "subtract",
+      "multiply",
+      "divide",
+      "equals",
+      "not_equals",
+      "greater_than",
+      "less_than",
+      "and",
+      "or",
+      "not",
+      "contains",
+      "starts_with",
+      "ends_with",
+      "required",
+      "regex",
+      "length",
+      "numeric",
+      "email",
+      "formatString",
+      "formatNumber",
+      "formatCurrency",
+      "formatDate",
+      "pluralize",
+      "openUrl",
+    ];
+    for (const name of officialNames) {
+      expect(typeof functionRegistry[name]).toBe("function");
+    }
   });
 });

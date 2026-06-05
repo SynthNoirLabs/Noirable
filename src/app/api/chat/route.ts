@@ -7,7 +7,7 @@ import {
 import type { UIMessage } from "ai";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { getProviderWithOverrides, type ModelOverride } from "@/lib/ai/factory";
-import { tools } from "@/lib/ai/tools";
+import { createTools } from "@/lib/ai/tools";
 import { generateNarration } from "@/lib/ai/narration";
 import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import type { AestheticId } from "@/lib/aesthetic/types";
@@ -19,6 +19,9 @@ type ChatRequestBody = {
   modelConfig?: ModelOverride;
   /** Active aesthetic profile ID for persona selection */
   aestheticId?: AestheticId;
+  customSystemPrompt?: string;
+  customImageStylePrompt?: string;
+  imageModel?: string;
 };
 
 type UIMessagePartType = UIMessage["parts"][number];
@@ -239,7 +242,15 @@ export async function POST(req: Request) {
       console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
     }
 
-    const { messages, evidence, modelConfig, aestheticId } = json;
+    const {
+      messages,
+      evidence,
+      modelConfig,
+      aestheticId,
+      customSystemPrompt,
+      customImageStylePrompt,
+      imageModel,
+    } = json;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Messages missing or invalid", { status: 400 });
@@ -291,8 +302,8 @@ export async function POST(req: Request) {
     const result = streamText({
       model: auth.provider!(auth.model),
       messages: convertedMessages,
-      system: buildSystemPrompt(evidence, aestheticId),
-      tools,
+      system: buildSystemPrompt(evidence, aestheticId, customSystemPrompt),
+      tools: createTools(aestheticId, customImageStylePrompt, imageModel),
     });
 
     // The tool-calling model reliably calls generate_ui but rarely writes the
@@ -304,7 +315,7 @@ export async function POST(req: Request) {
       const u = [...messages].reverse().find((m) => m.role === "user");
       return u ? extractMessageText(u as UIMessage & { content?: string }) : "";
     })();
-    const narrationPromise = generateNarration(auth, lastUserText, aestheticId);
+    const narrationPromise = generateNarration(auth, lastUserText, aestheticId, customSystemPrompt);
 
     const stream = createUIMessageStream({
       originalMessages: normalizedMessages,

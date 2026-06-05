@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
+import { getDefaultVoiceId, getVoicePreviewLine } from "@/lib/aesthetic/voice-defaults";
 import { cn } from "@/lib/utils";
 import {
   Mic,
@@ -29,18 +31,30 @@ interface VoiceListResponse {
 
 export function VoiceCustomization() {
   const { settings, updateSettings } = useA2UIStore();
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const updateProfile = useCustomProfileStore((state) => state.updateProfile);
+
   const [voices, setVoices] = useState<Voice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [manualInputMode, setManualInputMode] = useState(false);
+  const [justReset, setJustReset] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const voiceSettings = settings.voiceSettings || {};
+  const voiceSettings = activeProfile ? activeProfile.voice || {} : settings.voiceSettings || {};
   const currentVoiceId = voiceSettings.voiceId || "";
+  // When no voice override is set, fall back to the active aesthetic's preset
+  // default so the UI shows and previews the right voice (e.g. noir's deep
+  // detective) instead of an empty/disabled state.
+  const activeAestheticId = activeProfile?.baseAestheticId ?? settings.aestheticId;
+  const effectiveVoiceId = currentVoiceId || getDefaultVoiceId(activeAestheticId);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -89,23 +103,56 @@ export function VoiceCustomization() {
   }, [settings.apiKeys?.elevenlabs]);
 
   const handleVoiceSelect = (voiceId: string) => {
-    updateSettings({
-      voiceSettings: {
-        ...voiceSettings,
-        voiceId,
-      },
-    });
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        voice: {
+          ...voiceSettings,
+          voiceId,
+        },
+      });
+    } else {
+      updateSettings({
+        voiceSettings: {
+          ...voiceSettings,
+          voiceId,
+        },
+      });
+    }
     setIsDropdownOpen(false);
     setManualInputMode(voiceId === "custom");
   };
 
   const handleSettingChange = (key: keyof typeof voiceSettings, value: number) => {
-    updateSettings({
-      voiceSettings: {
-        ...voiceSettings,
-        [key]: value,
-      },
-    });
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        voice: {
+          ...voiceSettings,
+          [key]: value,
+        },
+      });
+    } else {
+      updateSettings({
+        voiceSettings: {
+          ...voiceSettings,
+          [key]: value,
+        },
+      });
+    }
+  };
+
+  const handleReset = () => {
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        voice: undefined,
+      });
+    } else {
+      updateSettings({
+        voiceSettings: undefined,
+      });
+    }
+    setManualInputMode(false);
+    setJustReset(true);
+    setTimeout(() => setJustReset(false), 2000);
   };
 
   const handlePreview = async () => {
@@ -113,7 +160,7 @@ export function VoiceCustomization() {
 
     setIsPlaying(true);
     try {
-      const text = "The rain never stops in this town. Neither does the code.";
+      const text = getVoicePreviewLine(activeAestheticId);
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
@@ -127,12 +174,16 @@ export function VoiceCustomization() {
         headers,
         body: JSON.stringify({
           text,
-          voiceId: currentVoiceId,
+          // Use the effective voice (override or preset default) and pass the
+          // aesthetic so the server can resolve the preset voice too.
+          voiceId: effectiveVoiceId,
+          aestheticId: activeAestheticId,
           modelId: "eleven_monolingual_v1", // Default model
           voiceSettings: {
             stability: voiceSettings.stability ?? 0.5,
             similarity_boost: voiceSettings.similarityBoost ?? 0.75,
             style: voiceSettings.style ?? 0,
+            speed: voiceSettings.speed ?? 1.0,
             use_speaker_boost: true,
           },
         }),
@@ -158,6 +209,13 @@ export function VoiceCustomization() {
   };
 
   const currentVoice = voices.find((v) => v.id === currentVoiceId);
+  // Name to show when relying on the preset default (no explicit override).
+  const effectiveVoiceName = currentVoiceId
+    ? undefined
+    : (() => {
+        const match = voices.find((v) => v.id === effectiveVoiceId);
+        return match ? `${match.name} (Preset Default)` : "Preset Default";
+      })();
 
   return (
     <div className="space-y-6">
@@ -224,7 +282,7 @@ export function VoiceCustomization() {
               <span className="truncate">
                 {isLoading
                   ? "Loading voices..."
-                  : currentVoice?.name || currentVoiceId || "Select Voice..."}
+                  : currentVoice?.name || currentVoiceId || effectiveVoiceName || "Select Voice..."}
               </span>
               {isLoading ? (
                 <Loader2 className="w-3 h-3 animate-spin text-[var(--aesthetic-accent)]" />
@@ -329,22 +387,22 @@ export function VoiceCustomization() {
           label="Speed"
           icon={<Wind className="w-3 h-3" />}
           value={voiceSettings.speed ?? 1.0}
-          min={0.5}
-          max={2.0}
+          min={0.7}
+          max={1.2}
           step={0.01}
           onChange={(v) => handleSettingChange("speed", v)}
         />
       </div>
 
       {/* Preview Button */}
-      <div className="pt-2">
+      <div className="pt-2 flex flex-col gap-2">
         <button
           onClick={handlePreview}
-          disabled={isPlaying || !currentVoiceId}
+          disabled={isPlaying || !effectiveVoiceId}
           title={
             isPlaying
               ? "Synthesizing voice..."
-              : !currentVoiceId
+              : !effectiveVoiceId
                 ? "Select a voice to preview"
                 : undefined
           }
@@ -353,7 +411,7 @@ export function VoiceCustomization() {
             isPlaying
               ? "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-bg)] border-[var(--aesthetic-accent)]"
               : "bg-transparent text-[var(--aesthetic-accent)] border-[var(--aesthetic-accent)]/50 hover:bg-[var(--aesthetic-accent)]/10 hover:border-[var(--aesthetic-accent)]",
-            !currentVoiceId && "opacity-50 cursor-not-allowed grayscale"
+            !effectiveVoiceId && "opacity-50 cursor-not-allowed grayscale"
           )}
         >
           {isPlaying ? (
@@ -367,6 +425,18 @@ export function VoiceCustomization() {
               Preview Voice
             </>
           )}
+        </button>
+
+        <button
+          onClick={handleReset}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider transition-all duration-300 rounded-sm border",
+            justReset
+              ? "border-green-500 text-green-500 bg-green-500/10"
+              : "border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text-muted)] hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)]"
+          )}
+        >
+          {justReset ? "Reset to Preset Default ✓" : "Reset to Preset Default"}
         </button>
       </div>
     </div>

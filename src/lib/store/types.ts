@@ -33,6 +33,8 @@ export interface Settings {
   useA2UIv09?: boolean;
   /** Active aesthetic profile ID */
   aestheticId?: AestheticId;
+  /** Active image generation model ID */
+  imageModel?: string;
   /** Per-SFX volume overrides (0-1) */
   sfxVolumes?: Record<"typewriter" | "thunder" | "phone", number>;
   /** Music volume (0-1) */
@@ -46,6 +48,12 @@ export interface Settings {
     url: string;
     prompt: string;
     provider: "elevenlabs" | "lyria";
+    createdAt: number;
+  }>;
+  generatedTapes?: Array<{
+    id: string; // message ID
+    text: string;
+    hash: string;
     createdAt: number;
   }>;
   /** Visual effect intensities (0-1) */
@@ -85,6 +93,7 @@ export interface Layout {
   showEditor: boolean;
   showSidebar: boolean;
   showEject: boolean;
+  showDictaphone: boolean;
   editorWidth: number;
   sidebarWidth: number;
 }

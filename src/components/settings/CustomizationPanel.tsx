@@ -2,10 +2,27 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Palette, Volume2, Mic, Sparkles, Settings, Download } from "lucide-react";
+import { X, Palette, Volume2, Mic, Sparkles, Settings, Download, Brain, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type TabId = "profile" | "colors" | "audio" | "voice" | "effects" | "advanced";
+import { ProfileSelector } from "./ProfileSelector";
+import { ColorCustomization } from "./ColorCustomization";
+import { PersonaCustomization } from "./PersonaCustomization";
+import { AudioCustomization } from "./AudioCustomization";
+import { VoiceCustomization } from "./VoiceCustomization";
+import { EffectsCustomization } from "./EffectsCustomization";
+import { ApiKeyManager } from "./ApiKeyManager";
+import { ProfilePortability } from "./ProfilePortability";
+
+type TabId =
+  | "profile"
+  | "colors"
+  | "persona"
+  | "audio"
+  | "voice"
+  | "effects"
+  | "portability"
+  | "advanced";
 
 interface Tab {
   id: TabId;
@@ -16,10 +33,12 @@ interface Tab {
 const TABS: Tab[] = [
   { id: "profile", label: "Profile", icon: <Settings className="w-4 h-4" /> },
   { id: "colors", label: "Colors", icon: <Palette className="w-4 h-4" /> },
+  { id: "persona", label: "Persona", icon: <Brain className="w-4 h-4" /> },
   { id: "audio", label: "Audio", icon: <Volume2 className="w-4 h-4" /> },
   { id: "voice", label: "Voice", icon: <Mic className="w-4 h-4" /> },
   { id: "effects", label: "Effects", icon: <Sparkles className="w-4 h-4" /> },
-  { id: "advanced", label: "Advanced", icon: <Download className="w-4 h-4" /> },
+  { id: "portability", label: "Portability", icon: <Download className="w-4 h-4" /> },
+  { id: "advanced", label: "Advanced", icon: <Key className="w-4 h-4" /> },
 ];
 
 interface CustomizationPanelProps {
@@ -110,50 +129,24 @@ export function CustomizationPanel({ isOpen, onClose }: CustomizationPanelProps)
 }
 
 function renderTabContent(tabId: TabId): React.ReactNode {
-  // Placeholder content - will be replaced with actual components
-  const placeholders: Record<TabId, { title: string; description: string }> = {
-    profile: {
-      title: "Profile Management",
-      description:
-        "Create, edit, and manage your custom profiles. Clone existing aesthetics as starting points.",
-    },
-    colors: {
-      title: "Color Customization",
-      description:
-        "Adjust all 9 color tokens to personalize your theme. Changes preview in real-time.",
-    },
-    audio: {
-      title: "Audio Settings",
-      description: "Control volumes for SFX, music, and ambient sounds. Add custom audio sources.",
-    },
-    voice: {
-      title: "Voice Settings",
-      description:
-        "Select your preferred voice and adjust TTS parameters like stability and speed.",
-    },
-    effects: {
-      title: "Visual Effects",
-      description: "Fine-tune rain, fog, and crackle intensities. Control typewriter speed.",
-    },
-    advanced: {
-      title: "Advanced Settings",
-      description: "Manage API keys, export/import settings, and configure image generation style.",
-    },
-  };
-
-  const content = placeholders[tabId];
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-mono text-[var(--aesthetic-text)] mb-2">{content.title}</h3>
-        <p className="text-sm text-[var(--aesthetic-text-muted)]">{content.description}</p>
-      </div>
-      <div className="border border-dashed border-[var(--aesthetic-border)]/30 rounded-sm p-8 text-center">
-        <span className="text-xs font-mono text-[var(--aesthetic-text-muted)]/50 uppercase">
-          Coming Soon
-        </span>
-      </div>
-    </div>
-  );
+  switch (tabId) {
+    case "profile":
+      return <ProfileSelector />;
+    case "colors":
+      return <ColorCustomization />;
+    case "persona":
+      return <PersonaCustomization />;
+    case "audio":
+      return <AudioCustomization />;
+    case "voice":
+      return <VoiceCustomization />;
+    case "effects":
+      return <EffectsCustomization />;
+    case "portability":
+      return <ProfilePortability />;
+    case "advanced":
+      return <ApiKeyManager />;
+    default:
+      return null;
+  }
 }

@@ -27,7 +27,7 @@ export function DossierCard({
     >
       {/* Coffee Stain */}
       <div
-        className="absolute w-[60px] h-[60px] border-2 border-[#704214]/10 rounded-full top-[10%] right-[15%] rotate-12 pointer-events-none"
+        className="coffee-stain absolute w-[60px] h-[60px] border-2 border-[#704214]/10 rounded-full top-[10%] right-[15%] rotate-12 pointer-events-none"
         aria-hidden="true"
       />
 

@@ -10,7 +10,13 @@ describe("AESTHETIC_REGISTRY", () => {
 
   it("exports noir and minimal profiles", async () => {
     const { AESTHETIC_REGISTRY } = await import("./registry");
-    expect(Object.keys(AESTHETIC_REGISTRY)).toEqual(["noir", "minimal"]);
+    expect(Object.keys(AESTHETIC_REGISTRY)).toEqual([
+      "noir",
+      "minimal",
+      "cyber-fixer",
+      "nostromo-console",
+      "gothic-manor",
+    ]);
   });
 
   it("noir profile has all required fields", async () => {
@@ -104,7 +110,10 @@ describe("getAvailableAesthetics", () => {
     const ids = getAvailableAesthetics();
     expect(ids).toContain("noir");
     expect(ids).toContain("minimal");
-    expect(ids).toHaveLength(2);
+    expect(ids).toContain("cyber-fixer");
+    expect(ids).toContain("nostromo-console");
+    expect(ids).toContain("gothic-manor");
+    expect(ids).toHaveLength(5);
   });
 });
 
@@ -113,9 +122,12 @@ describe("getAllAestheticProfiles", () => {
     const { getAllAestheticProfiles } = await import("./registry");
 
     const profiles = getAllAestheticProfiles();
-    expect(profiles).toHaveLength(2);
+    expect(profiles).toHaveLength(5);
     expect(profiles.map((p) => p.id)).toContain("noir");
     expect(profiles.map((p) => p.id)).toContain("minimal");
+    expect(profiles.map((p) => p.id)).toContain("cyber-fixer");
+    expect(profiles.map((p) => p.id)).toContain("nostromo-console");
+    expect(profiles.map((p) => p.id)).toContain("gothic-manor");
   });
 });
 
@@ -125,6 +137,9 @@ describe("isValidAestheticId", () => {
 
     expect(isValidAestheticId("noir")).toBe(true);
     expect(isValidAestheticId("minimal")).toBe(true);
+    expect(isValidAestheticId("cyber-fixer")).toBe(true);
+    expect(isValidAestheticId("nostromo-console")).toBe(true);
+    expect(isValidAestheticId("gothic-manor")).toBe(true);
   });
 
   it("returns false for invalid IDs", async () => {

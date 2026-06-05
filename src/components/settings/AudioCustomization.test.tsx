@@ -2,9 +2,13 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AudioCustomization } from "./AudioCustomization";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 
 // Mock the store
 vi.mock("@/lib/store/useA2UIStore");
+vi.mock("@/lib/store/useCustomProfileStore", () => ({
+  useCustomProfileStore: vi.fn(),
+}));
 
 describe("AudioCustomization", () => {
   const updateSettingsMock = vi.fn();
@@ -24,12 +28,20 @@ describe("AudioCustomization", () => {
     },
   };
 
+  const mockUpdateProfile = vi.fn();
+  const mockGetActiveProfile = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
     (useA2UIStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       settings: mockSettings,
       updateSettings: updateSettingsMock,
     });
+    (useCustomProfileStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      getActiveProfile: mockGetActiveProfile,
+      updateProfile: mockUpdateProfile,
+    });
+    mockGetActiveProfile.mockReturnValue(null);
   });
 
   it("renders all volume sliders", () => {
@@ -132,5 +144,68 @@ describe("AudioCustomization", () => {
 
     fireEvent.click(previewButtons[0]);
     // Since handlePreview just logs, we just ensure it doesn't crash
+  });
+
+  it("renders custom music section if active profile exists", () => {
+    mockGetActiveProfile.mockReturnValue({
+      id: "custom-1",
+      name: "My custom profile",
+      audio: {
+        customMusicUrl: "/api/uploads/song.mp3",
+      },
+    });
+
+    render(<AudioCustomization />);
+
+    expect(screen.getByTestId("music-url")).toHaveTextContent("Current: /api/uploads/song.mp3");
+    expect(screen.getByTestId("remove-music")).toBeInTheDocument();
+  });
+
+  it("removes custom music when remove button is clicked", () => {
+    mockGetActiveProfile.mockReturnValue({
+      id: "custom-1",
+      name: "My custom profile",
+      audio: {
+        customMusicUrl: "/api/uploads/song.mp3",
+      },
+    });
+
+    render(<AudioCustomization />);
+
+    const removeBtn = screen.getByTestId("remove-music");
+    fireEvent.click(removeBtn);
+
+    expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+      audio: {},
+    });
+  });
+
+  it("handles custom music file upload", async () => {
+    mockGetActiveProfile.mockReturnValue({
+      id: "custom-1",
+      name: "My custom profile",
+      audio: {},
+    });
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: "/api/uploads/new-song.mp3" }),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    render(<AudioCustomization />);
+
+    const fileInput = screen.getByTestId("music-input");
+    const file = new File(["dummy"], "song.mp3", { type: "audio/mpeg" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await vi.waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/uploads", expect.any(Object));
+      expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+        audio: {
+          customMusicUrl: "/api/uploads/new-song.mp3",
+        },
+      });
+    });
   });
 });

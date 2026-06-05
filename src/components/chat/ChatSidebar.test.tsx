@@ -1,6 +1,34 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { useEffect } from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { ChatSidebar } from "./ChatSidebar";
+
+vi.mock("@/components/noir/NoirSoundEffects", () => {
+  return {
+    NoirSoundEffects: ({
+      onReady,
+    }: {
+      onReady: (
+        controls: {
+          playThunder: () => void;
+          playPhoneRing: () => void;
+          playTypewriter: () => void;
+        } | null
+      ) => void;
+    }) => {
+      // We can use the top-level useEffect import directly inside the mock
+      useEffect(() => {
+        onReady({
+          playThunder: () => window.dispatchEvent(new CustomEvent("test-thunder")),
+          playPhoneRing: () => window.dispatchEvent(new CustomEvent("test-phone")),
+          playTypewriter: () => {},
+        });
+        return () => onReady(null);
+      }, [onReady]);
+      return null;
+    },
+  };
+});
 
 const mockSendMessage = vi.fn();
 const mockMessages = [
@@ -198,5 +226,64 @@ describe("ChatSidebar", () => {
     const slider = screen.getByLabelText(/rain volume/i);
     fireEvent.change(slider, { target: { value: "55" } });
     expect(onUpdateSettings).toHaveBeenCalledWith({ ambient: { rainVolume: 0.55 } });
+  });
+
+  it("triggers atmospheric events when narrative mentions lightning or telephone ringing", async () => {
+    const thunderSpy = vi.fn();
+    const phoneSpy = vi.fn();
+    const lightningFlashSpy = vi.fn();
+
+    window.addEventListener("test-thunder", thunderSpy);
+    window.addEventListener("test-phone", phoneSpy);
+    window.addEventListener("noir-lightning", lightningFlashSpy);
+
+    const testMessages = [
+      { id: "1", role: "user", content: "Hello" },
+      { id: "2", role: "assistant", content: "I saw a sudden flash of lightning outside." },
+    ];
+
+    const { rerender } = render(
+      <ChatSidebar
+        messages={testMessages}
+        sendMessage={mockSendMessage}
+        isLoading={false}
+        ttsEnabled={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(thunderSpy).toHaveBeenCalled();
+    });
+    expect(lightningFlashSpy).toHaveBeenCalled();
+    expect(phoneSpy).not.toHaveBeenCalled();
+
+    // Reset spy calls
+    thunderSpy.mockReset();
+    lightningFlashSpy.mockReset();
+
+    // Rerender with telephone ringing text
+    const updatedMessages = [
+      ...testMessages,
+      { id: "3", role: "assistant", content: "Then, the phone rang." },
+    ];
+
+    rerender(
+      <ChatSidebar
+        messages={updatedMessages}
+        sendMessage={mockSendMessage}
+        isLoading={false}
+        ttsEnabled={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(phoneSpy).toHaveBeenCalled();
+    });
+    expect(thunderSpy).not.toHaveBeenCalled();
+    expect(lightningFlashSpy).not.toHaveBeenCalled();
+
+    window.removeEventListener("test-thunder", thunderSpy);
+    window.removeEventListener("test-phone", phoneSpy);
+    window.removeEventListener("noir-lightning", lightningFlashSpy);
   });
 });

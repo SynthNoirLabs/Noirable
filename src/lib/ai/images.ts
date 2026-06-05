@@ -1,19 +1,21 @@
+import crypto from "node:crypto";
 import { generateImage, generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 import { getCustomImageStylePrompt } from "@/lib/ai/image-style";
-import { saveImageBase64 } from "@/lib/ai/imageStore";
+import { saveImageBase64, savePendingImageMetadata } from "@/lib/ai/imageStore";
 import { getImageGenerationModels, getModelInfo, type ModelInfo } from "@/lib/ai/model-registry";
+import { getAestheticProfile } from "@/lib/aesthetic/registry";
+import type { AestheticId } from "@/lib/aesthetic/types";
 
 const NOIR_STYLE_PROMPT =
   "shot as a 1940s detective's evidence photograph, noir cinematic, rain-slicked streets, moody low-key lighting, hard chiaroscuro contrast, heavy film grain, 35mm black-and-white photography, deep shadows, light fog, desaturated palette, no bright saturated color, no text or watermark";
 
-function selectImageModel(): {
+function selectImageModel(imageModel?: string): {
   model: ModelInfo;
   provider: "google" | "openai";
 } | null {
-  const explicitModel = process.env.AI_IMAGE_MODEL;
+  const explicitModel = imageModel || process.env.AI_IMAGE_MODEL;
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const gatewayKey = process.env.AI_GATEWAY_API_KEY;
@@ -55,9 +57,24 @@ function selectImageModel(): {
   return null;
 }
 
-export function buildNoirImagePrompt(prompt: string): string {
-  const customStyle = getCustomImageStylePrompt();
-  const stylePrompt = customStyle || NOIR_STYLE_PROMPT;
+export function buildNoirImagePrompt(
+  prompt: string,
+  aestheticId?: string,
+  customImageStylePrompt?: string | null
+): string {
+  const customStyle = customImageStylePrompt ?? getCustomImageStylePrompt();
+  if (customStyle) {
+    if (!prompt.trim()) return customStyle;
+    return `${prompt}. Style: ${customStyle}.`;
+  }
+
+  let stylePrompt = NOIR_STYLE_PROMPT;
+  if (aestheticId) {
+    const profile = getAestheticProfile(aestheticId as AestheticId);
+    if (profile?.imageStylePrompt) {
+      stylePrompt = profile.imageStylePrompt;
+    }
+  }
 
   if (!prompt.trim()) return stylePrompt;
   return `${prompt}. Style: ${stylePrompt}.`;
@@ -84,13 +101,29 @@ function fallbackSvgDataUrl(message: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-async function generateImageDataUrl(prompt: string) {
+export async function generateImageDataUrl(
+  prompt: string,
+  aestheticId?: string,
+  customImageStylePrompt?: string | null,
+  imageModel?: string
+) {
   try {
-    const selection = selectImageModel();
-    if (!selection) return null;
+    const selection = selectImageModel(imageModel);
+    if (!selection) {
+      console.warn("[AI Image Gen] No image generation model selected or available.");
+      return null;
+    }
 
     const { model, provider } = selection;
-    const styledPrompt = buildNoirImagePrompt(prompt);
+    const styledPrompt = buildNoirImagePrompt(prompt, aestheticId, customImageStylePrompt);
+
+    console.log(
+      `[AI Image Gen] Requesting image generation:\n` +
+        `  - Model: ${model.id} (${model.name})\n` +
+        `  - Provider: ${provider}\n` +
+        `  - Method: ${model.capabilities.imageGenMethod}\n` +
+        `  - Prompt: "${styledPrompt}"`
+    );
     const method = model.capabilities.imageGenMethod;
 
     let result;
@@ -145,54 +178,87 @@ async function persistDataUrl(dataUrl: string) {
   return saved?.url ?? null;
 }
 
-export async function resolveA2UIImagePrompts(input: A2UIInput): Promise<A2UIComponent> {
+export async function resolveA2UIImagePrompts(
+  input: unknown,
+  aestheticId?: string,
+  customImageStylePrompt?: string | null,
+  imageModel?: string
+): Promise<unknown> {
   if (!input || typeof input !== "object") {
-    return input as A2UIComponent;
+    return input;
   }
 
-  const node = input as A2UIInput;
+  if (Array.isArray(input)) {
+    return Promise.all(
+      input.map((item) =>
+        resolveA2UIImagePrompts(item, aestheticId, customImageStylePrompt, imageModel)
+      )
+    );
+  }
 
-  switch (node.type) {
-    case "container":
-    case "row":
-    case "column":
-    case "grid": {
-      const children = await Promise.all(
-        node.children.map((child) => resolveA2UIImagePrompts(child))
-      );
-      return { ...node, children } as A2UIComponent;
-    }
-    case "tabs": {
-      const tabs = await Promise.all(
-        node.tabs.map(async (tab) => ({
-          ...tab,
-          content: await resolveA2UIImagePrompts(tab.content),
-        }))
-      );
-      return { ...node, tabs } as A2UIComponent;
-    }
-    case "image": {
-      const { prompt, alt, src, ...rest } = node;
-      let resolvedSrc: string | null | undefined = src;
-      if (resolvedSrc?.startsWith("data:")) {
-        resolvedSrc = await persistDataUrl(resolvedSrc);
-      }
-      if (!resolvedSrc && prompt) {
-        const generated = await generateImageDataUrl(prompt);
-        resolvedSrc = generated ? await persistDataUrl(generated) : null;
-      }
-      if (!resolvedSrc) {
-        resolvedSrc = fallbackSvgDataUrl("IMAGE UNAVAILABLE");
-      }
+  const node = input as Record<string, unknown>;
 
+  // Legacy image resolution
+  if (node.type === "image") {
+    const prompt = typeof node.prompt === "string" ? node.prompt : "";
+    let resolvedSrc = typeof node.src === "string" ? node.src : null;
+    if (resolvedSrc?.startsWith("data:")) {
+      resolvedSrc = await persistDataUrl(resolvedSrc);
+    }
+    if (!resolvedSrc && prompt) {
+      const id = crypto.randomUUID();
+      await savePendingImageMetadata(id, {
+        prompt,
+        aestheticId,
+        customImageStylePrompt,
+        imageModel,
+      });
+      resolvedSrc = `/api/images/${id}.jpg`;
+    }
+    if (!resolvedSrc) {
+      resolvedSrc = fallbackSvgDataUrl("IMAGE UNAVAILABLE");
+    }
+
+    return {
+      ...node,
+      type: "image",
+      src: resolvedSrc,
+      alt: typeof node.alt === "string" ? node.alt : prompt || "Generated image",
+    };
+  }
+
+  // Catalog Image resolution (if the url is a prompt instead of a URL)
+  if (node.component === "Image" && typeof node.url === "string") {
+    const url = node.url.trim();
+    const isUrl =
+      url.startsWith("http://") ||
+      url.startsWith("https://") ||
+      url.startsWith("/api/images/") ||
+      url.startsWith("data:");
+    if (!isUrl && url.length > 0) {
+      const id = crypto.randomUUID();
+      await savePendingImageMetadata(id, {
+        prompt: url,
+        aestheticId,
+        customImageStylePrompt,
+        imageModel,
+      });
       return {
-        ...rest,
-        type: "image",
-        src: resolvedSrc,
-        alt: alt ?? prompt ?? "Generated image",
-      } as A2UIComponent;
+        ...node,
+        url: `/api/images/${id}.jpg`,
+      };
     }
-    default:
-      return node as A2UIComponent;
   }
+
+  // Recurse into all properties of the object
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    result[key] = await resolveA2UIImagePrompts(
+      value,
+      aestheticId,
+      customImageStylePrompt,
+      imageModel
+    );
+  }
+  return result;
 }

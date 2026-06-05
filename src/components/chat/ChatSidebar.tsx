@@ -13,6 +13,7 @@ import {
   Copy,
   Check,
   Loader2,
+  Palette,
 } from "lucide-react";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
@@ -21,7 +22,10 @@ import { NoirSoundEffects } from "@/components/noir/NoirSoundEffects";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { ChatSettingsPanel } from "./ChatSettingsPanel";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
+import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 
 export interface Message {
   id: string;
@@ -53,6 +57,13 @@ interface ChatSidebarProps {
   onModelConfigChange?: (config: ModelConfig) => void;
   onToggleCollapse?: () => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  generatedTapes?: Array<{
+    id: string;
+    text: string;
+    hash: string;
+    createdAt: number;
+  }>;
+  onOpenCustomization?: () => void;
 }
 
 export function ChatSidebar({
@@ -71,7 +82,17 @@ export function ChatSidebar({
   onModelConfigChange,
   onToggleCollapse,
   inputRef,
+  generatedTapes = [],
+  onOpenCustomization,
 }: ChatSidebarProps) {
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  const aestheticId = activeProfile?.baseAestheticId ?? fallbackAestheticId;
+  const sfxVolumes = useA2UIStore((state) => state.settings.sfxVolumes);
+  const audioPack = getAudioPack(aestheticId);
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [ttsLoadingId, setTtsLoadingId] = useState<string | null>(null);
@@ -97,6 +118,7 @@ export function ChatSidebar({
 
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
   const ttsUrlRef = useRef<string | null>(null);
+  const ttsTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const soundSetting = soundEnabled;
   const ttsSetting = ttsEnabled ?? true;
@@ -141,6 +163,69 @@ export function ChatSidebar({
     }
   }, [elevenLabsConfigured, onUpdateSettings, ttsSetting]);
 
+  // Atmospheric Triggering Effect Scanner
+  const triggeredAtmosphericRef = useRef<Record<string, Set<string>>>({});
+
+  useEffect(() => {
+    // If TTS is enabled, atmospheric events will trigger in sync with the spoken voice.
+    // Otherwise, trigger them on the streaming/typewritten text.
+    if (ttsSetting) return;
+
+    if (messages.length === 0) return;
+
+    // Find the last assistant message
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!lastAssistant) return;
+
+    const messageId = lastAssistant.id;
+    const content = lastAssistant.content.toLowerCase();
+
+    if (!triggeredAtmosphericRef.current[messageId]) {
+      triggeredAtmosphericRef.current[messageId] = new Set();
+    }
+
+    const triggered = triggeredAtmosphericRef.current[messageId];
+
+    // 1. Thunder & Lightning keywords
+    const THUNDER_KEYWORDS = ["lightning", "thunder", "relámpago", "trueno"];
+    if (THUNDER_KEYWORDS.some((kw) => content.includes(kw)) && !triggered.has("thunder")) {
+      if (sfxControls) {
+        triggered.add("thunder");
+        sfxControls.playThunder();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("noir-lightning"));
+        }
+      }
+    }
+
+    // 2. Phone ringing keywords
+    const PHONE_KEYWORDS = [
+      "phone rang",
+      "phone ring",
+      "phone-ring",
+      "telephone rang",
+      "telephone ring",
+      "phone rings",
+      "telephone rings",
+      "phone ringing",
+      "telephone ringing",
+      "teléfono sonó",
+      "teléfono sonando",
+    ];
+    if (PHONE_KEYWORDS.some((kw) => content.includes(kw)) && !triggered.has("phone")) {
+      if (sfxControls) {
+        triggered.add("phone");
+        sfxControls.playPhoneRing();
+      }
+    }
+
+    // Gc triggeredAtmosphericRef to avoid memory leak
+    const keys = Object.keys(triggeredAtmosphericRef.current);
+    if (keys.length > 10) {
+      delete triggeredAtmosphericRef.current[keys[0]];
+    }
+  }, [messages, sfxControls, ttsSetting]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -175,6 +260,10 @@ export function ChatSidebar({
   const sendShortcut = formatShortcut(["mod", "enter"]);
 
   const stopTts = useCallback(() => {
+    // Clear any scheduled atmospheric timeouts
+    ttsTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    ttsTimeoutsRef.current = [];
+
     if (ttsAudioRef.current) {
       ttsAudioRef.current.pause();
       try {
@@ -234,7 +323,11 @@ export function ChatSidebar({
         const response = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({
+            text,
+            aestheticId,
+            voiceSettings: activeProfile?.voice ?? useA2UIStore.getState().settings.voiceSettings,
+          }),
         });
 
         if (!response.ok) {
@@ -256,6 +349,69 @@ export function ChatSidebar({
         setTtsLoadingId(null);
         setTtsPlayingId(message.id);
         await audio.play();
+
+        const recordingHash = response.headers.get("x-recording-hash");
+        if (recordingHash) {
+          const alreadyExists = (generatedTapes || []).some((t) => t.hash === recordingHash);
+          if (!alreadyExists) {
+            const newTape = {
+              id: message.id,
+              text,
+              hash: recordingHash,
+              createdAt: Date.now(),
+            };
+            onUpdateSettings?.({
+              generatedTapes: [...(generatedTapes || []), newTape],
+            });
+          }
+        }
+
+        // When audio starts playing, schedule the atmospheric effects based on estimated speaking timings
+        if (sfxControls) {
+          const contentLower = text.toLowerCase();
+          const msPerChar = 65; // Heuristic: average 65ms per character speaking rate
+
+          // 1. Check for thunder/lightning keywords
+          const THUNDER_KEYWORDS = ["lightning", "thunder", "relámpago", "trueno"];
+          THUNDER_KEYWORDS.forEach((kw) => {
+            const index = contentLower.indexOf(kw);
+            if (index !== -1) {
+              const delay = index * msPerChar;
+              const timer = setTimeout(() => {
+                sfxControls.playThunder();
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("noir-lightning"));
+                }
+              }, delay);
+              ttsTimeoutsRef.current.push(timer);
+            }
+          });
+
+          // 2. Check for phone ringing keywords
+          const PHONE_KEYWORDS = [
+            "phone rang",
+            "phone ring",
+            "phone-ring",
+            "telephone rang",
+            "telephone ring",
+            "phone rings",
+            "telephone rings",
+            "phone ringing",
+            "telephone ringing",
+            "teléfono sonó",
+            "teléfono sonando",
+          ];
+          PHONE_KEYWORDS.forEach((kw) => {
+            const index = contentLower.indexOf(kw);
+            if (index !== -1) {
+              const delay = index * msPerChar;
+              const timer = setTimeout(() => {
+                sfxControls.playPhoneRing();
+              }, delay);
+              ttsTimeoutsRef.current.push(timer);
+            }
+          });
+        }
       } catch (error) {
         console.error("TTS playback failed:", error);
         // Fully tear down so a partially-created Audio/object URL is revoked
@@ -263,7 +419,17 @@ export function ChatSidebar({
         stopTts();
       }
     },
-    [elevenLabsConfigured, stopTts, ttsPlayingId, ttsSetting]
+    [
+      elevenLabsConfigured,
+      stopTts,
+      ttsPlayingId,
+      ttsSetting,
+      sfxControls,
+      generatedTapes,
+      onUpdateSettings,
+      aestheticId,
+      activeProfile?.voice,
+    ]
   );
 
   const ttsDisabledReason = !ttsSetting
@@ -303,6 +469,17 @@ export function ChatSidebar({
               <PanelRightClose className="w-4 h-4" />
             </button>
           )}
+          {onOpenCustomization && (
+            <button
+              type="button"
+              onClick={onOpenCustomization}
+              className="w-9 h-9 flex items-center justify-center rounded-sm bg-[var(--aesthetic-background)]/30 border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40 transition-colors focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+              title="Theme Customization Lab"
+              aria-label="Open theme customization lab"
+            >
+              <Palette className="w-4 h-4" />
+            </button>
+          )}
           {onUpdateSettings && (
             <button
               type="button"
@@ -321,10 +498,10 @@ export function ChatSidebar({
         {showSettings && onUpdateSettings && (
           <motion.div
             initial={{ height: 0, opacity: 0, overflow: "hidden" }}
-            animate={{ height: "auto", opacity: 1, overflow: "visible" }}
+            animate={{ height: "auto", opacity: 1, overflow: "auto" }}
             exit={{ height: 0, opacity: 0, overflow: "hidden" }}
             transition={{ duration: 0.2 }}
-            className="border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50"
+            className="max-h-[60vh] overflow-y-auto border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/30"
           >
             <ChatSettingsPanel
               typewriterSpeed={typewriterSpeed}
@@ -343,7 +520,12 @@ export function ChatSidebar({
         )}
       </AnimatePresence>
 
-      <NoirSoundEffects enabled={soundSetting} onReady={setSfxControls} />
+      <NoirSoundEffects
+        enabled={soundSetting}
+        onReady={setSfxControls}
+        sfxConfig={audioPack.sfx}
+        sfxVolumes={sfxVolumes}
+      />
 
       <div
         className="flex-1 overflow-y-auto p-4 space-y-6"
@@ -353,7 +535,7 @@ export function ChatSidebar({
         {messages.length === 0 && (
           <div className="text-center py-12 text-[var(--aesthetic-text)]/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
             <Image
-              src="/assets/noir/search-icon.png"
+              src="/assets/noir/search-icon-removebg-preview.png"
               alt="Search icon"
               width={80}
               height={80}

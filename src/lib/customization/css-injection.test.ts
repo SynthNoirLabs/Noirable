@@ -70,7 +70,7 @@ describe("buildProfileCSS", () => {
     };
 
     const css = buildProfileCSS(profile);
-    expect(css).toContain('[data-aesthetic="custom-test-123"]');
+    expect(css).toContain('[data-custom-profile="custom-test-123"]');
     expect(css).toContain("--aesthetic-accent: #ff0000;");
   });
 
@@ -84,6 +84,37 @@ describe("buildProfileCSS", () => {
     };
 
     expect(buildProfileCSS(profile)).toBe("");
+  });
+
+  it("builds CSS with backgroundImageUrl if provided", () => {
+    const profile: CustomProfile = {
+      id: "custom-test-123" as CustomProfileId,
+      name: "Test",
+      baseAestheticId: "noir",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      backgroundImageUrl: "/api/uploads/test.png",
+    };
+
+    const css = buildProfileCSS(profile);
+    expect(css).toContain('--aesthetic-bg-image: url("/api/uploads/test.png");');
+  });
+
+  it("sanitizes backgroundImageUrl to prevent CSS injection", () => {
+    const profile: CustomProfile = {
+      id: "custom-test-123" as CustomProfileId,
+      name: "Test",
+      baseAestheticId: "noir",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      backgroundImageUrl: '/api/uploads/test.png"); } body { background: red; } /*',
+    };
+
+    const css = buildProfileCSS(profile);
+    expect(css).not.toContain("body {");
+    expect(css).toContain(
+      '--aesthetic-bg-image: url("/api/uploads/test.png  body  background: red  /*");'
+    );
   });
 });
 

@@ -6,11 +6,17 @@ interface CrackleAudioProps {
   enabled: boolean;
   volume?: number;
   soundEnabled?: boolean;
+  src?: string;
 }
 
 const AUDIO_SRC = "/assets/noir/vinyl-crackle.wav";
 
-export function CrackleAudio({ enabled, volume = 0.35, soundEnabled = true }: CrackleAudioProps) {
+export function CrackleAudio({
+  enabled,
+  volume = 0.35,
+  soundEnabled = true,
+  src = AUDIO_SRC,
+}: CrackleAudioProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playAudioRef = useRef<(() => void) | null>(null);
   const resumeHandlerRef = useRef<(() => void) | null>(null);
@@ -105,7 +111,7 @@ export function CrackleAudio({ enabled, volume = 0.35, soundEnabled = true }: Cr
 
     let handleLoaded: (() => void) | null = null;
     if (!audioRef.current) {
-      const audio = new Audio(AUDIO_SRC);
+      const audio = new Audio(src);
       audio.loop = true;
       audio.preload = "auto";
       handleLoaded = () => {
@@ -138,7 +144,7 @@ export function CrackleAudio({ enabled, volume = 0.35, soundEnabled = true }: Cr
       }
       audioRef.current = null;
     };
-  }, [cancelFade, detachResumeListeners]);
+  }, [cancelFade, detachResumeListeners, src]);
 
   useEffect(() => {
     playAudioRef.current = attemptPlay;

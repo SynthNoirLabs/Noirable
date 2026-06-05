@@ -11,12 +11,24 @@ import { a2uiInputSchema, normalizeA2UI } from "@/lib/protocol/schema";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
 import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
 import { apiSecurityCheck } from "@/lib/api/security";
+import type { AestheticId } from "@/lib/aesthetic/types";
 
 /**
  * Request body for A2UI stream endpoint
  */
 interface A2UIStreamRequest {
   prompt: string;
+  aestheticId?: AestheticId;
+  customSystemPrompt?: string;
+  customImageStylePrompt?: string;
+  imageModel?: string;
+  /**
+   * The currently-rendered surface's component list, threaded back in so the
+   * model can AMEND the live UI (the buildSystemPrompt "Current Evidence" +
+   * Update Rules path) instead of regenerating from scratch. Optional: absent
+   * on a fresh "new case", present when iterating on an existing surface.
+   */
+  baselineComponents?: unknown;
 }
 
 /**
@@ -50,6 +62,95 @@ function generateComponentId(): string {
  */
 function createMockComponents(prompt: string): Record<string, unknown>[] {
   const normalizedPrompt = prompt.toLowerCase();
+
+  if (normalizedPrompt.includes("kanban")) {
+    const johnTitle = prompt.includes("John Doe (Primary)") ? "John Doe (Primary)" : "John Doe";
+    const janeTitle = prompt.includes("Jane Smith (Alibi)") ? "Jane Smith (Alibi)" : "Jane Smith";
+
+    return [
+      {
+        id: "root",
+        component: "KanbanBoard",
+        title: "Suspect Case Board",
+        columns: [
+          {
+            id: "todo",
+            title: "To Do",
+            cards: [
+              {
+                id: "card-1",
+                title: johnTitle,
+                description:
+                  "Primary suspect in murder case. Extremely long description text to test line wrapping properties in Kanban Board cards without causing horizontal overflow or breaking layout boundaries.",
+                assignee: "Detective Miller",
+                tags: ["suspect", "high-priority"],
+              },
+            ],
+          },
+          {
+            id: "progress",
+            title: "In Progress",
+            cards: [
+              {
+                id: "card-2",
+                title: janeTitle,
+                description: "Alibi witness verification.",
+                assignee: "Officer Davis",
+                tags: ["alibi"],
+              },
+            ],
+          },
+          {
+            id: "done",
+            title: "Done",
+            cards: [],
+          },
+        ],
+      },
+    ];
+  }
+
+  if (normalizedPrompt.includes("dashboard")) {
+    return [
+      {
+        id: "root",
+        component: "DataDashboard",
+        title: "System Logs Analytics",
+        widgets: [
+          {
+            id: "w1",
+            title: "Active Alerts",
+            type: "metric",
+            value: 42,
+            unit: "alerts",
+            trend: {
+              value: 12,
+              direction: "up",
+            },
+          },
+          {
+            id: "w2",
+            title: "Analysis Progress",
+            type: "progress",
+            progress: 85,
+          },
+          {
+            id: "w3",
+            title: "Activity Log",
+            type: "chart",
+            chartType: "bar",
+            data: [
+              { label: "Mon", value: 5 },
+              { label: "Tue", value: 12 },
+              { label: "Wed", value: 8 },
+              { label: "Thu", value: 15 },
+              { label: "Fri", value: 20 },
+            ],
+          },
+        ],
+      },
+    ];
+  }
 
   if (normalizedPrompt.includes("button")) {
     const labelId = "mock-label";
@@ -137,7 +238,13 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   // Validate prompt
-  const { prompt } = body;
+  const { prompt, aestheticId, customSystemPrompt, customImageStylePrompt, imageModel } = body;
+  // Only treat a non-empty component list as a baseline; an empty surface is a
+  // fresh start and must not inject an empty "Current Evidence" block.
+  const baselineComponents =
+    Array.isArray(body.baselineComponents) && body.baselineComponents.length > 0
+      ? body.baselineComponents
+      : undefined;
   if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
     return new Response("Missing or invalid prompt", { status: 400 });
   }
@@ -200,8 +307,8 @@ export async function POST(req: NextRequest): Promise<Response> {
 
         // Kick off the detective's narration in parallel with the UI generation.
         // A dedicated tool-less call is far more reliable than coaxing a second
-        // text step out of the tool-calling model (which usually just stops).
-        const narrationPromise = generateNarration(auth, prompt);
+        // text step out of the model (which usually just stops).
+        const narrationPromise = generateNarration(auth, prompt, aestheticId, customSystemPrompt);
 
         // 2. Stream AI response (provider is non-null after mock check above).
         // Only expose generate_ui (the v0.9 surface is about producing UI;
@@ -210,8 +317,13 @@ export async function POST(req: NextRequest): Promise<Response> {
         const result = streamText({
           model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
-          system: buildSystemPrompt(),
-          tools: { generate_ui: tools.generate_ui },
+          system: buildSystemPrompt(baselineComponents, aestheticId, customSystemPrompt),
+          tools: {
+            generate_ui: {
+              ...tools.generate_ui,
+              execute: undefined,
+            },
+          },
           toolChoice: { type: "tool", toolName: "generate_ui" },
         });
 
@@ -230,7 +342,19 @@ export async function POST(req: NextRequest): Promise<Response> {
           // valid tree; fall back to the raw component if validation fails.
           const validated = a2uiInputSchema.safeParse(normalizeA2UI(component));
           if (validated.success) {
-            component = (await resolveA2UIImagePrompts(validated.data)) as Record<string, unknown>;
+            component = (await resolveA2UIImagePrompts(
+              validated.data,
+              aestheticId,
+              customImageStylePrompt,
+              imageModel
+            )) as Record<string, unknown>;
+          } else {
+            component = (await resolveA2UIImagePrompts(
+              component,
+              aestheticId,
+              customImageStylePrompt,
+              imageModel
+            )) as Record<string, unknown>;
           }
           const components = toCatalogComponents(component, callIndex === 0, callIndex);
           callIndex++;

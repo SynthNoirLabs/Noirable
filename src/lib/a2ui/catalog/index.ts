@@ -88,3 +88,13 @@ export {
 
 // Sub-schemas
 export { choiceOptionSchema, tabItemSchema } from "./components";
+
+// Templates
+export {
+  kanbanBoardSchema,
+  dataDashboardSchema,
+  type KanbanBoard,
+  type DataDashboard,
+  kanbanTemplate,
+  dashboardTemplate,
+} from "./components";

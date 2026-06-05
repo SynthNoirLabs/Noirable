@@ -21,6 +21,7 @@ interface NoirSoundEffectsProps {
   onReady?: (controls: NoirSoundEffectsControls | null) => void;
   /** SFX configuration from audio pack. Overrides defaults. */
   sfxConfig?: SfxConfig;
+  sfxVolumes?: { typewriter: number; thunder: number; phone: number };
 }
 
 /** Default SFX configuration (noir aesthetic) */
@@ -39,7 +40,12 @@ function useCallbackRef<T>(callback: T | undefined) {
   return ref;
 }
 
-export function NoirSoundEffects({ enabled, onReady, sfxConfig }: NoirSoundEffectsProps) {
+export function NoirSoundEffects({
+  enabled,
+  onReady,
+  sfxConfig,
+  sfxVolumes,
+}: NoirSoundEffectsProps) {
   const onReadyRef = useCallbackRef(onReady);
 
   // Use provided config or fallback to defaults
@@ -56,6 +62,7 @@ export function NoirSoundEffects({ enabled, onReady, sfxConfig }: NoirSoundEffec
       }
 
       const { src, volume } = effectiveSfxConfig[name];
+      const userVolume = sfxVolumes?.[name] ?? 1;
       let audio = poolRef.current[name];
 
       // (Re)create the pooled element if missing or its source changed.
@@ -65,7 +72,7 @@ export function NoirSoundEffects({ enabled, onReady, sfxConfig }: NoirSoundEffec
         poolRef.current[name] = audio;
       }
 
-      audio.volume = volume;
+      audio.volume = volume * userVolume;
       try {
         audio.currentTime = 0;
       } catch {
@@ -75,7 +82,7 @@ export function NoirSoundEffects({ enabled, onReady, sfxConfig }: NoirSoundEffec
         // Ignore autoplay errors - user interaction required
       });
     },
-    [enabled, effectiveSfxConfig]
+    [enabled, effectiveSfxConfig, sfxVolumes]
   );
 
   // Release pooled elements on unmount.

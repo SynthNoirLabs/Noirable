@@ -8,6 +8,17 @@ vi.mock("@/lib/store/useA2UIStore", () => ({
   useA2UIStore: vi.fn(),
 }));
 
+vi.mock("@/lib/store/useCustomProfileStore", () => ({
+  useCustomProfileStore: vi.fn((selector) => {
+    const dummyState = {
+      activeCustomProfileId: null,
+      customProfiles: [],
+      updateProfile: vi.fn(),
+    };
+    return selector ? selector(dummyState) : dummyState;
+  }),
+}));
+
 // Mock lucide icons
 vi.mock("lucide-react", () => ({
   Mic: () => <span data-testid="icon-mic" />,

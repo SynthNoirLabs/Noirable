@@ -47,7 +47,7 @@ export function A2UIv09Preview({ className, onAction }: A2UIv09PreviewProps) {
   }
 
   return (
-    <div className={className}>
+    <div className={className} data-testid="a2ui-surface">
       <div className="mb-2 flex items-center gap-2">
         <span className="text-[var(--aesthetic-accent)] font-mono text-xs">
           A2UI v0.9 Surface: {surface.config.surfaceId}

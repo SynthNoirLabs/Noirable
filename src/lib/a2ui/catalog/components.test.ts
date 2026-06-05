@@ -21,6 +21,9 @@ import {
   dateTimeInputSchema,
   choicePickerSchema,
   sliderSchema,
+  // Templates
+  kanbanBoardSchema,
+  dataDashboardSchema,
   // Union type
   componentSchema,
   // Types
@@ -359,7 +362,7 @@ describe("Image", () => {
   });
 
   it("validates all image fit options", () => {
-    const fits = ["contain", "cover", "fill", "none", "scale-down"];
+    const fits = ["contain", "cover", "fill", "none", "scaleDown"];
     for (const fit of fits) {
       const result = imageSchema.safeParse({
         id: `img-${fit}`,
@@ -891,6 +894,8 @@ describe("componentSchema (discriminated union)", () => {
       { id: "dt", component: "DateTimeInput", value: "" },
       { id: "choice", component: "ChoicePicker", options: [{ label: "A", value: "a" }], value: [] },
       { id: "slider", component: "Slider", min: 0, max: 100, value: 50 },
+      { id: "kanban", component: "KanbanBoard", columns: [] },
+      { id: "dash", component: "DataDashboard", widgets: [] },
     ];
 
     for (const comp of components) {
@@ -957,6 +962,89 @@ describe("Common component properties", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.accessibility?.label).toBe("Submit form");
+    }
+  });
+});
+
+describe("KanbanBoard", () => {
+  it("validates a kanban board with columns and cards", () => {
+    const result = kanbanBoardSchema.safeParse({
+      id: "board1",
+      component: "KanbanBoard",
+      title: "Suspect Investigation",
+      columns: [
+        {
+          id: "todo",
+          title: "To Do",
+          cards: [
+            {
+              id: "card1",
+              title: "Investigate John Doe",
+              description: "Primary suspect",
+              assignee: "Detective Miller",
+              tags: ["high-priority"],
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.component).toBe("KanbanBoard");
+      expect(result.data.columns).toHaveLength(1);
+      expect(result.data.columns[0].cards[0].title).toBe("Investigate John Doe");
+    }
+  });
+
+  it("validates empty columns / cards", () => {
+    const result = kanbanBoardSchema.safeParse({
+      id: "board2",
+      component: "KanbanBoard",
+      columns: [],
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("DataDashboard", () => {
+  it("validates a data dashboard with widgets", () => {
+    const result = dataDashboardSchema.safeParse({
+      id: "dash1",
+      component: "DataDashboard",
+      widgets: [
+        {
+          id: "w1",
+          title: "Clues Found",
+          type: "metric",
+          value: 42,
+          unit: "clues",
+          trend: {
+            value: 5,
+            direction: "up",
+          },
+        },
+        {
+          id: "w2",
+          title: "Investigation Progress",
+          type: "progress",
+          progress: 68,
+        },
+        {
+          id: "w3",
+          title: "Suspects over Time",
+          type: "chart",
+          chartType: "line",
+          data: [
+            { label: "Mon", value: 2 },
+            { label: "Tue", value: 4 },
+          ],
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.component).toBe("DataDashboard");
+      expect(result.data.widgets).toHaveLength(3);
     }
   });
 });

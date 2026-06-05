@@ -143,4 +143,67 @@ describe("ColorCustomization", () => {
     // Verify injection
     expect(injectProfileStyles).toHaveBeenCalled();
   });
+
+  it("renders background image upload field", () => {
+    mockGetActiveProfile.mockReturnValue({
+      id: "custom-1",
+      name: "Test Profile",
+      backgroundImageUrl: "/api/uploads/custom-bg.png",
+      colors: {},
+    });
+
+    render(<ColorCustomization />);
+
+    expect(screen.getByTestId("bg-image-url")).toHaveTextContent(
+      "Current: /api/uploads/custom-bg.png"
+    );
+    expect(screen.getByTestId("remove-bg-image")).toBeInTheDocument();
+  });
+
+  it("removes background image when remove button is clicked", () => {
+    mockGetActiveProfile.mockReturnValue({
+      id: "custom-1",
+      name: "Test Profile",
+      backgroundImageUrl: "/api/uploads/custom-bg.png",
+      colors: {},
+    });
+
+    render(<ColorCustomization />);
+
+    const removeBtn = screen.getByTestId("remove-bg-image");
+    fireEvent.click(removeBtn);
+
+    expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+      backgroundImageUrl: undefined,
+    });
+    expect(injectProfileStyles).toHaveBeenCalled();
+  });
+
+  it("handles background image file upload", async () => {
+    mockGetActiveProfile.mockReturnValue({
+      id: "custom-1",
+      name: "Test Profile",
+      colors: {},
+    });
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: "/api/uploads/new-bg.png" }),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    render(<ColorCustomization />);
+
+    const fileInput = screen.getByTestId("bg-image-input");
+    const file = new File(["dummy"], "bg.png", { type: "image/png" });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await vi.waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/uploads", expect.any(Object));
+      expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+        backgroundImageUrl: "/api/uploads/new-bg.png",
+      });
+      expect(injectProfileStyles).toHaveBeenCalled();
+    });
+  });
 });

@@ -31,7 +31,7 @@ describe("resolveA2UIImagePrompts", () => {
       alt: "Evidence photo",
     };
 
-    const result = await resolveA2UIImagePrompts(input);
+    const result = (await resolveA2UIImagePrompts(input)) as { type: string; src: string };
 
     expect(result.type).toBe("image");
     expect((result as { src: string }).src).toMatch(/^\/api\/images\/.+\.png$/);

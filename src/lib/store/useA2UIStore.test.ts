@@ -29,6 +29,7 @@ describe("useA2UIStore", () => {
         showEditor: true,
         showSidebar: true,
         showEject: false,
+        showDictaphone: false,
         editorWidth: 300,
         sidebarWidth: 360,
       },
@@ -179,6 +180,31 @@ describe("useA2UIStore", () => {
       // Other settings unchanged
       expect(settings.soundEnabled).toBe(true);
       expect(settings.ambient.rainEnabled).toBe(true);
+    });
+
+    it("merges voiceSettings when an object is supplied", () => {
+      useA2UIStore.getState().updateSettings({ voiceSettings: { voiceId: "harry", style: 0.86 } });
+      useA2UIStore.getState().updateSettings({ voiceSettings: { stability: 0.31 } });
+
+      const settings = useA2UIStore.getState().settings;
+      expect(settings.voiceSettings).toEqual({ voiceId: "harry", style: 0.86, stability: 0.31 });
+    });
+
+    it("clears voiceSettings when explicitly set to undefined (reset to preset default)", () => {
+      useA2UIStore.getState().updateSettings({ voiceSettings: { voiceId: "harry" } });
+      expect(useA2UIStore.getState().settings.voiceSettings).toBeDefined();
+
+      // "Reset to preset default" passes undefined — it must actually clear the
+      // override, not silently keep the previous value.
+      useA2UIStore.getState().updateSettings({ voiceSettings: undefined });
+      expect(useA2UIStore.getState().settings.voiceSettings).toBeUndefined();
+    });
+
+    it("leaves voiceSettings untouched when the key is omitted", () => {
+      useA2UIStore.getState().updateSettings({ voiceSettings: { voiceId: "harry" } });
+      useA2UIStore.getState().updateSettings({ typewriterSpeed: 42 });
+
+      expect(useA2UIStore.getState().settings.voiceSettings).toEqual({ voiceId: "harry" });
     });
   });
 

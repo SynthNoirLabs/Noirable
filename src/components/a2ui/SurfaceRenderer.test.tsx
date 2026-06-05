@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { SurfaceRenderer } from "./SurfaceRenderer";
 import type { SurfaceState, SurfaceComponent, SurfaceConfig } from "@/lib/a2ui/surfaces/manager";
@@ -459,5 +459,156 @@ describe("SurfaceRenderer", () => {
     );
 
     vi.unstubAllGlobals();
+  });
+});
+
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
+
+describe("KanbanBoard Renderer", () => {
+  it("renders columns and cards with long text wrapping", () => {
+    const board = {
+      id: "root",
+      component: "KanbanBoard",
+      title: "Suspect List",
+      columns: [
+        {
+          id: "todo",
+          title: "To Do",
+          cards: [
+            {
+              id: "c1",
+              title: "John Doe",
+              description:
+                "A very long description that should wrap correctly without causing horizontal overflow or breaking layout boundaries.",
+              assignee: "Spade",
+              tags: ["suspect"],
+            },
+          ],
+        },
+      ],
+    };
+
+    const surface = makeSurface([board as unknown as SurfaceComponent]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+
+    expect(screen.getByText("Suspect List")).toBeInTheDocument();
+    expect(screen.getByText("To Do (1)")).toBeInTheDocument();
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText(/A very long description/)).toBeInTheDocument();
+    expect(screen.getByText(/Spade/)).toBeInTheDocument();
+    expect(screen.getByText("suspect")).toBeInTheDocument();
+  });
+});
+
+describe("DataDashboard Renderer", () => {
+  it("renders metric, progress and chart widgets", () => {
+    const dashboard = {
+      id: "root",
+      component: "DataDashboard",
+      title: "System Analytics",
+      widgets: [
+        {
+          id: "w1",
+          title: "Total Files",
+          type: "metric",
+          value: "105",
+          unit: "files",
+          trend: { value: 10, direction: "up" },
+        },
+        {
+          id: "w2",
+          title: "Scan Progress",
+          type: "progress",
+          progress: 75,
+        },
+        {
+          id: "w3",
+          title: "Activity Chart",
+          type: "chart",
+          chartType: "bar",
+          data: [{ label: "Mon", value: 10 }],
+        },
+      ],
+    };
+
+    const surface = makeSurface([dashboard as unknown as SurfaceComponent]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+
+    expect(screen.getByText("System Analytics")).toBeInTheDocument();
+    expect(screen.getByText("Total Files")).toBeInTheDocument();
+    expect(screen.getByText("105")).toBeInTheDocument();
+    expect(screen.getByText("files")).toBeInTheDocument();
+    expect(screen.getByText("Scan Progress")).toBeInTheDocument();
+    expect(screen.getByText("75%")).toBeInTheDocument();
+    expect(screen.getByText("Activity Chart")).toBeInTheDocument();
+  });
+});
+
+describe("A2UI Templates Aesthetic Styles", () => {
+  it("adapts styling class based on baseAestheticId from Zustand store", () => {
+    const board = {
+      id: "root",
+      component: "KanbanBoard",
+      title: "Aesthetic Board",
+      columns: [],
+    };
+    const surface = makeSurface([board as unknown as SurfaceComponent]);
+
+    // 1. Nostromo Console
+    act(() => {
+      useA2UIStore.setState({
+        settings: {
+          ...useA2UIStore.getState().settings,
+          aestheticId: "nostromo-console",
+        },
+      });
+    });
+    const { container: container1, rerender } = render(
+      <SurfaceRenderer surface={surface} theme="noir" />
+    );
+    // Boards are now var-driven (color via CSS vars so custom profiles adapt);
+    // only genuinely preset-unique DECORATION stays keyed on the aesthetic.
+    // Nostromo keeps its CRT scanlines and uses the shared --aesthetic-* text.
+    expect(container1.querySelector(".crt-scanlines")).toBeInTheDocument();
+    // Var-driven: the board container styles via --aesthetic-* CSS vars.
+    expect(container1.querySelector('[class*="--aesthetic-"]')).toBeInTheDocument();
+
+    // 2. Gothic Manor — fully var-driven now (no hardcoded #eae2cf parchment);
+    // it differs from nostromo only by CSS vars, so it carries no scanlines.
+    act(() => {
+      useA2UIStore.setState({
+        settings: {
+          ...useA2UIStore.getState().settings,
+          aestheticId: "gothic-manor",
+        },
+      });
+    });
+    rerender(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container1.querySelector(".crt-scanlines")).not.toBeInTheDocument();
+    expect(container1.querySelector('[class*="--aesthetic-"]')).toBeInTheDocument();
+
+    // 3. Cyber-Fixer — keeps its neon glow box-shadow decoration.
+    act(() => {
+      useA2UIStore.setState({
+        settings: {
+          ...useA2UIStore.getState().settings,
+          aestheticId: "cyber-fixer",
+        },
+      });
+    });
+    rerender(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(
+      container1.querySelector(".shadow-\\[0_0_10px_\\#06b6d4\\,inset_0_0_5px_\\#06b6d4\\]")
+    ).toBeInTheDocument();
+
+    // Reset store state
+    act(() => {
+      useA2UIStore.setState({
+        settings: {
+          ...useA2UIStore.getState().settings,
+          aestheticId: "noir",
+        },
+      });
+    });
   });
 });

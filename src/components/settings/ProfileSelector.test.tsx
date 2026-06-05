@@ -39,7 +39,12 @@ vi.mock("@/lib/store/useA2UIStore", () => ({
 }));
 
 vi.mock("@/lib/aesthetic/types", () => ({
-  isBuiltInAestheticId: (id: string) => id === "noir" || id === "minimal",
+  isBuiltInAestheticId: (id: string) =>
+    id === "noir" ||
+    id === "minimal" ||
+    id === "cyber-fixer" ||
+    id === "nostromo-console" ||
+    id === "gothic-manor",
 }));
 
 describe("ProfileSelector", () => {

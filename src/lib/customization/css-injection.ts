@@ -75,11 +75,23 @@ export function buildFontVariables(fonts: ProfileFonts): string {
  * Build complete CSS for a custom profile
  */
 export function buildProfileCSS(profile: CustomProfile): string {
-  const selector = `[data-aesthetic="${profile.id}"]`;
+  // Scope overrides to the custom-profile attribute. The element ALSO carries
+  // `data-aesthetic="<baseAestheticId>"`, so it inherits the base preset's full
+  // variable set (colors, fonts, and the bg/case-file image vars that live only
+  // in globals.css); these rules only layer the profile's overrides on top.
+  // Injected after globals.css in document order, so equal-specificity wins.
+  const selector = `[data-custom-profile="${profile.id}"]`;
   const colorVars = profile.colors ? buildColorVariables(profile.colors) : "";
   const fontVars = profile.fonts ? buildFontVariables(profile.fonts) : "";
 
-  const allVars = [colorVars, fontVars].filter(Boolean).join("\n  ");
+  let bgVars = "";
+  if (profile.backgroundImageUrl) {
+    // Filter out characters that could break CSS rules to prevent exploits
+    const sanitizedUrl = profile.backgroundImageUrl.replace(/["'\\;{}()]/g, "");
+    bgVars = `--aesthetic-bg-image: url("${sanitizedUrl}");`;
+  }
+
+  const allVars = [colorVars, fontVars, bgVars].filter(Boolean).join("\n  ");
 
   if (!allVars) return "";
 

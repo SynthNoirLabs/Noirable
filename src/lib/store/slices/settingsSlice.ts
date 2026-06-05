@@ -24,12 +24,14 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
       crackleVolume: 0.35,
     },
     aestheticId: "noir",
+    imageModel: undefined,
     sfxVolumes: undefined,
     musicVolume: undefined,
     customMusicUrl: undefined,
     musicProvider: undefined,
     musicPrompt: undefined,
     generatedTracks: undefined,
+    generatedTapes: undefined,
     effectIntensities: undefined,
     imageStylePrompt: undefined,
     apiKeys: undefined,
@@ -40,15 +42,26 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
       settings: {
         ...state.settings,
         ...newSettings,
-        ambient: newSettings.ambient
-          ? { ...state.settings.ambient, ...newSettings.ambient }
-          : state.settings.ambient,
-        effectIntensities: newSettings.effectIntensities
-          ? { ...state.settings.effectIntensities, ...newSettings.effectIntensities }
-          : state.settings.effectIntensities,
-        voiceSettings: newSettings.voiceSettings
-          ? { ...state.settings.voiceSettings, ...newSettings.voiceSettings }
-          : state.settings.voiceSettings,
+        // Nested objects are merged when an object is supplied. Use `in` so an
+        // EXPLICIT `undefined` (e.g. "reset to preset default") clears the
+        // override instead of being treated as "not provided" and falling back
+        // to the old value. ambient is always present, so it's never cleared.
+        ambient:
+          "ambient" in newSettings && newSettings.ambient
+            ? { ...state.settings.ambient, ...newSettings.ambient }
+            : state.settings.ambient,
+        effectIntensities:
+          "effectIntensities" in newSettings
+            ? newSettings.effectIntensities
+              ? { ...state.settings.effectIntensities, ...newSettings.effectIntensities }
+              : undefined
+            : state.settings.effectIntensities,
+        voiceSettings:
+          "voiceSettings" in newSettings
+            ? newSettings.voiceSettings
+              ? { ...state.settings.voiceSettings, ...newSettings.voiceSettings }
+              : undefined
+            : state.settings.voiceSettings,
       },
     })),
 
@@ -56,6 +69,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
     showEditor: true,
     showSidebar: true,
     showEject: false,
+    showDictaphone: false,
     editorWidth: 300,
     sidebarWidth: 360,
   },

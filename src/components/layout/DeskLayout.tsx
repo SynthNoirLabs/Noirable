@@ -6,11 +6,13 @@ import {
   Code,
   LayoutTemplate,
   Database,
+  Disc,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NoirEffects } from "@/components/noir/NoirEffects";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
 import type { AmbientSettings, AestheticId } from "@/lib/store/useA2UIStore";
+import { getAestheticCopy } from "@/lib/aesthetic/identity";
 import { ResizeHandle } from "./ResizeHandle";
 
 interface DeskLayoutProps {
@@ -20,11 +22,14 @@ interface DeskLayoutProps {
   ejectPanel?: React.ReactNode;
   templatePanel?: React.ReactNode;
   trainingPanel?: React.ReactNode;
+  dictaphonePanel?: React.ReactNode;
   showEditor?: boolean;
   showSidebar?: boolean;
   showEject?: boolean;
+  showDictaphone?: boolean;
   showTemplates?: boolean;
   showTraining?: boolean;
+  onToggleDictaphone?: () => void;
   editorWidth?: number;
   sidebarWidth?: number;
   onToggleEditor?: () => void;
@@ -37,8 +42,11 @@ interface DeskLayoutProps {
   ambient?: AmbientSettings;
   soundEnabled?: boolean;
   musicEnabled?: boolean;
-  /** Active aesthetic profile ID */
+  musicVolume?: number;
+  /** Base aesthetic to inherit (built-in id), drives CSS vars + audio pack */
   aestheticId?: AestheticId;
+  /** Active custom profile id, if any — scopes injected override CSS */
+  customProfileId?: string;
   customMusicUrl?: string;
   className?: string;
 }
@@ -50,9 +58,11 @@ export function DeskLayout({
   ejectPanel,
   templatePanel,
   trainingPanel,
+  dictaphonePanel,
   showEditor = true,
   showSidebar = true,
   showEject = false,
+  showDictaphone = false,
   showTemplates = false,
   showTraining = false,
   editorWidth = 300,
@@ -62,13 +72,16 @@ export function DeskLayout({
   onToggleEject,
   onToggleTemplates,
   onToggleTraining,
+  onToggleDictaphone,
   onResizeEditor,
   onResizeSidebar,
   ambient,
   soundEnabled,
   musicEnabled,
+  musicVolume,
   customMusicUrl,
   aestheticId,
+  customProfileId,
   className,
 }: DeskLayoutProps) {
   const isEditorVisible = showEditor;
@@ -76,6 +89,7 @@ export function DeskLayout({
   const isEjectVisible = Boolean(ejectPanel) && showEject;
   const isTemplatesVisible = Boolean(templatePanel) && showTemplates;
   const isTrainingVisible = Boolean(trainingPanel) && showTraining;
+  const isDictaphoneVisible = Boolean(dictaphonePanel) && showDictaphone;
   const ejectShortcut = formatShortcut(["mod", "e"]);
   // `persist` may rehydrate older saved settings that don't include newly added fields.
   // Merge with defaults to avoid undefined values.
@@ -90,12 +104,17 @@ export function DeskLayout({
   };
   const soundSetting = soundEnabled ?? true;
   const musicSetting = musicEnabled ?? false;
+  // Per-preset chrome copy so the workspace/editor labels read as the active
+  // world (e.g. "MAIN DISPLAY" on nostromo) instead of always-noir. Resolved
+  // from the base aesthetic id; custom profiles inherit their base preset copy.
+  const copy = getAestheticCopy(aestheticId);
 
   const getGridColsClass = () => {
     const cols: string[] = [];
     if (isEditorVisible) cols.push("var(--editor-w)");
     if (isTemplatesVisible) cols.push("280px");
     cols.push("1fr");
+    if (isDictaphoneVisible) cols.push("380px");
     if (isEjectVisible) cols.push("400px");
     if (isTrainingVisible) cols.push("420px");
     // Sidebar is now fixed position, not in grid - but reserve space with margin
@@ -108,6 +127,7 @@ export function DeskLayout({
     <div
       data-testid="desk-layout"
       data-aesthetic={aestheticId ?? "noir"}
+      data-custom-profile={customProfileId || undefined}
       className={cn(
         "min-h-screen grid gap-0 bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] relative isolate overflow-hidden film-grain vignette",
         gridColsClass,
@@ -132,12 +152,14 @@ export function DeskLayout({
         ambient={ambientSettings}
         soundEnabled={soundSetting}
         musicEnabled={musicSetting}
+        musicVolume={musicVolume}
         customMusicUrl={customMusicUrl}
         aestheticId={aestheticId}
       />
       <div
         data-testid="noir-rain-bg"
-        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-top opacity-40 contrast-110 saturate-[0.85] brightness-90 pointer-events-none z-0"
+        className="absolute inset-0 bg-cover bg-top opacity-40 contrast-110 saturate-[0.85] brightness-90 pointer-events-none z-0"
+        style={{ backgroundImage: "var(--aesthetic-bg-image)" }}
         aria-hidden="true"
       />
       {/* Vertical readability gradient: dark header + lit mid-field + dark
@@ -155,14 +177,21 @@ export function DeskLayout({
         }}
         aria-hidden="true"
       />
-      {/* Warm desk-lamp rim glow, biased toward the evidence-board side so it
-          reads in the default 3-pane layout. */}
+      {/* Desk-lamp rim glow, biased toward the evidence-board side so it reads
+          in the default 3-pane layout. color-mix keeps it theme-aware (the
+          accent replaces the old hardcoded amber), and the stop opacities are
+          scaled by --aesthetic-glow-strength so minimal (0) goes dark while
+          cyber-fixer (1.4) glows harder. Noir's strength is 1, so 10%/4% of the
+          #ffbf00 accent matches the previous rgba(255,191,0) values. */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
         aria-hidden="true"
         style={{
           background:
-            "radial-gradient(60% 50% at 38% 90%, rgba(255,191,0,0.10), rgba(255,191,0,0.04) 40%, transparent 72%)",
+            "radial-gradient(60% 50% at 38% 90%, " +
+            "color-mix(in srgb, var(--aesthetic-accent) calc(10% * var(--aesthetic-glow-strength)), transparent), " +
+            "color-mix(in srgb, var(--aesthetic-accent) calc(4% * var(--aesthetic-glow-strength)), transparent) 40%, " +
+            "transparent 72%)",
         }}
       />
       {!isEditorVisible && onToggleEditor && (
@@ -205,13 +234,14 @@ export function DeskLayout({
           )}
           <div
             data-testid="noir-case-file"
-            className="absolute inset-0 bg-[url('/assets/noir/Gemini_Generated_Image_hgsjjdhgsjjdhgsj.jpeg')] bg-[length:75%] bg-left-bottom bg-no-repeat opacity-[0.07] pointer-events-none"
+            className="absolute inset-0 bg-[length:75%] bg-left-bottom bg-no-repeat opacity-[0.07] pointer-events-none"
+            style={{ backgroundImage: "var(--aesthetic-case-file-image)" }}
             aria-hidden="true"
           />
           <div className="relative z-10 flex flex-col flex-1 min-h-0">
             <div className="mb-4 border-b border-[var(--aesthetic-border)]/20 pb-2 flex items-center justify-between gap-2">
               <h2 className="font-typewriter text-sm text-[var(--aesthetic-text)]/70">
-                CASE FILE // JSON DATA
+                {copy.editorTitle}
               </h2>
               {onToggleEditor && (
                 <button
@@ -246,7 +276,7 @@ export function DeskLayout({
         <div className="sticky top-0 z-20 px-6 py-3 bg-[var(--aesthetic-background)]/30 border-b border-[var(--aesthetic-border)]/20 backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3">
             <span className="font-typewriter text-xs text-[var(--aesthetic-accent)]/60 uppercase tracking-[0.3em]">
-              Evidence Board
+              {copy.workspaceTitle}
             </span>
             <div className="flex items-center gap-2 overflow-x-auto">
               {onToggleTraining && (
@@ -300,6 +330,26 @@ export function DeskLayout({
                   Eject
                 </button>
               )}
+              {onToggleDictaphone && (
+                <button
+                  type="button"
+                  onClick={onToggleDictaphone}
+                  aria-label={showDictaphone ? "Hide dictaphone log" : "Show dictaphone log"}
+                  title={showDictaphone ? "Hide dictaphone log" : "Open dictaphone tape recorder"}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                    showDictaphone
+                      ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
+                      : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
+                  )}
+                >
+                  <Disc
+                    className={cn("w-3 h-3", showDictaphone && "animate-spin")}
+                    style={{ animationDuration: "3s" }}
+                  />
+                  Dictaphone
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -307,6 +357,12 @@ export function DeskLayout({
           {preview}
         </div>
       </div>
+
+      {isDictaphoneVisible && dictaphonePanel && (
+        <div className="h-full overflow-hidden border-l border-[var(--aesthetic-border)]/20 relative z-10">
+          {dictaphonePanel}
+        </div>
+      )}
 
       {isEjectVisible && ejectPanel && (
         <div className="h-full overflow-hidden relative z-10">{ejectPanel}</div>

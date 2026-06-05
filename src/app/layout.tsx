@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "synthNoirUI",
   description: "A Detective Noir UI Generator",
   icons: {
-    icon: "/assets/noir/search-icon.png",
+    icon: "/assets/noir/search-icon-removebg-preview.png",
   },
 };
 
