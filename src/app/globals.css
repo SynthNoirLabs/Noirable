@@ -44,6 +44,7 @@
   --aesthetic-error: #8a0000;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
+
   /* Multiplier for accent-driven glow effects (desk-lamp rim, CRT bloom).
      Atmospheric effects scale their intensity by this so e.g. minimal (0)
      reads flat while cyber-fixer (1.4) glows harder. Mirrors the
