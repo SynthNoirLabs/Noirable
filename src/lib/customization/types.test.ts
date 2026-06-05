@@ -4,6 +4,7 @@ import {
   exportedSettingsSchema,
   profileColorsSchema,
   profileVoiceSchema,
+  profileAudioSchema,
   validateCustomProfile,
   validateExportedSettings,
   type CustomProfile,
@@ -19,6 +20,18 @@ describe("customProfileSchema", () => {
       updatedAt: Date.now(),
       colors: { accent: "#ff0000" },
       systemPrompt: "You are a cybernetic detective.",
+    };
+    expect(customProfileSchema.safeParse(profile).success).toBe(true);
+  });
+
+  it("validates backgroundImageUrl if provided", () => {
+    const profile: CustomProfile = {
+      id: "custom-abc123",
+      name: "My Custom Theme",
+      baseAestheticId: "noir",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      backgroundImageUrl: "/api/uploads/xyz.png",
     };
     expect(customProfileSchema.safeParse(profile).success).toBe(true);
   });
@@ -57,14 +70,32 @@ describe("profileColorsSchema", () => {
   });
 });
 
+describe("profileAudioSchema", () => {
+  it("allows relative path for customMusicUrl and customRainUrl", () => {
+    const audio = {
+      customMusicUrl: "/api/uploads/song.mp3",
+      customRainUrl: "/api/uploads/rain.mp3",
+    };
+    expect(profileAudioSchema.safeParse(audio).success).toBe(true);
+  });
+
+  it("allows full URL for customMusicUrl and customRainUrl", () => {
+    const audio = {
+      customMusicUrl: "https://example.com/song.mp3",
+      customRainUrl: "https://example.com/rain.mp3",
+    };
+    expect(profileAudioSchema.safeParse(audio).success).toBe(true);
+  });
+});
+
 describe("profileVoiceSchema", () => {
   it("validates voice settings within bounds", () => {
-    const voice = { stability: 0.5, speed: 1.5 };
+    const voice = { stability: 0.5, speed: 1.0 };
     expect(profileVoiceSchema.safeParse(voice).success).toBe(true);
   });
 
   it("rejects speed out of bounds", () => {
-    const voice = { speed: 3.0 }; // max is 2.0
+    const voice = { speed: 1.5 }; // max is 1.2
     expect(profileVoiceSchema.safeParse(voice).success).toBe(false);
   });
 });

@@ -60,7 +60,8 @@ export async function POST(request: Request) {
   const stability = body?.voiceSettings?.stability ?? ELEVENLABS_CONFIG.stability;
   const similarityBoost = body?.voiceSettings?.similarityBoost ?? ELEVENLABS_CONFIG.similarityBoost;
   const style = body?.voiceSettings?.style ?? ELEVENLABS_CONFIG.style;
-  const speed = body?.voiceSettings?.speed ?? ELEVENLABS_CONFIG.speed;
+  const rawSpeed = body?.voiceSettings?.speed ?? ELEVENLABS_CONFIG.speed;
+  const speed = Math.max(0.7, Math.min(1.2, rawSpeed));
 
   // Compute a unique hash of the speech parameters
   const hash = crypto

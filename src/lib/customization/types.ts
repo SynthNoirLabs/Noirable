@@ -40,8 +40,8 @@ export const profileAudioSchema = z.object({
   ambientRainVolume: z.number().min(0).max(1).optional(),
   ambientCrackleVolume: z.number().min(0).max(1).optional(),
   // Custom audio URLs (optional overrides)
-  customMusicUrl: z.string().url().optional(),
-  customRainUrl: z.string().url().optional(),
+  customMusicUrl: z.string().optional(),
+  customRainUrl: z.string().optional(),
 });
 export type ProfileAudio = z.infer<typeof profileAudioSchema>;
 
@@ -51,7 +51,7 @@ export const profileVoiceSchema = z.object({
   stability: z.number().min(0).max(1).optional(),
   similarityBoost: z.number().min(0).max(1).optional(),
   style: z.number().min(0).max(1).optional(),
-  speed: z.number().min(0.5).max(2).optional(),
+  speed: z.number().min(0.7).max(1.2).optional(),
 });
 export type ProfileVoice = z.infer<typeof profileVoiceSchema>;
 
@@ -80,6 +80,7 @@ export const customProfileSchema = z.object({
   effects: profileEffectsSchema.optional(),
   imageStylePrompt: z.string().max(500).optional(),
   systemPrompt: z.string().max(3000).optional(),
+  backgroundImageUrl: z.string().optional(),
 });
 export type CustomProfile = z.infer<typeof customProfileSchema>;
 

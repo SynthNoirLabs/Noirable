@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { cn } from "@/lib/utils";
 import {
   Mic,
@@ -29,6 +30,12 @@ interface VoiceListResponse {
 
 export function VoiceCustomization() {
   const { settings, updateSettings } = useA2UIStore();
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const updateProfile = useCustomProfileStore((state) => state.updateProfile);
+
   const [voices, setVoices] = useState<Voice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +46,7 @@ export function VoiceCustomization() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const voiceSettings = settings.voiceSettings || {};
+  const voiceSettings = activeProfile ? activeProfile.voice || {} : settings.voiceSettings || {};
   const currentVoiceId = voiceSettings.voiceId || "";
 
   // Close dropdown when clicking outside
@@ -89,23 +96,53 @@ export function VoiceCustomization() {
   }, [settings.apiKeys?.elevenlabs]);
 
   const handleVoiceSelect = (voiceId: string) => {
-    updateSettings({
-      voiceSettings: {
-        ...voiceSettings,
-        voiceId,
-      },
-    });
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        voice: {
+          ...voiceSettings,
+          voiceId,
+        },
+      });
+    } else {
+      updateSettings({
+        voiceSettings: {
+          ...voiceSettings,
+          voiceId,
+        },
+      });
+    }
     setIsDropdownOpen(false);
     setManualInputMode(voiceId === "custom");
   };
 
   const handleSettingChange = (key: keyof typeof voiceSettings, value: number) => {
-    updateSettings({
-      voiceSettings: {
-        ...voiceSettings,
-        [key]: value,
-      },
-    });
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        voice: {
+          ...voiceSettings,
+          [key]: value,
+        },
+      });
+    } else {
+      updateSettings({
+        voiceSettings: {
+          ...voiceSettings,
+          [key]: value,
+        },
+      });
+    }
+  };
+
+  const handleReset = () => {
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        voice: undefined,
+      });
+    } else {
+      updateSettings({
+        voiceSettings: undefined,
+      });
+    }
   };
 
   const handlePreview = async () => {
@@ -329,15 +366,15 @@ export function VoiceCustomization() {
           label="Speed"
           icon={<Wind className="w-3 h-3" />}
           value={voiceSettings.speed ?? 1.0}
-          min={0.5}
-          max={2.0}
+          min={0.7}
+          max={1.2}
           step={0.01}
           onChange={(v) => handleSettingChange("speed", v)}
         />
       </div>
 
       {/* Preview Button */}
-      <div className="pt-2">
+      <div className="pt-2 flex flex-col gap-2">
         <button
           onClick={handlePreview}
           disabled={isPlaying || !currentVoiceId}
@@ -367,6 +404,13 @@ export function VoiceCustomization() {
               Preview Voice
             </>
           )}
+        </button>
+
+        <button
+          onClick={handleReset}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider transition-all duration-300 rounded-sm border border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text-muted)] hover:bg-[var(--aesthetic-text)]/5 hover:text-[var(--aesthetic-text)]"
+        >
+          Reset to Preset Default
         </button>
       </div>
     </div>
