@@ -398,6 +398,300 @@ body {
   animation: darkroom-safelight 4.5s ease-in-out forwards;
 }
 
+/* stylelint-disable */
+
+/* --- THEME-SPECIFIC TYPOGRAPHY --- */
+
+/* Cyber-Fixer: Monospace Futuristic Stack */
+[data-aesthetic="cyber-fixer"] {
+  --aesthetic-font-body: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
+  --aesthetic-font-heading: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
+}
+
+/* Nostromo Console: Retro Terminal Monospace Stack */
+[data-aesthetic="nostromo-console"] {
+  --aesthetic-font-body: "Courier New", courier, monospace;
+  --aesthetic-font-heading: "Courier New", courier, monospace;
+}
+
+/* Gothic Manor: Classic Elegant Serif Stack */
+[data-aesthetic="gothic-manor"] {
+  --aesthetic-font-body: georgia, garamond, "Times New Roman", serif;
+  --aesthetic-font-heading: georgia, garamond, "Times New Roman", serif;
+}
+
+/* --- ATMOSPHERIC EFFECTS OVERRIDES --- */
+
+/* 1. Cyber-Fixer Background & HUD Scanlines */
+[data-aesthetic="cyber-fixer"] .bg-venetian {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 40%, rgba(10, 5, 18, 0.7)),
+    linear-gradient(rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 204, 0.03) 1px, transparent 1px) !important;
+  background-size:
+    100% 100%,
+    32px 32px,
+    32px 32px !important;
+}
+
+/* Cyber-Fixer active scanline sweep */
+[data-aesthetic="cyber-fixer"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 204, 0.04) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 9997;
+}
+
+/* 2. Nostromo Console Background & Heavy CRT Scanlines + Flicker */
+[data-aesthetic="nostromo-console"] .bg-venetian {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 30%, rgba(2, 8, 4, 0.9)),
+    linear-gradient(rgba(51, 255, 102, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 255, 102, 0.02) 1px, transparent 1px) !important;
+  background-size:
+    100% 100%,
+    24px 24px,
+    24px 24px !important;
+}
+
+/* Nostromo Heavy Scanlines */
+[data-aesthetic="nostromo-console"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.28) 0px,
+    rgba(0, 0, 0, 0.28) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  pointer-events: none;
+  z-index: 9997;
+}
+
+/* Phosphor screen flicker animation (respects prefers-reduced-motion) */
+@keyframes crt-phosphor-flicker {
+  0% {
+    opacity: 0.985;
+  }
+  50% {
+    opacity: 0.975;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-aesthetic="nostromo-console"] {
+    animation: crt-phosphor-flicker 0.15s infinite;
+  }
+}
+
+/* 3. Gothic Manor Background */
+[data-aesthetic="gothic-manor"] .bg-venetian {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(24, 24, 31, 0.4), rgba(8, 8, 10, 0.96)),
+    url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M72 64c-2 0-3 1-4 2v6c0 1-1 2-2 2h-6c-1 0-2-1-2-2v-6c0-1-1-2-2-2H36c-1 0-2 1-2 2v6c0 1-1 2-2 2h-6c-1 0-2-1-2-2v-6c0-1-1-2-2-2H2c-1 0-2 1-2 2v6c0 1 1 2 2 2h76c1 0 2-1 2-2v-12h-8zM40 28c-2 0-3 1-4 2v6c0 1-1 2-2 2h-6c-1 0-2-1-2-2v-6c0-1-1-2-2-2H2c-1 0-2 1-2 2v6c0 1 1 2 2 2h76c1 0 2-1 2-2v-12h-8z' fill='%2322222b' fill-opacity='0.12'/%3E%3C/svg%3E") !important;
+  background-size:
+    100% 100%,
+    auto !important;
+}
+
+/* --- THEME-SPECIFIC EVIDENCE CARDS & BORDERS --- */
+
+/* 1. Cyber-Fixer: Neon Glowing Hologram Cards */
+[data-aesthetic="cyber-fixer"] .bg-paper {
+  background-color: rgba(20, 12, 36, 0.85) !important;
+  background-image: none !important;
+  color: var(--aesthetic-text) !important;
+  border: 1px solid var(--aesthetic-accent) !important;
+  border-radius: 4px !important;
+  box-shadow:
+    0 0 15px rgba(0, 255, 204, 0.2),
+    inset 0 0 10px rgba(0, 255, 204, 0.1),
+    0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-aesthetic="cyber-fixer"] .coffee-stain {
+  display: none !important; /* Hide coffee stains on hologram screens */
+}
+
+/* Digital label style for stamp */
+[data-aesthetic="cyber-fixer"] .mask-stamp {
+  border: 1px solid var(--aesthetic-accent-muted) !important;
+  color: var(--aesthetic-accent-muted) !important;
+  background: rgba(255, 0, 127, 0.05) !important;
+  text-shadow: 0 0 5px var(--aesthetic-accent-muted) !important;
+  mask-image: none !important;
+  transform: rotate(4deg) !important;
+  border-radius: 2px !important;
+}
+
+/* 2. Nostromo Console: Wireframe / Terminal Cards */
+[data-aesthetic="nostromo-console"] .bg-paper {
+  background-color: #05160b !important;
+  background-image: none !important;
+  color: var(--aesthetic-text) !important;
+  border: 1px solid var(--aesthetic-border) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    inset 0 0 15px rgba(51, 255, 102, 0.08),
+    0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-aesthetic="nostromo-console"] .coffee-stain {
+  display: none !important;
+}
+
+/* Terminal tag style for status stamp */
+[data-aesthetic="nostromo-console"] .mask-stamp {
+  border: 1px solid var(--aesthetic-accent) !important;
+  color: var(--aesthetic-accent) !important;
+  background: transparent !important;
+  text-shadow: 0 0 6px rgba(51, 255, 102, 0.5) !important;
+  mask-image: none !important;
+  transform: none !important;
+  border-radius: 0 !important;
+}
+
+/* Retro-futuristic bracket highlights for Nostromo cards */
+[data-aesthetic="nostromo-console"] .bg-paper::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--aesthetic-accent);
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+/* 3. Gothic Manor: Aged Parchment with Wood/Stone Borders */
+[data-aesthetic="gothic-manor"] .bg-paper {
+  background-color: #d7c5a9 !important; /* warm yellow parchment */
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper-noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.72 0 0 0 0 0.63 0 0 0 0.18 0'/%3E%3CfeBlend mode='multiply' in='SourceGraphic' in2='noise'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper-noise)'/%3E%3C/svg%3E") !important;
+  color: #1f1408 !important; /* dark brown ink */
+  border: 4px double #4a3424 !important; /* stone/wood double border */
+  border-radius: 2px !important;
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.7),
+    inset 0 0 60px rgba(74, 52, 36, 0.2) !important;
+}
+
+/* Adjust stain to look like blood splatter / dark ink */
+[data-aesthetic="gothic-manor"] .coffee-stain {
+  border-color: rgba(153, 0, 17, 0.18) !important;
+  background-color: rgba(153, 0, 17, 0.03) !important;
+  border-radius: 40% 60% 50% 50% / 50% 40% 60% 50% !important; /* asymmetric organic splash */
+}
+
+/* Wax Seal style status stamp */
+[data-aesthetic="gothic-manor"] .mask-stamp {
+  border: 2px solid #990011 !important;
+  color: #e1e1e6 !important;
+  background: radial-gradient(circle, #990011 0%, #66000b 100%) !important;
+  border-radius: 50% !important;
+  width: 56px !important;
+  height: 56px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 8px !important;
+  letter-spacing: 0.05em !important;
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    inset 0 0 8px rgba(0, 0, 0, 0.6) !important;
+  transform: rotate(-12deg) !important;
+  mask-image: none !important;
+}
+
+/* 4. Noir Detective (Default Base overrides) */
+[data-aesthetic="noir"] .bg-paper {
+  background-color: var(--color-noir-paper) !important;
+  color: var(--color-noir-ink) !important;
+  border: 1px solid var(--aesthetic-border) !important;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    inset 0 0 40px rgba(112, 66, 20, 0.08) !important;
+}
+
+/* --- THEME-SPECIFIC TEXT BLOOM / GLOWS --- */
+
+/* Cyber-Fixer: Neon Cyan Glow */
+[data-aesthetic="cyber-fixer"] .font-typewriter,
+[data-aesthetic="cyber-fixer"] .font-mono,
+[data-aesthetic="cyber-fixer"] h1,
+[data-aesthetic="cyber-fixer"] h2,
+[data-aesthetic="cyber-fixer"] h3,
+[data-aesthetic="cyber-fixer"] .text-\[var\(--aesthetic-accent\)\] {
+  text-shadow:
+    0 0 2px rgba(0, 255, 204, 0.5),
+    0 0 6px rgba(0, 255, 204, 0.2) !important;
+}
+
+/* Nostromo Console: Monochromatic Green Phosphor Bloom */
+[data-aesthetic="nostromo-console"] .font-typewriter,
+[data-aesthetic="nostromo-console"] .font-mono,
+[data-aesthetic="nostromo-console"] h1,
+[data-aesthetic="nostromo-console"] h2,
+[data-aesthetic="nostromo-console"] h3,
+[data-aesthetic="nostromo-console"] span,
+[data-aesthetic="nostromo-console"] p,
+[data-aesthetic="nostromo-console"] td {
+  text-shadow: 0 0 4px rgba(51, 255, 102, 0.4) !important;
+}
+
+/* --- FORM CONTROLS POLISH --- */
+
+/* 1. Cyber-Fixer Form Controls */
+[data-aesthetic="cyber-fixer"] input:not([type="checkbox"], [type="range"]),
+[data-aesthetic="cyber-fixer"] textarea,
+[data-aesthetic="cyber-fixer"] select {
+  background-color: rgba(10, 5, 18, 0.6) !important;
+  border-color: rgba(0, 255, 204, 0.3) !important;
+  color: var(--aesthetic-text) !important;
+}
+[data-aesthetic="cyber-fixer"] input:focus,
+[data-aesthetic="cyber-fixer"] textarea:focus,
+[data-aesthetic="cyber-fixer"] select:focus {
+  border-color: var(--aesthetic-accent) !important;
+  box-shadow: 0 0 8px rgba(0, 255, 204, 0.3) !important;
+}
+
+/* 2. Nostromo Console Form Controls */
+[data-aesthetic="nostromo-console"] input:not([type="checkbox"], [type="range"]),
+[data-aesthetic="nostromo-console"] textarea,
+[data-aesthetic="nostromo-console"] select {
+  background-color: rgba(2, 8, 4, 0.7) !important;
+  border-color: var(--aesthetic-border) !important;
+  color: var(--aesthetic-text) !important;
+  border-radius: 0 !important;
+}
+[data-aesthetic="nostromo-console"] input:focus,
+[data-aesthetic="nostromo-console"] textarea:focus,
+[data-aesthetic="nostromo-console"] select:focus {
+  border-color: var(--aesthetic-accent) !important;
+  box-shadow: 0 0 10px rgba(51, 255, 102, 0.3) !important;
+}
+
+/* 3. Gothic Manor Form Controls */
+[data-aesthetic="gothic-manor"] input:not([type="checkbox"], [type="range"]),
+[data-aesthetic="gothic-manor"] textarea,
+[data-aesthetic="gothic-manor"] select {
+  background-color: #121217 !important;
+  border: 1px solid var(--aesthetic-border) !important;
+  color: var(--aesthetic-text) !important;
+}
+[data-aesthetic="gothic-manor"] input:focus,
+[data-aesthetic="gothic-manor"] textarea:focus,
+[data-aesthetic="gothic-manor"] select:focus {
+  border-color: var(--aesthetic-accent) !important;
+  box-shadow: 0 0 0 1px var(--aesthetic-accent) !important;
+}
+
 /* --- GLOBAL REDUCED-MOTION RESET --- */
 
 /* Honour the user's reduced-motion preference everywhere, including effects

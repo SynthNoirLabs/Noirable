@@ -464,6 +464,62 @@ export const sliderSchema = componentCommonSchema.extend({
 export type Slider = z.infer<typeof sliderSchema>;
 
 // =============================================================================
+// Templates (2)
+// =============================================================================
+
+export const kanbanCardSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  assignee: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+export const kanbanColumnSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  cards: z.array(kanbanCardSchema),
+});
+
+export const kanbanBoardSchema = componentCommonSchema.extend({
+  component: z.literal("KanbanBoard"),
+  title: dynamicStringSchema.optional(),
+  columns: z.array(kanbanColumnSchema),
+});
+export type KanbanBoard = z.infer<typeof kanbanBoardSchema>;
+
+export const dashboardWidgetSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  type: z.enum(["metric", "progress", "chart"]),
+  value: z.union([z.string(), z.number()]).optional(),
+  unit: z.string().optional(),
+  progress: z.number().optional(),
+  chartType: z.enum(["line", "bar", "pie"]).optional(),
+  data: z
+    .array(
+      z.object({
+        label: z.string(),
+        value: z.number(),
+      })
+    )
+    .optional(),
+  trend: z
+    .object({
+      value: z.number(),
+      direction: z.enum(["up", "down", "neutral"]),
+    })
+    .optional(),
+});
+
+export const dataDashboardSchema = componentCommonSchema.extend({
+  component: z.literal("DataDashboard"),
+  title: dynamicStringSchema.optional(),
+  widgets: z.array(dashboardWidgetSchema),
+});
+export type DataDashboard = z.infer<typeof dataDashboardSchema>;
+
+// =============================================================================
 // Discriminated Union
 // =============================================================================
 
@@ -493,6 +549,9 @@ export const componentSchema = z.discriminatedUnion("component", [
   dateTimeInputSchema,
   choicePickerSchema,
   sliderSchema,
+  // Templates (2)
+  kanbanBoardSchema,
+  dataDashboardSchema,
 ]);
 
 /**
@@ -532,4 +591,136 @@ export {
   // Option/Tab schemas
   choiceOptionSchema,
   tabItemSchema,
+};
+
+export const kanbanTemplate = {
+  id: "kanban-board-template",
+  name: "Kanban Board",
+  components: [
+    {
+      id: "root",
+      component: "Row",
+      justify: "spaceBetween",
+      children: ["col-todo", "col-progress", "col-done"],
+    },
+    {
+      id: "col-todo",
+      component: "Column",
+      children: ["title-todo", "card-1"],
+    },
+    {
+      id: "title-todo",
+      component: "Text",
+      text: "To Do",
+      variant: "h4",
+    },
+    {
+      id: "card-1",
+      component: "Card",
+      child: "card-text-1",
+    },
+    {
+      id: "card-text-1",
+      component: "Text",
+      text: "John Doe (Primary Suspect)",
+    },
+    {
+      id: "col-progress",
+      component: "Column",
+      children: ["title-progress", "card-2"],
+    },
+    {
+      id: "title-progress",
+      component: "Text",
+      text: "In Progress",
+      variant: "h4",
+    },
+    {
+      id: "card-2",
+      component: "Card",
+      child: "card-text-2",
+    },
+    {
+      id: "card-text-2",
+      component: "Text",
+      text: "Jane Smith (Alibi Check)",
+    },
+    {
+      id: "col-done",
+      component: "Column",
+      children: ["title-done"],
+    },
+    {
+      id: "title-done",
+      component: "Text",
+      text: "Done",
+      variant: "h4",
+    },
+  ],
+};
+
+export const dashboardTemplate = {
+  id: "data-dashboard-template",
+  name: "Data Dashboard",
+  components: [
+    {
+      id: "root",
+      component: "Column",
+      children: ["dash-title", "stats-row"],
+    },
+    {
+      id: "dash-title",
+      component: "Text",
+      text: "System Logs Analytics",
+      variant: "h2",
+    },
+    {
+      id: "stats-row",
+      component: "Row",
+      justify: "spaceEvenly",
+      children: ["stat-1", "stat-2"],
+    },
+    {
+      id: "stat-1",
+      component: "Card",
+      child: "stat-col-1",
+    },
+    {
+      id: "stat-col-1",
+      component: "Column",
+      children: ["stat-label-1", "stat-val-1"],
+    },
+    {
+      id: "stat-label-1",
+      component: "Text",
+      text: "Total Clues",
+    },
+    {
+      id: "stat-val-1",
+      component: "Text",
+      text: "42",
+      variant: "h3",
+    },
+    {
+      id: "stat-2",
+      component: "Card",
+      child: "stat-col-2",
+    },
+    {
+      id: "stat-col-2",
+      component: "Column",
+      children: ["stat-label-2", "stat-val-2"],
+    },
+    {
+      id: "stat-label-2",
+      component: "Text",
+      text: "Alerts",
+    },
+    {
+      id: "stat-val-2",
+      component: "Text",
+      text: "3",
+      variant: "h3",
+    },
+  ],
 };

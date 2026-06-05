@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Palette, Volume2, Mic, Sparkles, Settings, Download, Brain } from "lucide-react";
+import { X, Palette, Volume2, Mic, Sparkles, Settings, Download, Brain, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { ProfileSelector } from "./ProfileSelector";
@@ -12,8 +12,17 @@ import { AudioCustomization } from "./AudioCustomization";
 import { VoiceCustomization } from "./VoiceCustomization";
 import { EffectsCustomization } from "./EffectsCustomization";
 import { ApiKeyManager } from "./ApiKeyManager";
+import { ProfilePortability } from "./ProfilePortability";
 
-type TabId = "profile" | "colors" | "persona" | "audio" | "voice" | "effects" | "advanced";
+type TabId =
+  | "profile"
+  | "colors"
+  | "persona"
+  | "audio"
+  | "voice"
+  | "effects"
+  | "portability"
+  | "advanced";
 
 interface Tab {
   id: TabId;
@@ -28,7 +37,8 @@ const TABS: Tab[] = [
   { id: "audio", label: "Audio", icon: <Volume2 className="w-4 h-4" /> },
   { id: "voice", label: "Voice", icon: <Mic className="w-4 h-4" /> },
   { id: "effects", label: "Effects", icon: <Sparkles className="w-4 h-4" /> },
-  { id: "advanced", label: "Advanced", icon: <Download className="w-4 h-4" /> },
+  { id: "portability", label: "Portability", icon: <Download className="w-4 h-4" /> },
+  { id: "advanced", label: "Advanced", icon: <Key className="w-4 h-4" /> },
 ];
 
 interface CustomizationPanelProps {
@@ -132,6 +142,8 @@ function renderTabContent(tabId: TabId): React.ReactNode {
       return <VoiceCustomization />;
     case "effects":
       return <EffectsCustomization />;
+    case "portability":
+      return <ProfilePortability />;
     case "advanced":
       return <ApiKeyManager />;
     default:

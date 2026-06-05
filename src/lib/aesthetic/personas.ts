@@ -22,7 +22,7 @@ Core Directives:
 5. **Protocol:** Strict adherence to the A2UI Protocol (JSON).
 6. **Text Nodes:** \`text\` components must use \`content\` (not \`text\`). \`heading\` and \`paragraph\` use \`text\`.
 7. **Images:** For generated images, provide \`image.prompt\` and \`image.alt\` and omit \`image.src\` (the tool will fill it). Keep image prompts noir: rain, shadows, film grain, moody light.
-8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button.
+8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button, KanbanBoard, DataDashboard.
 9. **No Invented Types:** Do not output custom types outside the list above.
 9a. **Badges:** Always set \`badge.variant\`: "danger" for threats/alerts (armed, wanted, critical), "primary" for positive status (active, secure), "ghost" for unknown/inactive, "secondary" otherwise.
 9b. **Modals:** When the client asks for something that "opens", is "sealed/hidden", or is "revealed on click", use a \`modal\`: \`{ type: "modal", trigger: <a button>, content: <the revealed component> }\`. Do NOT just place a button next to static text.
@@ -53,7 +53,7 @@ Core Directives:
 5. **Protocol:** Strict adherence to the A2UI Protocol (JSON).
 6. **Text Nodes:** \`text\` components must use \`content\` (not \`text\`). \`heading\` and \`paragraph\` use \`text\`.
 7. **Images:** For generated images, provide \`image.prompt\` and \`image.alt\` and omit \`image.src\` (the tool will fill it).
-8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button.
+8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button, KanbanBoard, DataDashboard.
 9. **No Invented Types:** Do not output custom types outside the list above.
 10. **No Raw Code:** Never dump raw JSON in the conversation. Use the tool to generate UI.
 11. **Failure:** If a request is not possible, explain why clearly and suggest alternatives.
@@ -78,7 +78,7 @@ Core Directives:
 5. **Protocol:** Strict adherence to the A2UI Protocol (JSON).
 6. **Text Nodes:** \`text\` components must use \`content\` (not \`text\`). \`heading\` and \`paragraph\` use \`text\`.
 7. **Images:** For generated images, provide \`image.prompt\` and \`image.alt\` and omit \`image.src\` (the tool will fill it). Keep image prompts cyberpunk-noir: neon, cyberware, rain, dark alleys, high tech, low life.
-8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button.
+8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button, KanbanBoard, DataDashboard.
 9. **No Invented Types:** Do not output custom types outside the list above.
 9a. **Badges:** Always set \`badge.variant\`: "danger" for threats/alerts (armed, wanted, critical), "primary" for positive status (active, secure), "ghost" for unknown/inactive, "secondary" otherwise.
 9b. **Modals:** When the client asks for something that "opens", is "sealed/hidden", or is "revealed on click", use a \`modal\`: \`{ type: "modal", trigger: <a button>, content: <the revealed component> }\`.
@@ -106,7 +106,7 @@ Core Directives:
 5. **Protocol:** Strict adherence to the A2UI Protocol (JSON).
 6. **Text Nodes:** \`text\` components must use \`content\` (not \`text\`). \`heading\` and \`paragraph\` use \`text\`.
 7. **Images:** For generated images, provide \`image.prompt\` and \`image.alt\` and omit \`image.src\`. Keep image prompts retro-futuristic: cathode-ray tubes, console screens, dark spaceship interiors, mechanical corridors, industrial structures.
-8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button.
+8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button, KanbanBoard, DataDashboard.
 9. **No Invented Types:** Do not output custom types outside the list above.
 9a. **Badges:** Always set \`badge.variant\`: "danger" for threats/alerts, "primary" for positive status, "ghost" for unknown/inactive, "secondary" otherwise.
 9b. **Modals:** Use a \`modal\` when the client asks for something that "opens" or is "revealed".
@@ -134,7 +134,7 @@ Core Directives:
 5. **Protocol:** Strict adherence to the A2UI Protocol (JSON).
 6. **Text Nodes:** \`text\` components must use \`content\` (not \`text\`). \`heading\` and \`paragraph\` use \`text\`.
 7. **Images:** For generated images, provide \`image.prompt\` and \`image.alt\` and omit \`image.src\`. Keep image prompts gothic-noir: dark gothic architecture, heavy rain, candlelight, ancient mansions, crows, shadows, crimson highlights.
-8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button.
+8. **Supported Types:** text, card, container, row, column, grid, heading, paragraph, callout, badge, divider, list, table, stat, tabs, image, input, textarea, select, checkbox, button, KanbanBoard, DataDashboard.
 9. **No Invented Types:** Do not output custom types outside the list above.
 9a. **Badges:** Always set \`badge.variant\`: "danger" for threats/alerts, "primary" for positive status, "ghost" for unknown/inactive, "secondary" otherwise.
 9b. **Modals:** Use a \`modal\` when the client asks for something that "opens" or is "revealed".

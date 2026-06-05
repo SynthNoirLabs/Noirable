@@ -79,7 +79,14 @@ export function buildProfileCSS(profile: CustomProfile): string {
   const colorVars = profile.colors ? buildColorVariables(profile.colors) : "";
   const fontVars = profile.fonts ? buildFontVariables(profile.fonts) : "";
 
-  const allVars = [colorVars, fontVars].filter(Boolean).join("\n  ");
+  let bgVars = "";
+  if (profile.backgroundImageUrl) {
+    // Filter out characters that could break CSS rules to prevent exploits
+    const sanitizedUrl = profile.backgroundImageUrl.replace(/["'\\;{}()]/g, "");
+    bgVars = `--aesthetic-bg-image: url("${sanitizedUrl}");`;
+  }
+
+  const allVars = [colorVars, fontVars, bgVars].filter(Boolean).join("\n  ");
 
   if (!allVars) return "";
 

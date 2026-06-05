@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { RotateCcw } from "lucide-react";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { injectProfileStyles } from "@/lib/customization/css-injection";
-import type { ProfileColors } from "@/lib/customization/types";
+import type { ProfileColors, CustomProfile } from "@/lib/customization/types";
 import type { CustomProfileId, BuiltInAestheticId } from "@/lib/aesthetic/types";
 
 const PRESET_COLORS: Record<BuiltInAestheticId, Required<ProfileColors>> = {
@@ -205,12 +205,162 @@ export function ColorCustomization() {
   };
 
   return (
-    <ColorEditor
-      key={activeProfile.id}
-      initialColors={initialColors}
-      defaultColors={defaultColors}
-      profileId={activeProfile.id}
-      onUpdate={handleUpdate}
-    />
+    <div className="space-y-8">
+      <ColorEditor
+        key={activeProfile.id}
+        initialColors={initialColors}
+        defaultColors={defaultColors}
+        profileId={activeProfile.id}
+        onUpdate={handleUpdate}
+      />
+      <div className="border-t border-[var(--aesthetic-border)] pt-6">
+        <BackgroundImageCustomizer profile={activeProfile} updateProfile={updateProfile} />
+      </div>
+    </div>
+  );
+}
+
+interface BackgroundImageCustomizerProps {
+  profile: CustomProfile;
+  updateProfile: (
+    id: CustomProfileId,
+    updates: Partial<Omit<CustomProfile, "id" | "createdAt">>
+  ) => void;
+}
+
+function BackgroundImageCustomizer({ profile, updateProfile }: BackgroundImageCustomizerProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Invalid file type. Only PNG, JPEG, GIF, and WEBP images are allowed.");
+      setSuccess(null);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File is too large. Max size is 10MB.");
+      setSuccess(null);
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/uploads", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+
+      const { url } = await response.json();
+
+      const updatedProfile = {
+        ...profile,
+        backgroundImageUrl: url,
+      };
+
+      // Live update styles
+      injectProfileStyles(updatedProfile);
+
+      // Persist updates
+      updateProfile(profile.id, { backgroundImageUrl: url });
+      setSuccess("Background image updated successfully.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong during upload.";
+      setError(msg);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemove = () => {
+    const updatedProfile = {
+      ...profile,
+      backgroundImageUrl: undefined,
+    };
+    injectProfileStyles(updatedProfile);
+    updateProfile(profile.id, { backgroundImageUrl: undefined });
+    setSuccess("Background image removed.");
+    setError(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--aesthetic-text-muted)]">
+        Background Image
+      </h3>
+      <div className="space-y-3">
+        {profile.backgroundImageUrl ? (
+          <div className="flex flex-col gap-2 p-3 bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)] rounded-sm">
+            <span
+              className="text-xs font-mono text-[var(--aesthetic-text-muted)] truncate"
+              data-testid="bg-image-url"
+            >
+              Current: {profile.backgroundImageUrl}
+            </span>
+            <button
+              onClick={handleRemove}
+              className="w-full sm:w-auto px-3 py-1.5 text-xs font-mono uppercase tracking-wide bg-[var(--aesthetic-error)] hover:opacity-90 text-[var(--aesthetic-text)] transition-colors rounded-sm"
+              data-testid="remove-bg-image"
+            >
+              Remove Image
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-[var(--aesthetic-text-muted)] italic">
+            No custom background image uploaded.
+          </p>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <label className="relative flex items-center justify-center border border-dashed border-[var(--aesthetic-border)] hover:border-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-surface)] p-6 rounded-sm cursor-pointer transition-all">
+            <input
+              type="file"
+              accept="image/png, image/jpeg, image/gif, image/webp"
+              onChange={handleFileChange}
+              disabled={isUploading}
+              className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+              data-testid="bg-image-input"
+            />
+            <span className="text-sm font-mono text-[var(--aesthetic-text-muted)]">
+              {isUploading ? "Uploading..." : "Click to upload background image (Max 10MB)"}
+            </span>
+          </label>
+        </div>
+
+        {error && (
+          <p
+            className="text-xs font-mono text-[var(--aesthetic-error)]"
+            data-testid="bg-image-error"
+          >
+            {error}
+          </p>
+        )}
+        {success && (
+          <p
+            className="text-xs font-mono text-[var(--aesthetic-accent)]"
+            data-testid="bg-image-success"
+          >
+            {success}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

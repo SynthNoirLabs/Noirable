@@ -11,6 +11,8 @@ import type { ActionMessage, ServerMessage } from "@/lib/a2ui/schema/messages";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
 import { PhotoDeveloper } from "@/components/noir/PhotoDeveloper";
 import { cn } from "@/lib/utils";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 
 // ============================================================================
 // Context for component resolution
@@ -311,7 +313,7 @@ function CardRenderer({ component }: ComponentProps) {
   return (
     <div
       className={cn(
-        "rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/60 p-5",
+        "a2ui-card rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/60 p-5",
         "border-t-2 border-t-[var(--aesthetic-accent)]/60 shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
       )}
     >
@@ -1031,6 +1033,369 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
   );
 }
 
+function useBaseAestheticId() {
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  return activeProfile?.baseAestheticId ?? fallbackAestheticId;
+}
+
+function KanbanBoardRenderer({ component }: ComponentProps) {
+  const board = component as SurfaceComponent & {
+    title?: unknown;
+    columns?: Array<{
+      id: string;
+      title: string;
+      cards: Array<{
+        id: string;
+        title: string;
+        description?: string;
+        assignee?: string;
+        tags?: string[];
+      }>;
+    }>;
+  };
+
+  const resolve = useResolve();
+  const baseAestheticId = useBaseAestheticId();
+  const boardTitle = board.title ? String(resolve(board.title)) : "";
+  const columns = board.columns || [];
+
+  // Theme-specific styles
+  let containerClass = "";
+  let columnClass = "";
+  let cardClass = "";
+  let textClass = "";
+  let titleClass = "";
+  let headerClass = "";
+
+  switch (baseAestheticId) {
+    case "gothic-manor":
+      containerClass =
+        "font-serif text-[#3e2723] p-4 bg-[#eae2cf] border border-[#a1947b]/40 rounded-sm";
+      columnClass =
+        "bg-[#eae2cf]/80 border border-[#a1947b]/60 rounded-md p-3 min-w-[280px] max-w-[320px] shadow-sm";
+      cardClass =
+        "bg-[#f2ebd9] border border-[#a1947b] p-3 rounded-md shadow-md text-[#3e2723] break-words whitespace-normal";
+      textClass = "text-sm text-[#5d4037] leading-relaxed";
+      titleClass = "font-semibold text-lg text-[#3e2723] mb-2";
+      headerClass =
+        "font-serif font-bold text-xl mb-4 text-[#3e2723] border-b border-[#a1947b] pb-2";
+      break;
+
+    case "nostromo-console":
+      containerClass =
+        "crt-scanlines font-mono text-green-500 bg-black/95 p-4 border border-green-500/50 rounded-sm";
+      columnClass =
+        "bg-neutral-950 border border-green-500/30 rounded-none p-3 min-w-[280px] max-w-[320px]";
+      cardClass =
+        "bg-neutral-900 border border-green-500/40 p-3 rounded-none text-green-400 break-words whitespace-normal shadow-[0_0_4px_rgba(34,197,94,0.2)]";
+      textClass = "text-xs text-green-500/80 leading-normal";
+      titleClass = "font-bold text-sm text-green-400 mb-1";
+      headerClass =
+        "font-mono font-bold text-lg mb-4 text-green-500 uppercase tracking-wider border-b border-green-500/40 pb-2";
+      break;
+
+    case "cyber-fixer":
+      containerClass =
+        "font-mono text-cyan-400 bg-slate-950 p-4 border border-cyan-500 shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4] rounded-sm";
+      columnClass =
+        "bg-slate-900/60 border border-magenta-500/30 rounded-md p-3 min-w-[280px] max-w-[320px] shadow-[0_0_5px_rgba(217,70,239,0.1)]";
+      cardClass =
+        "bg-slate-900 border border-magenta-500/60 p-3 rounded-md text-magenta-400 break-words whitespace-normal shadow-[0_0_8px_#d946ef] hover:shadow-[0_0_12px_#d946ef] transition-shadow duration-200";
+      textClass = "text-xs text-cyan-300/80 leading-normal";
+      titleClass = "font-bold text-sm text-cyan-400 mb-1";
+      headerClass =
+        "font-mono font-bold text-lg mb-4 text-cyan-400 uppercase tracking-widest border-b border-cyan-500/30 pb-2";
+      break;
+
+    case "noir":
+    default:
+      containerClass =
+        "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm";
+      columnClass =
+        "bg-[var(--aesthetic-surface)]/40 border border-[var(--aesthetic-border)]/20 rounded-sm p-3 min-w-[280px] max-w-[320px]";
+      cardClass =
+        "bg-[var(--aesthetic-surface)]/80 border border-[var(--aesthetic-border)]/30 p-3 rounded-sm text-[var(--aesthetic-text)] break-words whitespace-normal shadow-sm hover:border-[var(--aesthetic-accent)]/55 transition-colors";
+      textClass = "text-xs text-[var(--aesthetic-text)]/75 leading-relaxed font-typewriter";
+      titleClass = "font-bold text-sm text-[var(--aesthetic-accent)] mb-1 font-typewriter";
+      headerClass =
+        "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
+      break;
+  }
+
+  // Handle zero columns or zero cards gracefully
+  if (columns.length === 0) {
+    return (
+      <div className={containerClass}>
+        {boardTitle && <div className={headerClass}>{boardTitle}</div>}
+        <div className="text-center py-8 opacity-65 text-xs">Empty board state</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={containerClass}>
+      {boardTitle && <div className={headerClass}>{boardTitle}</div>}
+      <div className="flex flex-row gap-4 overflow-x-auto pb-4 items-start scrollbar-thin scrollbar-thumb-neutral-800">
+        {columns.map((column) => (
+          <div key={column.id} className={columnClass}>
+            <div className={cn(titleClass, "font-bold border-b pb-1 mb-3 border-current/25")}>
+              {column.title} ({column.cards?.length || 0})
+            </div>
+            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
+              {!column.cards || column.cards.length === 0 ? (
+                <div className="text-center py-6 opacity-50 text-xs italic">No cards</div>
+              ) : (
+                column.cards.map((card) => (
+                  <div key={card.id} className={cardClass}>
+                    <div className="font-bold text-sm leading-snug mb-1.5 break-words whitespace-normal">
+                      {card.title}
+                    </div>
+                    {card.description && (
+                      <p className={cn(textClass, "mb-2 break-words whitespace-normal")}>
+                        {card.description}
+                      </p>
+                    )}
+                    {card.assignee && (
+                      <div className="text-[10px] opacity-75 mt-1 font-mono break-words whitespace-normal">
+                        👤 {card.assignee}
+                      </div>
+                    )}
+                    {card.tags && card.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {card.tags.map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wide bg-current/10 text-current break-words whitespace-normal"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DataDashboardRenderer({ component }: ComponentProps) {
+  const dash = component as SurfaceComponent & {
+    title?: unknown;
+    widgets?: Array<{
+      id: string;
+      title: string;
+      type: "metric" | "progress" | "chart";
+      value?: string | number;
+      unit?: string;
+      progress?: number;
+      chartType?: "line" | "bar" | "pie";
+      data?: Array<{ label: string; value: number }>;
+      trend?: {
+        value: number;
+        direction: "up" | "down" | "neutral";
+      };
+    }>;
+  };
+
+  const resolve = useResolve();
+  const baseAestheticId = useBaseAestheticId();
+  const dashTitle = dash.title ? String(resolve(dash.title)) : "";
+  const widgets = dash.widgets || [];
+
+  // Theme-specific styles
+  let containerClass = "";
+  let widgetClass = "";
+  let textClass = "";
+  let valueClass = "";
+  let headerClass = "";
+  let progressBg = "";
+  let progressFill = "";
+
+  switch (baseAestheticId) {
+    case "gothic-manor":
+      containerClass =
+        "font-serif text-[#3e2723] p-4 bg-[#eae2cf] border border-[#a1947b]/40 rounded-sm";
+      widgetClass = "bg-[#f2ebd9] border border-[#a1947b] p-4 rounded-md shadow-sm";
+      textClass = "text-xs text-[#5d4037]";
+      valueClass = "text-2xl font-bold font-serif text-[#3e2723]";
+      headerClass =
+        "font-serif font-bold text-xl mb-4 text-[#3e2723] border-b border-[#a1947b] pb-2";
+      progressBg = "bg-[#eae2cf] border border-[#a1947b]/40";
+      progressFill = "bg-[#8d6e63]";
+      break;
+
+    case "nostromo-console":
+      containerClass =
+        "crt-scanlines font-mono text-green-500 bg-black/95 p-4 border border-green-500/50 rounded-sm";
+      widgetClass = "bg-neutral-950 border border-green-500/30 p-4 rounded-none";
+      textClass = "text-xs text-green-500/70";
+      valueClass =
+        "text-2xl font-bold font-mono text-green-400 tracking-wider shadow-[0_0_2px_#22c55e]";
+      headerClass =
+        "font-mono font-bold text-lg mb-4 text-green-500 uppercase tracking-wider border-b border-green-500/40 pb-2";
+      progressBg = "bg-neutral-900 border border-green-500/20";
+      progressFill = "bg-green-500 shadow-[0_0_6px_#22c55e]";
+      break;
+
+    case "cyber-fixer":
+      containerClass =
+        "font-mono text-cyan-400 bg-slate-950 p-4 border border-cyan-500 shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4] rounded-sm";
+      widgetClass =
+        "bg-slate-900/80 border border-magenta-500/50 p-4 rounded-md shadow-[0_0_5px_rgba(217,70,239,0.2)]";
+      textClass = "text-xs text-cyan-300/70";
+      valueClass = "text-2xl font-bold font-mono text-cyan-400 shadow-[0_0_4px_#06b6d4]";
+      headerClass =
+        "font-mono font-bold text-lg mb-4 text-cyan-400 uppercase tracking-widest border-b border-cyan-500/30 pb-2";
+      progressBg = "bg-slate-950 border border-cyan-500/30";
+      progressFill = "bg-cyan-500 shadow-[0_0_8px_#06b6d4]";
+      break;
+
+    case "noir":
+    default:
+      containerClass =
+        "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm";
+      widgetClass =
+        "bg-[var(--aesthetic-surface)]/60 border border-[var(--aesthetic-border)]/30 p-4 rounded-sm shadow-sm";
+      textClass = "text-xs text-[var(--aesthetic-text)]/65 font-typewriter";
+      valueClass = "text-2xl font-bold text-[var(--aesthetic-accent)] font-typewriter";
+      headerClass =
+        "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
+      progressBg = "bg-[var(--aesthetic-background)]/60 border border-[var(--aesthetic-border)]/20";
+      progressFill = "bg-[var(--aesthetic-accent)] shadow-[0_2px_8px_rgba(255,191,0,0.15)]";
+      break;
+  }
+
+  // Handle missing metrics or invalid dataset structures gracefully
+  if (widgets.length === 0) {
+    return (
+      <div className={containerClass}>
+        {dashTitle && <div className={headerClass}>{dashTitle}</div>}
+        <div className="text-center py-8 opacity-65 text-xs">No widgets configured</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={containerClass}>
+      {dashTitle && <div className={headerClass}>{dashTitle}</div>}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {widgets.map((widget) => {
+          const trendIcon = widget.trend
+            ? widget.trend.direction === "up"
+              ? "▲"
+              : widget.trend.direction === "down"
+                ? "▼"
+                : "◀▶"
+            : "";
+          const trendColor = widget.trend
+            ? widget.trend.direction === "up"
+              ? "text-emerald-500"
+              : widget.trend.direction === "down"
+                ? "text-rose-500"
+                : "text-neutral-500"
+            : "";
+
+          return (
+            <div key={widget.id} className={widgetClass}>
+              <div className="font-bold text-xs uppercase tracking-wider mb-2 opacity-85">
+                {widget.title}
+              </div>
+
+              {/* Metric Widget */}
+              {widget.type === "metric" && (
+                <div className="flex flex-col">
+                  <div className="flex items-baseline gap-1">
+                    <span className={valueClass}>{widget.value ?? "—"}</span>
+                    {widget.unit && (
+                      <span className="text-xs opacity-60 ml-0.5">{widget.unit}</span>
+                    )}
+                  </div>
+                  {widget.trend && (
+                    <div
+                      className={cn(
+                        "text-[10px] mt-1 flex items-center gap-1 font-sans",
+                        trendColor
+                      )}
+                    >
+                      <span className="font-bold">
+                        {trendIcon} {widget.trend.value}%
+                      </span>
+                      <span className="opacity-70">since last check</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Progress Widget */}
+              {widget.type === "progress" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className={valueClass}>{widget.progress ?? 0}%</span>
+                    <span className={textClass}>Progress</span>
+                  </div>
+                  <div className={cn("w-full h-2 rounded-full overflow-hidden", progressBg)}>
+                    <div
+                      className={cn("h-full transition-all duration-300", progressFill)}
+                      style={{ width: `${Math.min(Math.max(widget.progress ?? 0, 0), 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Chart Widget */}
+              {widget.type === "chart" && (
+                <div className="flex flex-col gap-2 h-24 justify-end">
+                  {!widget.data || widget.data.length === 0 ? (
+                    <div className="text-center py-4 text-xs opacity-50 italic">No chart data</div>
+                  ) : (
+                    <>
+                      <div className="flex items-end gap-2 h-16 px-1">
+                        {widget.data.map((item, idx) => {
+                          const maxVal = Math.max(...(widget.data?.map((d) => d.value) || [1]));
+                          const percentage = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                          return (
+                            <div
+                              key={idx}
+                              className="flex-1 flex flex-col items-center h-full justify-end group relative"
+                            >
+                              <div
+                                className="w-full bg-current/25 hover:bg-current/45 transition-all rounded-t-sm"
+                                style={{ height: `${Math.max(percentage, 5)}%` }}
+                                title={`${item.label}: ${item.value}`}
+                              />
+                              {/* Small tooltip on hover */}
+                              <span className="absolute bottom-full mb-1 scale-0 group-hover:scale-100 transition-transform bg-neutral-900 text-white text-[9px] px-1 py-0.5 rounded shadow-md z-10 whitespace-nowrap">
+                                {item.value}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between text-[9px] opacity-65 font-sans border-t border-current/15 pt-1 px-1">
+                        <span>{widget.data[0]?.label}</span>
+                        <span>{widget.data[widget.data.length - 1]?.label}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================================
 // Fallbacks
 // ============================================================================
@@ -1068,6 +1433,9 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
   Badge: BadgeRenderer,
   Grid: GridRenderer,
   Modal: ModalRenderer,
+  // Templates (2)
+  KanbanBoard: KanbanBoardRenderer,
+  DataDashboard: DataDashboardRenderer,
   // Content (5)
   Text: TextRenderer,
   Image: ImageRenderer,
