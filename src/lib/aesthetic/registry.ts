@@ -100,6 +100,7 @@ const noirProfile: AestheticProfile = {
   theme: noirTheme,
   audio: noirAudio,
   persona: noirPersona,
+  voiceId: "r5wMVcYycQezNCms1jJb",
 };
 
 // =============================================================================
@@ -188,6 +189,7 @@ const minimalProfile: AestheticProfile = {
   theme: minimalTheme,
   audio: minimalAudio,
   persona: minimalPersona,
+  voiceId: "21m00Tcm4TlvDq8ikWAM",
 };
 
 // =============================================================================
@@ -215,9 +217,9 @@ const cyberFixerTheme: ThemeConfig = {
 
 const cyberFixerAudio: AudioPack = {
   sfx: {
-    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.7 },
-    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.8 },
-    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.75 },
+    typewriter: { src: "/assets/cyber-fixer/typewriter.mp3", volume: 0.7 },
+    thunder: { src: "/assets/cyber-fixer/thunder.mp3", volume: 0.8 },
+    phone: { src: "/assets/cyber-fixer/phone.mp3", volume: 0.75 },
   },
   music: {
     src: "/assets/noir/noir-jazz-loop.mp3",
@@ -225,7 +227,7 @@ const cyberFixerAudio: AudioPack = {
   },
   ambient: {
     rain: {
-      src: "/assets/noir/rain-loop.wav",
+      src: "/assets/cyber-fixer/rain.mp3",
       intensityVolume: {
         low: 0.2,
         medium: 0.3,
@@ -233,7 +235,7 @@ const cyberFixerAudio: AudioPack = {
       },
     },
     crackle: {
-      src: "/assets/noir/vinyl-crackle.wav",
+      src: "/assets/cyber-fixer/crackle.mp3",
       volume: 0.4,
     },
   },
@@ -255,6 +257,7 @@ const cyberFixerProfile: AestheticProfile = {
   theme: cyberFixerTheme,
   audio: cyberFixerAudio,
   persona: cyberFixerPersona,
+  voiceId: "pNInz6obpgqjGQtfua8D",
 };
 
 // =============================================================================
@@ -282,9 +285,9 @@ const nostromoConsoleTheme: ThemeConfig = {
 
 const nostromoConsoleAudio: AudioPack = {
   sfx: {
-    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.5 },
-    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.3 },
-    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.5 },
+    typewriter: { src: "/assets/nostromo-console/typewriter.mp3", volume: 0.5 },
+    thunder: { src: "/assets/nostromo-console/thunder.mp3", volume: 0.3 },
+    phone: { src: "/assets/nostromo-console/phone.mp3", volume: 0.5 },
   },
   music: {
     src: "/assets/noir/noir-jazz-loop.mp3",
@@ -292,7 +295,7 @@ const nostromoConsoleAudio: AudioPack = {
   },
   ambient: {
     rain: {
-      src: "/assets/noir/rain-loop.wav",
+      src: "/assets/nostromo-console/rain.mp3",
       intensityVolume: {
         low: 0.05,
         medium: 0.08,
@@ -300,7 +303,7 @@ const nostromoConsoleAudio: AudioPack = {
       },
     },
     crackle: {
-      src: "/assets/noir/vinyl-crackle.wav",
+      src: "/assets/nostromo-console/crackle.mp3",
       volume: 0.6,
     },
   },
@@ -322,6 +325,7 @@ const nostromoConsoleProfile: AestheticProfile = {
   theme: nostromoConsoleTheme,
   audio: nostromoConsoleAudio,
   persona: nostromoConsolePersona,
+  voiceId: "N2lVS1w4EtoT3uy4hMgS",
 };
 
 // =============================================================================
@@ -349,9 +353,9 @@ const gothicManorTheme: ThemeConfig = {
 
 const gothicManorAudio: AudioPack = {
   sfx: {
-    typewriter: { src: "/assets/noir/typewriter.mp3", volume: 0.55 },
-    thunder: { src: "/assets/noir/thunder.mp3", volume: 0.95 },
-    phone: { src: "/assets/noir/phone-ring.mp3", volume: 0.6 },
+    typewriter: { src: "/assets/gothic-manor/typewriter.mp3", volume: 0.55 },
+    thunder: { src: "/assets/gothic-manor/thunder.mp3", volume: 0.95 },
+    phone: { src: "/assets/gothic-manor/phone.mp3", volume: 0.6 },
   },
   music: {
     src: "/assets/noir/noir-jazz-loop.mp3",
@@ -359,7 +363,7 @@ const gothicManorAudio: AudioPack = {
   },
   ambient: {
     rain: {
-      src: "/assets/noir/rain-loop.wav",
+      src: "/assets/gothic-manor/rain.mp3",
       intensityVolume: {
         low: 0.22,
         medium: 0.32,
@@ -367,7 +371,7 @@ const gothicManorAudio: AudioPack = {
       },
     },
     crackle: {
-      src: "/assets/noir/vinyl-crackle.wav",
+      src: "/assets/gothic-manor/crackle.mp3",
       volume: 0.3,
     },
   },
@@ -389,6 +393,7 @@ const gothicManorProfile: AestheticProfile = {
   theme: gothicManorTheme,
   audio: gothicManorAudio,
   persona: gothicManorPersona,
+  voiceId: "JBF2ot25YILMsgBEeSZ1",
 };
 
 // =============================================================================

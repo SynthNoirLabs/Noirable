@@ -12,6 +12,7 @@ interface RainAudioProps {
    * Default: 1
    */
   volumeScale?: number;
+  src?: string;
 }
 
 const AUDIO_SRC = "/assets/noir/rain-loop.wav";
@@ -27,6 +28,7 @@ export function RainAudio({
   intensity = "medium",
   soundEnabled = true,
   volumeScale = 1,
+  src = AUDIO_SRC,
 }: RainAudioProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playAudioRef = useRef<(() => void) | null>(null);
@@ -124,7 +126,7 @@ export function RainAudio({
 
     let handleLoaded: (() => void) | null = null;
     if (!audioRef.current) {
-      const audio = new Audio(AUDIO_SRC);
+      const audio = new Audio(src);
       audio.loop = true;
       audio.preload = "auto";
       handleLoaded = () => {
@@ -157,7 +159,7 @@ export function RainAudio({
       }
       audioRef.current = null;
     };
-  }, [cancelFade, detachResumeListeners]);
+  }, [cancelFade, detachResumeListeners, src]);
 
   useEffect(() => {
     playAudioRef.current = attemptPlay;

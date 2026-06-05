@@ -157,6 +157,8 @@ export interface AestheticProfile {
   audio: AudioPack;
   /** AI persona configuration */
   persona: PersonaConfig;
+  /** Default ElevenLabs voice ID for this preset */
+  voiceId?: string;
 }
 
 /**

@@ -22,7 +22,9 @@ import { NoirSoundEffects } from "@/components/noir/NoirSoundEffects";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { ChatSettingsPanel } from "./ChatSettingsPanel";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
+import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 
 export interface Message {
   id: string;
@@ -82,6 +84,8 @@ export function ChatSidebar({
   generatedTapes = [],
   onOpenCustomization,
 }: ChatSidebarProps) {
+  const aestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  const audioPack = getAudioPack(aestheticId);
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [ttsLoadingId, setTtsLoadingId] = useState<string | null>(null);
@@ -312,7 +316,11 @@ export function ChatSidebar({
         const response = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({
+            text,
+            aestheticId,
+            voiceSettings: useA2UIStore.getState().settings.voiceSettings,
+          }),
         });
 
         if (!response.ok) {
@@ -412,6 +420,7 @@ export function ChatSidebar({
       sfxControls,
       generatedTapes,
       onUpdateSettings,
+      aestheticId,
     ]
   );
 
@@ -503,7 +512,7 @@ export function ChatSidebar({
         )}
       </AnimatePresence>
 
-      <NoirSoundEffects enabled={soundSetting} onReady={setSfxControls} />
+      <NoirSoundEffects enabled={soundSetting} onReady={setSfxControls} sfxConfig={audioPack.sfx} />
 
       <div
         className="flex-1 overflow-y-auto p-4 space-y-6"

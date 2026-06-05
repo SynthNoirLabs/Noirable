@@ -4,11 +4,15 @@ import crypto from "node:crypto";
 import { ELEVENLABS_CONFIG } from "@/lib/elevenlabs/config";
 import { apiSecurityCheck } from "@/lib/api/security";
 import { readRecordingFile, saveRecordingBuffer } from "@/lib/ai/recordingStore";
+import { getAestheticProfile } from "@/lib/aesthetic/registry";
+import type { AestheticId } from "@/lib/aesthetic/types";
 
 const MAX_TTS_CHARS = 520;
 
 interface TTSRequest {
   text?: string;
+  aestheticId?: string;
+  voiceId?: string;
   voiceSettings?: {
     voiceId?: string;
     stability?: number;
@@ -44,7 +48,15 @@ export async function POST(request: Request) {
 
   const text = rawText.length > MAX_TTS_CHARS ? `${rawText.slice(0, MAX_TTS_CHARS)}...` : rawText;
 
-  const voiceId = body?.voiceSettings?.voiceId ?? ELEVENLABS_CONFIG.voiceId;
+  let defaultVoiceId = ELEVENLABS_CONFIG.voiceId;
+  if (body?.aestheticId) {
+    const profile = getAestheticProfile(body.aestheticId as AestheticId);
+    if (profile?.voiceId) {
+      defaultVoiceId = profile.voiceId;
+    }
+  }
+
+  const voiceId = body?.voiceSettings?.voiceId ?? body?.voiceId ?? defaultVoiceId;
   const stability = body?.voiceSettings?.stability ?? ELEVENLABS_CONFIG.stability;
   const similarityBoost = body?.voiceSettings?.similarityBoost ?? ELEVENLABS_CONFIG.similarityBoost;
   const style = body?.voiceSettings?.style ?? ELEVENLABS_CONFIG.style;

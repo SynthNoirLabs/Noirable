@@ -48,6 +48,7 @@ export function NoirEffects({
             enabled={ambient.crackleEnabled}
             volume={ambient.crackleVolume}
             soundEnabled={soundEnabled}
+            src={audioPack.ambient.crackle?.src}
           />
         </>
       )}
@@ -56,6 +57,7 @@ export function NoirEffects({
         intensity={ambient.intensity}
         volumeScale={ambient.rainVolume}
         soundEnabled={soundEnabled}
+        src={audioPack.ambient.rain?.src}
       />
       <NoirMusic
         enabled={musicEnabled}
