@@ -41,6 +41,7 @@ interface DeskLayoutProps {
   ambient?: AmbientSettings;
   soundEnabled?: boolean;
   musicEnabled?: boolean;
+  musicVolume?: number;
   /** Active aesthetic profile ID */
   aestheticId?: AestheticId;
   customMusicUrl?: string;
@@ -74,6 +75,7 @@ export function DeskLayout({
   ambient,
   soundEnabled,
   musicEnabled,
+  musicVolume,
   customMusicUrl,
   aestheticId,
   className,
@@ -141,12 +143,14 @@ export function DeskLayout({
         ambient={ambientSettings}
         soundEnabled={soundSetting}
         musicEnabled={musicSetting}
+        musicVolume={musicVolume}
         customMusicUrl={customMusicUrl}
         aestheticId={aestheticId}
       />
       <div
         data-testid="noir-rain-bg"
-        className="absolute inset-0 bg-[url('/assets/noir/rainy-bg.jpg')] bg-cover bg-top opacity-40 contrast-110 saturate-[0.85] brightness-90 pointer-events-none z-0"
+        className="absolute inset-0 bg-cover bg-top opacity-40 contrast-110 saturate-[0.85] brightness-90 pointer-events-none z-0"
+        style={{ backgroundImage: "var(--aesthetic-bg-image)" }}
         aria-hidden="true"
       />
       {/* Vertical readability gradient: dark header + lit mid-field + dark
@@ -214,7 +218,8 @@ export function DeskLayout({
           )}
           <div
             data-testid="noir-case-file"
-            className="absolute inset-0 bg-[url('/assets/noir/Gemini_Generated_Image_hgsjjdhgsjjdhgsj.jpeg')] bg-[length:75%] bg-left-bottom bg-no-repeat opacity-[0.07] pointer-events-none"
+            className="absolute inset-0 bg-[length:75%] bg-left-bottom bg-no-repeat opacity-[0.07] pointer-events-none"
+            style={{ backgroundImage: "var(--aesthetic-case-file-image)" }}
             aria-hidden="true"
           />
           <div className="relative z-10 flex flex-col flex-1 min-h-0">

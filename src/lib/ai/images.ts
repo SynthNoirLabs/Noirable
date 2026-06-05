@@ -5,6 +5,8 @@ import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 import { getCustomImageStylePrompt } from "@/lib/ai/image-style";
 import { saveImageBase64 } from "@/lib/ai/imageStore";
 import { getImageGenerationModels, getModelInfo, type ModelInfo } from "@/lib/ai/model-registry";
+import { getAestheticProfile } from "@/lib/aesthetic/registry";
+import type { AestheticId } from "@/lib/aesthetic/types";
 
 const NOIR_STYLE_PROMPT =
   "shot as a 1940s detective's evidence photograph, noir cinematic, rain-slicked streets, moody low-key lighting, hard chiaroscuro contrast, heavy film grain, 35mm black-and-white photography, deep shadows, light fog, desaturated palette, no bright saturated color, no text or watermark";
@@ -55,9 +57,20 @@ function selectImageModel(): {
   return null;
 }
 
-export function buildNoirImagePrompt(prompt: string): string {
+export function buildNoirImagePrompt(prompt: string, aestheticId?: string): string {
   const customStyle = getCustomImageStylePrompt();
-  const stylePrompt = customStyle || NOIR_STYLE_PROMPT;
+  if (customStyle) {
+    if (!prompt.trim()) return customStyle;
+    return `${prompt}. Style: ${customStyle}.`;
+  }
+
+  let stylePrompt = NOIR_STYLE_PROMPT;
+  if (aestheticId) {
+    const profile = getAestheticProfile(aestheticId as AestheticId);
+    if (profile?.imageStylePrompt) {
+      stylePrompt = profile.imageStylePrompt;
+    }
+  }
 
   if (!prompt.trim()) return stylePrompt;
   return `${prompt}. Style: ${stylePrompt}.`;
@@ -84,13 +97,13 @@ function fallbackSvgDataUrl(message: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-async function generateImageDataUrl(prompt: string) {
+async function generateImageDataUrl(prompt: string, aestheticId?: string) {
   try {
     const selection = selectImageModel();
     if (!selection) return null;
 
     const { model, provider } = selection;
-    const styledPrompt = buildNoirImagePrompt(prompt);
+    const styledPrompt = buildNoirImagePrompt(prompt, aestheticId);
     const method = model.capabilities.imageGenMethod;
 
     let result;
@@ -145,13 +158,16 @@ async function persistDataUrl(dataUrl: string) {
   return saved?.url ?? null;
 }
 
-export async function resolveA2UIImagePrompts(input: unknown): Promise<unknown> {
+export async function resolveA2UIImagePrompts(
+  input: unknown,
+  aestheticId?: string
+): Promise<unknown> {
   if (!input || typeof input !== "object") {
     return input;
   }
 
   if (Array.isArray(input)) {
-    return Promise.all(input.map((item) => resolveA2UIImagePrompts(item)));
+    return Promise.all(input.map((item) => resolveA2UIImagePrompts(item, aestheticId)));
   }
 
   const node = input as Record<string, unknown>;
@@ -164,7 +180,7 @@ export async function resolveA2UIImagePrompts(input: unknown): Promise<unknown> 
       resolvedSrc = await persistDataUrl(resolvedSrc);
     }
     if (!resolvedSrc && prompt) {
-      const generated = await generateImageDataUrl(prompt);
+      const generated = await generateImageDataUrl(prompt, aestheticId);
       resolvedSrc = generated ? await persistDataUrl(generated) : null;
     }
     if (!resolvedSrc) {
@@ -188,7 +204,7 @@ export async function resolveA2UIImagePrompts(input: unknown): Promise<unknown> 
       url.startsWith("/api/images/") ||
       url.startsWith("data:");
     if (!isUrl && url.length > 0) {
-      const generated = await generateImageDataUrl(url);
+      const generated = await generateImageDataUrl(url, aestheticId);
       const resolvedSrc = generated ? await persistDataUrl(generated) : null;
       return {
         ...node,
@@ -200,7 +216,7 @@ export async function resolveA2UIImagePrompts(input: unknown): Promise<unknown> 
   // Recurse into all properties of the object
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
-    result[key] = await resolveA2UIImagePrompts(value);
+    result[key] = await resolveA2UIImagePrompts(value, aestheticId);
   }
   return result;
 }

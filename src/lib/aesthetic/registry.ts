@@ -101,6 +101,8 @@ const noirProfile: AestheticProfile = {
   audio: noirAudio,
   persona: noirPersona,
   voiceId: "r5wMVcYycQezNCms1jJb",
+  imageStylePrompt:
+    "shot as a 1940s detective's evidence photograph, noir cinematic, rain-slicked streets, moody low-key lighting, hard chiaroscuro contrast, heavy film grain, 35mm black-and-white photography, deep shadows, light fog, desaturated palette, no bright saturated color, no text or watermark",
 };
 
 // =============================================================================
@@ -190,6 +192,8 @@ const minimalProfile: AestheticProfile = {
   audio: minimalAudio,
   persona: minimalPersona,
   voiceId: "21m00Tcm4TlvDq8ikWAM",
+  imageStylePrompt:
+    "clean, modern, minimalist aesthetic, bright white and neutral gray tones, professional corporate presentation slide style, crisp vector art, clean lines, high-key lighting, no clutter, no text or watermark",
 };
 
 // =============================================================================
@@ -222,7 +226,7 @@ const cyberFixerAudio: AudioPack = {
     phone: { src: "/assets/cyber-fixer/phone.mp3", volume: 0.75 },
   },
   music: {
-    src: "/assets/noir/noir-jazz-loop.mp3",
+    src: "/assets/cyber-fixer/music.mp3",
     volume: 0.25,
   },
   ambient: {
@@ -258,6 +262,8 @@ const cyberFixerProfile: AestheticProfile = {
   audio: cyberFixerAudio,
   persona: cyberFixerPersona,
   voiceId: "pNInz6obpgDQGcFmaJgB",
+  imageStylePrompt:
+    "cyberpunk aesthetic, futuristic cyberpunk command center, neon lights, high-tech overlays, glowing digital HUD, cybernetic implants, wireframe graphics, cyan and magenta accents, rainy futuristic cityscape window, synthwave style, no text or watermark",
 };
 
 // =============================================================================
@@ -290,7 +296,7 @@ const nostromoConsoleAudio: AudioPack = {
     phone: { src: "/assets/nostromo-console/phone.mp3", volume: 0.5 },
   },
   music: {
-    src: "/assets/noir/noir-jazz-loop.mp3",
+    src: "/assets/nostromo-console/music.mp3",
     volume: 0.1,
   },
   ambient: {
@@ -325,7 +331,9 @@ const nostromoConsoleProfile: AestheticProfile = {
   theme: nostromoConsoleTheme,
   audio: nostromoConsoleAudio,
   persona: nostromoConsolePersona,
-  voiceId: "N2lVS1w4EtoT3uy4hMgS",
+  voiceId: "N2lVS1w4EtoT3dr4eOWO",
+  imageStylePrompt:
+    "retro sci-fi terminal screen, green phosphor CRT monitor, computer console dashboard, vintage dials and toggle switches, 1980s spaceship command deck, high contrast monochrome green and black, analog video noise, scanlines, no text or watermark",
 };
 
 // =============================================================================
@@ -358,7 +366,7 @@ const gothicManorAudio: AudioPack = {
     phone: { src: "/assets/gothic-manor/phone.mp3", volume: 0.6 },
   },
   music: {
-    src: "/assets/noir/noir-jazz-loop.mp3",
+    src: "/assets/gothic-manor/music.mp3",
     volume: 0.15,
   },
   ambient: {
@@ -393,7 +401,9 @@ const gothicManorProfile: AestheticProfile = {
   theme: gothicManorTheme,
   audio: gothicManorAudio,
   persona: gothicManorPersona,
-  voiceId: "JBF2ot25YILMsgBEeSZ1",
+  voiceId: "JBFqnCBsd6RMkjVDRZzb",
+  imageStylePrompt:
+    "dark Victorian gothic manor interior, candelabras glowing, heavy velvet drapes, gothic window showing stormy moonlit night and graveyard, classic oil painting style, moody dark academia, crimson and gold accents, no text or watermark",
 };
 
 // =============================================================================

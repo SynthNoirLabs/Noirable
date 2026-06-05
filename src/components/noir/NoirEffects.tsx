@@ -22,6 +22,7 @@ interface NoirEffectsProps {
   ambient: AmbientSettings;
   soundEnabled: boolean;
   musicEnabled?: boolean;
+  musicVolume?: number;
   customMusicUrl?: string;
   /** Aesthetic profile ID for audio configuration */
   aestheticId?: AestheticId;
@@ -31,6 +32,7 @@ export function NoirEffects({
   ambient,
   soundEnabled,
   musicEnabled = false,
+  musicVolume,
   customMusicUrl,
   aestheticId = "noir",
 }: NoirEffectsProps) {
@@ -62,6 +64,7 @@ export function NoirEffects({
       <NoirMusic
         enabled={musicEnabled}
         soundEnabled={soundEnabled}
+        volume={musicVolume}
         musicConfig={audioPack.music}
         customMusicUrl={customMusicUrl}
       />

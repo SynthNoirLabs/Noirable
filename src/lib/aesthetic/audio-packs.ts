@@ -66,7 +66,7 @@ const cyberFixerAudio: AudioPack = {
     phone: { src: "/assets/cyber-fixer/phone.mp3", volume: 0.75 },
   },
   music: {
-    src: "/assets/noir/noir-jazz-loop.mp3",
+    src: "/assets/cyber-fixer/music.mp3",
     volume: 0.25,
   },
   ambient: {
@@ -92,7 +92,7 @@ const nostromoConsoleAudio: AudioPack = {
     phone: { src: "/assets/nostromo-console/phone.mp3", volume: 0.5 },
   },
   music: {
-    src: "/assets/noir/noir-jazz-loop.mp3",
+    src: "/assets/nostromo-console/music.mp3",
     volume: 0.1,
   },
   ambient: {
@@ -118,7 +118,7 @@ const gothicManorAudio: AudioPack = {
     phone: { src: "/assets/gothic-manor/phone.mp3", volume: 0.6 },
   },
   music: {
-    src: "/assets/noir/noir-jazz-loop.mp3",
+    src: "/assets/gothic-manor/music.mp3",
     volume: 0.15,
   },
   ambient: {

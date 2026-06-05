@@ -7,7 +7,7 @@ import {
 import type { UIMessage } from "ai";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { getProviderWithOverrides, type ModelOverride } from "@/lib/ai/factory";
-import { tools } from "@/lib/ai/tools";
+import { createTools } from "@/lib/ai/tools";
 import { generateNarration } from "@/lib/ai/narration";
 import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import type { AestheticId } from "@/lib/aesthetic/types";
@@ -293,7 +293,7 @@ export async function POST(req: Request) {
       model: auth.provider!(auth.model),
       messages: convertedMessages,
       system: buildSystemPrompt(evidence, aestheticId, customSystemPrompt),
-      tools,
+      tools: createTools(aestheticId),
     });
 
     // The tool-calling model reliably calls generate_ui but rarely writes the

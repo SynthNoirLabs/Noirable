@@ -159,6 +159,8 @@ export interface AestheticProfile {
   persona: PersonaConfig;
   /** Default ElevenLabs voice ID for this preset */
   voiceId?: string;
+  /** Default image style prompt for this preset */
+  imageStylePrompt?: string;
 }
 
 /**

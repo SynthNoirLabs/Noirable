@@ -58,6 +58,8 @@
   --aesthetic-error: #8a0000;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
+  --aesthetic-bg-image: url("/assets/noir/rainy-bg.jpg");
+  --aesthetic-case-file-image: url("/assets/noir/Gemini_Generated_Image_hgsjjdhgsjjdhgsj.jpeg");
 }
 
 [data-aesthetic="minimal"] {
@@ -72,6 +74,8 @@
   --aesthetic-error: #dc2626;
   --aesthetic-font-body: system-ui, -apple-system, sans-serif;
   --aesthetic-font-heading: system-ui, -apple-system, sans-serif;
+  --aesthetic-bg-image: none;
+  --aesthetic-case-file-image: none;
 }
 
 [data-aesthetic="cyber-fixer"] {
@@ -86,6 +90,8 @@
   --aesthetic-error: #ff3333;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
+  --aesthetic-bg-image: url("/assets/cyber-fixer/background.png");
+  --aesthetic-case-file-image: none;
 }
 
 [data-aesthetic="nostromo-console"] {
@@ -100,6 +106,8 @@
   --aesthetic-error: #ff3300;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
+  --aesthetic-bg-image: url("/assets/nostromo-console/background.png");
+  --aesthetic-case-file-image: none;
 }
 
 [data-aesthetic="gothic-manor"] {
@@ -114,6 +122,8 @@
   --aesthetic-error: #ff0011;
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
+  --aesthetic-bg-image: url("/assets/gothic-manor/background.png");
+  --aesthetic-case-file-image: none;
 }
 
 body {
