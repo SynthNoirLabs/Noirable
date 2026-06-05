@@ -82,7 +82,7 @@ export function PhotoDeveloper({
   return (
     <figure
       className={cn(
-        "inline-block bg-[#0f0f11] p-3 pb-8 border border-[var(--aesthetic-border)]/50 rounded-sm shadow-[0_10px_35px_rgba(0,0,0,0.55)] relative overflow-hidden group select-none transition-transform duration-300 hover:scale-[1.02] hover:z-20",
+        "inline-block bg-[#0f0f11] my-4 mx-2 p-3 pb-8 border border-[var(--aesthetic-border)]/50 rounded-sm shadow-[0_10px_35px_rgba(0,0,0,0.55)] relative overflow-hidden group select-none transition-transform duration-300 hover:scale-[1.02] hover:z-20",
         className
       )}
       style={{

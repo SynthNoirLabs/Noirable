@@ -56,7 +56,11 @@ export function coerceComponentInput(raw: unknown): unknown {
   }
 }
 
-export function createTools(aestheticId?: string) {
+export function createTools(
+  aestheticId?: string,
+  customImageStylePrompt?: string | null,
+  imageModel?: string
+) {
   return {
     generate_ui: tool({
       // The component tree is passed as a JSON STRING, not a structured object.
@@ -73,7 +77,12 @@ export function createTools(aestheticId?: string) {
       }),
       execute: async ({ component }) => {
         const parsed = a2uiInputSchema.parse(coerceComponentInput(component));
-        const resolved = await resolveA2UIImagePrompts(parsed, aestheticId);
+        const resolved = await resolveA2UIImagePrompts(
+          parsed,
+          aestheticId,
+          customImageStylePrompt,
+          imageModel
+        );
         return a2uiSchema.parse(resolved);
       },
     }),

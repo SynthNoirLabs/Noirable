@@ -1,9 +1,9 @@
+import crypto from "node:crypto";
 import { generateImage, generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import type { A2UIComponent, A2UIInput } from "@/lib/protocol/schema";
 import { getCustomImageStylePrompt } from "@/lib/ai/image-style";
-import { saveImageBase64 } from "@/lib/ai/imageStore";
+import { saveImageBase64, savePendingImageMetadata } from "@/lib/ai/imageStore";
 import { getImageGenerationModels, getModelInfo, type ModelInfo } from "@/lib/ai/model-registry";
 import { getAestheticProfile } from "@/lib/aesthetic/registry";
 import type { AestheticId } from "@/lib/aesthetic/types";
@@ -11,11 +11,11 @@ import type { AestheticId } from "@/lib/aesthetic/types";
 const NOIR_STYLE_PROMPT =
   "shot as a 1940s detective's evidence photograph, noir cinematic, rain-slicked streets, moody low-key lighting, hard chiaroscuro contrast, heavy film grain, 35mm black-and-white photography, deep shadows, light fog, desaturated palette, no bright saturated color, no text or watermark";
 
-function selectImageModel(): {
+function selectImageModel(imageModel?: string): {
   model: ModelInfo;
   provider: "google" | "openai";
 } | null {
-  const explicitModel = process.env.AI_IMAGE_MODEL;
+  const explicitModel = imageModel || process.env.AI_IMAGE_MODEL;
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const gatewayKey = process.env.AI_GATEWAY_API_KEY;
@@ -57,8 +57,12 @@ function selectImageModel(): {
   return null;
 }
 
-export function buildNoirImagePrompt(prompt: string, aestheticId?: string): string {
-  const customStyle = getCustomImageStylePrompt();
+export function buildNoirImagePrompt(
+  prompt: string,
+  aestheticId?: string,
+  customImageStylePrompt?: string | null
+): string {
+  const customStyle = customImageStylePrompt ?? getCustomImageStylePrompt();
   if (customStyle) {
     if (!prompt.trim()) return customStyle;
     return `${prompt}. Style: ${customStyle}.`;
@@ -97,13 +101,29 @@ function fallbackSvgDataUrl(message: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-async function generateImageDataUrl(prompt: string, aestheticId?: string) {
+export async function generateImageDataUrl(
+  prompt: string,
+  aestheticId?: string,
+  customImageStylePrompt?: string | null,
+  imageModel?: string
+) {
   try {
-    const selection = selectImageModel();
-    if (!selection) return null;
+    const selection = selectImageModel(imageModel);
+    if (!selection) {
+      console.warn("[AI Image Gen] No image generation model selected or available.");
+      return null;
+    }
 
     const { model, provider } = selection;
-    const styledPrompt = buildNoirImagePrompt(prompt, aestheticId);
+    const styledPrompt = buildNoirImagePrompt(prompt, aestheticId, customImageStylePrompt);
+
+    console.log(
+      `[AI Image Gen] Requesting image generation:\n` +
+        `  - Model: ${model.id} (${model.name})\n` +
+        `  - Provider: ${provider}\n` +
+        `  - Method: ${model.capabilities.imageGenMethod}\n` +
+        `  - Prompt: "${styledPrompt}"`
+    );
     const method = model.capabilities.imageGenMethod;
 
     let result;
@@ -160,14 +180,20 @@ async function persistDataUrl(dataUrl: string) {
 
 export async function resolveA2UIImagePrompts(
   input: unknown,
-  aestheticId?: string
+  aestheticId?: string,
+  customImageStylePrompt?: string | null,
+  imageModel?: string
 ): Promise<unknown> {
   if (!input || typeof input !== "object") {
     return input;
   }
 
   if (Array.isArray(input)) {
-    return Promise.all(input.map((item) => resolveA2UIImagePrompts(item, aestheticId)));
+    return Promise.all(
+      input.map((item) =>
+        resolveA2UIImagePrompts(item, aestheticId, customImageStylePrompt, imageModel)
+      )
+    );
   }
 
   const node = input as Record<string, unknown>;
@@ -180,8 +206,14 @@ export async function resolveA2UIImagePrompts(
       resolvedSrc = await persistDataUrl(resolvedSrc);
     }
     if (!resolvedSrc && prompt) {
-      const generated = await generateImageDataUrl(prompt, aestheticId);
-      resolvedSrc = generated ? await persistDataUrl(generated) : null;
+      const id = crypto.randomUUID();
+      await savePendingImageMetadata(id, {
+        prompt,
+        aestheticId,
+        customImageStylePrompt,
+        imageModel,
+      });
+      resolvedSrc = `/api/images/${id}.jpg`;
     }
     if (!resolvedSrc) {
       resolvedSrc = fallbackSvgDataUrl("IMAGE UNAVAILABLE");
@@ -204,11 +236,16 @@ export async function resolveA2UIImagePrompts(
       url.startsWith("/api/images/") ||
       url.startsWith("data:");
     if (!isUrl && url.length > 0) {
-      const generated = await generateImageDataUrl(url, aestheticId);
-      const resolvedSrc = generated ? await persistDataUrl(generated) : null;
+      const id = crypto.randomUUID();
+      await savePendingImageMetadata(id, {
+        prompt: url,
+        aestheticId,
+        customImageStylePrompt,
+        imageModel,
+      });
       return {
         ...node,
-        url: resolvedSrc || fallbackSvgDataUrl("IMAGE UNAVAILABLE"),
+        url: `/api/images/${id}.jpg`,
       };
     }
   }
@@ -216,7 +253,12 @@ export async function resolveA2UIImagePrompts(
   // Recurse into all properties of the object
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
-    result[key] = await resolveA2UIImagePrompts(value, aestheticId);
+    result[key] = await resolveA2UIImagePrompts(
+      value,
+      aestheticId,
+      customImageStylePrompt,
+      imageModel
+    );
   }
   return result;
 }

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModelSelector } from "@/components/settings/ModelSelector";
+import { ImageModelSelector } from "@/components/settings/ImageModelSelector";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
 
@@ -580,6 +581,11 @@ export function ChatSettingsPanel({
       {modelConfig && onModelConfigChange && (
         <ModelSelector modelConfig={modelConfig} onConfigChange={onModelConfigChange} />
       )}
+
+      <ImageModelSelector
+        imageModel={settings.imageModel}
+        onImageModelChange={(model) => onUpdateSettings({ imageModel: model })}
+      />
     </div>
   );
 }

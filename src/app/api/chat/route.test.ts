@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { POST } from "./route";
 import { NextRequest } from "next/server";
 import { streamText } from "ai";
-import { tools } from "@/lib/ai/tools";
 import { getToolOutputFromSse } from "@/lib/sanity/sse";
 
 // Mock Vercel AI SDK

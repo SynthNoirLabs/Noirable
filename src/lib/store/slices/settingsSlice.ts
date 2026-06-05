@@ -24,6 +24,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
       crackleVolume: 0.35,
     },
     aestheticId: "noir",
+    imageModel: undefined,
     sfxVolumes: undefined,
     musicVolume: undefined,
     customMusicUrl: undefined,

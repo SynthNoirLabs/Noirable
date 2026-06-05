@@ -92,11 +92,31 @@ export function DetectiveWorkspace() {
     addTrainingExample,
   } = useA2UIStore();
 
+  const loadProfiles = useCustomProfileStore((state) => state.loadProfiles);
   const activeProfile = useCustomProfileStore((state) => {
     if (!state.activeCustomProfileId) return null;
     return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
   });
+
+  useEffect(() => {
+    loadProfiles();
+  }, [loadProfiles]);
+
   const customSystemPrompt = activeProfile?.systemPrompt;
+
+  const activeAmbient = useMemo(() => {
+    const base = settings.ambient;
+    if (!activeProfile) return base;
+
+    return {
+      ...base,
+      rainVolume: activeProfile.audio?.ambientRainVolume ?? base.rainVolume,
+      crackleVolume: activeProfile.audio?.ambientCrackleVolume ?? base.crackleVolume,
+    };
+  }, [settings.ambient, activeProfile]);
+
+  const activeMusicVolume = activeProfile?.audio?.musicVolume ?? settings.musicVolume;
+  const activeCustomMusicUrl = activeProfile?.audio?.customMusicUrl ?? settings.customMusicUrl;
 
   const modelConfig = useMemo(
     () => settings.modelConfig ?? { provider: "auto", model: "" },
@@ -154,10 +174,20 @@ export function DetectiveWorkspace() {
         modelConfig?.provider && modelConfig.provider !== "auto"
           ? { provider: modelConfig.provider, model: modelConfig.model }
           : undefined,
-      aestheticId: settings.aestheticId,
+      aestheticId: activeProfile?.baseAestheticId ?? settings.aestheticId,
       customSystemPrompt,
+      customImageStylePrompt: activeProfile?.imageStylePrompt,
+      imageModel: settings.imageModel,
     }),
-    [evidence, modelConfig, settings.aestheticId, customSystemPrompt]
+    [
+      evidence,
+      modelConfig,
+      settings.aestheticId,
+      settings.imageModel,
+      customSystemPrompt,
+      activeProfile?.baseAestheticId,
+      activeProfile?.imageStylePrompt,
+    ]
   );
 
   const chat = useChat({
@@ -419,7 +449,13 @@ export function DetectiveWorkspace() {
           { id: `v09-user-${stamp}`, role: "user", parts: [{ type: "text", text }] },
         ]);
         try {
-          await sendV09Prompt(text, settings.aestheticId, customSystemPrompt);
+          await sendV09Prompt(
+            text,
+            activeProfile?.baseAestheticId ?? settings.aestheticId,
+            customSystemPrompt,
+            activeProfile?.imageStylePrompt,
+            settings.imageModel
+          );
           // Prefer the model's real narration; fall back to a varied in-character
           // line if the stream didn't provide one this run.
           const V09_FALLBACK_REPLIES = [
@@ -452,7 +488,9 @@ export function DetectiveWorkspace() {
       sendV09Prompt,
       setMessages,
       settings.aestheticId,
+      settings.imageModel,
       customSystemPrompt,
+      activeProfile,
     ]
   );
 
@@ -491,12 +529,12 @@ export function DetectiveWorkspace() {
         showTraining={showTraining}
         editorWidth={layout.editorWidth}
         sidebarWidth={layout.sidebarWidth}
-        ambient={settings.ambient}
+        ambient={activeAmbient}
         soundEnabled={settings.soundEnabled}
         musicEnabled={settings.musicEnabled}
-        musicVolume={settings.musicVolume}
-        customMusicUrl={settings.customMusicUrl}
-        aestheticId={settings.aestheticId}
+        musicVolume={activeMusicVolume}
+        customMusicUrl={activeCustomMusicUrl}
+        aestheticId={activeProfile?.id ?? settings.aestheticId}
         onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
         onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
         onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
@@ -598,7 +636,7 @@ export function DetectiveWorkspace() {
             soundEnabled={settings.soundEnabled}
             ttsEnabled={settings.ttsEnabled}
             musicEnabled={settings.musicEnabled}
-            ambient={settings.ambient}
+            ambient={activeAmbient}
             modelConfig={modelConfig}
             useA2UIv09={useV09}
             onUpdateSettings={updateSettings}

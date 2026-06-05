@@ -23,6 +23,7 @@ import { TypewriterText } from "@/components/noir/TypewriterText";
 import { ChatSettingsPanel } from "./ChatSettingsPanel";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
 import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 
@@ -84,7 +85,12 @@ export function ChatSidebar({
   generatedTapes = [],
   onOpenCustomization,
 }: ChatSidebarProps) {
-  const aestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  const aestheticId = activeProfile?.baseAestheticId ?? fallbackAestheticId;
   const sfxVolumes = useA2UIStore((state) => state.settings.sfxVolumes);
   const audioPack = getAudioPack(aestheticId);
   const [localInput, setLocalInput] = useState("");
@@ -320,7 +326,7 @@ export function ChatSidebar({
           body: JSON.stringify({
             text,
             aestheticId,
-            voiceSettings: useA2UIStore.getState().settings.voiceSettings,
+            voiceSettings: activeProfile?.voice ?? useA2UIStore.getState().settings.voiceSettings,
           }),
         });
 
@@ -422,6 +428,7 @@ export function ChatSidebar({
       generatedTapes,
       onUpdateSettings,
       aestheticId,
+      activeProfile?.voice,
     ]
   );
 
@@ -491,10 +498,10 @@ export function ChatSidebar({
         {showSettings && onUpdateSettings && (
           <motion.div
             initial={{ height: 0, opacity: 0, overflow: "hidden" }}
-            animate={{ height: "auto", opacity: 1, overflow: "visible" }}
+            animate={{ height: "auto", opacity: 1, overflow: "auto" }}
             exit={{ height: 0, opacity: 0, overflow: "hidden" }}
             transition={{ duration: 0.2 }}
-            className="border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50"
+            className="max-h-[60vh] overflow-y-auto border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/30"
           >
             <ChatSettingsPanel
               typewriterSpeed={typewriterSpeed}

@@ -33,6 +33,8 @@ export interface Settings {
   useA2UIv09?: boolean;
   /** Active aesthetic profile ID */
   aestheticId?: AestheticId;
+  /** Active image generation model ID */
+  imageModel?: string;
   /** Per-SFX volume overrides (0-1) */
   sfxVolumes?: Record<"typewriter" | "thunder" | "phone", number>;
   /** Music volume (0-1) */

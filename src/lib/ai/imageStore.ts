@@ -46,6 +46,26 @@ export async function saveImageBase64(input: {
   return { url: `/api/images/${fileName}`, filePath };
 }
 
+export async function saveImageWithId(input: {
+  id: string;
+  base64: string;
+  mediaType: string;
+}): Promise<{ url: string; filePath: string } | null> {
+  const ext = MEDIA_TYPE_TO_EXT[input.mediaType];
+  if (!ext) return null;
+
+  const dir = getImageStoreDir();
+  await fs.mkdir(dir, { recursive: true });
+
+  const fileName = `${input.id}.${ext}`;
+  const filePath = path.join(dir, fileName);
+
+  const buffer = Buffer.from(input.base64, "base64");
+  await fs.writeFile(filePath, buffer);
+
+  return { url: `/api/images/${fileName}`, filePath };
+}
+
 export async function readImageFile(fileName: string): Promise<{
   data: Buffer;
   contentType: string;
@@ -62,4 +82,39 @@ export async function readImageFile(fileName: string): Promise<{
   if (!contentType) return null;
 
   return { data, contentType };
+}
+
+export interface PendingImageMetadata {
+  prompt: string;
+  aestheticId?: string;
+  customImageStylePrompt?: string | null;
+  imageModel?: string;
+}
+
+export async function savePendingImageMetadata(
+  id: string,
+  metadata: PendingImageMetadata
+): Promise<void> {
+  const dir = getImageStoreDir();
+  await fs.mkdir(dir, { recursive: true });
+  const filePath = path.join(dir, `${id}.json`);
+  await fs.writeFile(filePath, JSON.stringify(metadata, null, 2), "utf8");
+}
+
+export async function getPendingImageMetadata(id: string): Promise<PendingImageMetadata | null> {
+  const dir = getImageStoreDir();
+  const filePath = path.join(dir, `${id}.json`);
+  const data = await fs.readFile(filePath, "utf8").catch(() => null);
+  if (!data) return null;
+  try {
+    return JSON.parse(data) as PendingImageMetadata;
+  } catch {
+    return null;
+  }
+}
+
+export async function deletePendingImageMetadata(id: string): Promise<void> {
+  const dir = getImageStoreDir();
+  const filePath = path.join(dir, `${id}.json`);
+  await fs.unlink(filePath).catch(() => null);
 }

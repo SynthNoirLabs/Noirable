@@ -20,6 +20,8 @@ type ChatRequestBody = {
   /** Active aesthetic profile ID for persona selection */
   aestheticId?: AestheticId;
   customSystemPrompt?: string;
+  customImageStylePrompt?: string;
+  imageModel?: string;
 };
 
 type UIMessagePartType = UIMessage["parts"][number];
@@ -240,7 +242,15 @@ export async function POST(req: Request) {
       console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
     }
 
-    const { messages, evidence, modelConfig, aestheticId, customSystemPrompt } = json;
+    const {
+      messages,
+      evidence,
+      modelConfig,
+      aestheticId,
+      customSystemPrompt,
+      customImageStylePrompt,
+      imageModel,
+    } = json;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response("Messages missing or invalid", { status: 400 });
@@ -293,7 +303,7 @@ export async function POST(req: Request) {
       model: auth.provider!(auth.model),
       messages: convertedMessages,
       system: buildSystemPrompt(evidence, aestheticId, customSystemPrompt),
-      tools: createTools(aestheticId),
+      tools: createTools(aestheticId, customImageStylePrompt, imageModel),
     });
 
     // The tool-calling model reliably calls generate_ui but rarely writes the
