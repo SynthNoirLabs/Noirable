@@ -4,6 +4,7 @@ import React from "react";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { cn } from "@/lib/utils";
 import { Play, Volume2, Music, CloudRain } from "lucide-react";
+import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 
 interface AudioCustomizationProps {
   className?: string;
@@ -51,8 +52,39 @@ const Slider = ({
 export function AudioCustomization({ className }: AudioCustomizationProps) {
   const { settings, updateSettings } = useA2UIStore();
 
-  const handlePreview = () => {
-    // TODO: Play actual audio asset when URLs are available
+  const handlePreview = (
+    type: "typewriter" | "thunder" | "phone" | "music" | "rain" | "crackle"
+  ) => {
+    const audioPack = getAudioPack(settings.aestheticId || "noir");
+    let src = "";
+    let baseVolume = 1;
+    let userVolume = 1;
+
+    if (type === "typewriter" || type === "thunder" || type === "phone") {
+      const sfx = audioPack.sfx[type];
+      src = sfx.src;
+      baseVolume = sfx.volume;
+      userVolume = settings.sfxVolumes?.[type] ?? 1;
+    } else if (type === "music") {
+      src = audioPack.music.src;
+      baseVolume = audioPack.music.volume;
+      userVolume = settings.musicVolume ?? 0.5;
+    } else if (type === "rain" && audioPack.ambient.rain) {
+      src = audioPack.ambient.rain.src;
+      const intensity = settings.ambient.intensity || "medium";
+      baseVolume = audioPack.ambient.rain.intensityVolume[intensity];
+      userVolume = settings.ambient.rainVolume;
+    } else if (type === "crackle" && audioPack.ambient.crackle) {
+      src = audioPack.ambient.crackle.src;
+      baseVolume = audioPack.ambient.crackle.volume;
+      userVolume = settings.ambient.crackleVolume;
+    }
+
+    if (src && typeof Audio !== "undefined") {
+      const audio = new Audio(src);
+      audio.volume = baseVolume * userVolume;
+      audio.play().catch((err) => console.error("Preview failed:", err));
+    }
   };
 
   const updateSfxVolume = (type: "typewriter" | "thunder" | "phone", value: number) => {
@@ -110,19 +142,19 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
             label="TYPEWRITER"
             value={settings.sfxVolumes?.typewriter ?? 1}
             onChange={(v) => updateSfxVolume("typewriter", v)}
-            onPreview={() => handlePreview()}
+            onPreview={() => handlePreview("typewriter")}
           />
           <Slider
             label="THUNDER"
             value={settings.sfxVolumes?.thunder ?? 1}
             onChange={(v) => updateSfxVolume("thunder", v)}
-            onPreview={() => handlePreview()}
+            onPreview={() => handlePreview("thunder")}
           />
           <Slider
             label="PHONE"
             value={settings.sfxVolumes?.phone ?? 1}
             onChange={(v) => updateSfxVolume("phone", v)}
-            onPreview={() => handlePreview()}
+            onPreview={() => handlePreview("phone")}
           />
         </div>
       </section>
@@ -156,7 +188,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
             label="MUSIC VOLUME"
             value={settings.musicVolume ?? 0.5}
             onChange={updateMusicVolume}
-            onPreview={() => handlePreview()}
+            onPreview={() => handlePreview("music")}
           />
         </div>
       </section>
@@ -195,7 +227,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
                 label="INTENSITY"
                 value={settings.ambient.rainVolume}
                 onChange={(v) => updateAmbientVolume("rain", v)}
-                onPreview={() => handlePreview()}
+                onPreview={() => handlePreview("rain")}
               />
             </div>
           </div>
@@ -226,7 +258,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
                 label="VOLUME"
                 value={settings.ambient.crackleVolume}
                 onChange={(v) => updateAmbientVolume("crackle", v)}
-                onPreview={() => handlePreview()}
+                onPreview={() => handlePreview("crackle")}
               />
             </div>
           </div>

@@ -42,6 +42,8 @@
   --aesthetic-accent-muted: #b5a642;
   --aesthetic-border: #2a2a2a;
   --aesthetic-error: #8a0000;
+  --aesthetic-font-body: var(--font-typewriter);
+  --aesthetic-font-heading: var(--font-sans);
 }
 
 [data-aesthetic="noir"] {
@@ -54,6 +56,8 @@
   --aesthetic-accent-muted: #b5a642;
   --aesthetic-border: #2a2a2a;
   --aesthetic-error: #8a0000;
+  --aesthetic-font-body: var(--font-typewriter);
+  --aesthetic-font-heading: var(--font-sans);
 }
 
 [data-aesthetic="minimal"] {
@@ -66,10 +70,69 @@
   --aesthetic-accent-muted: #3b82f6;
   --aesthetic-border: #e4e4e7;
   --aesthetic-error: #dc2626;
+  --aesthetic-font-body: system-ui, -apple-system, sans-serif;
+  --aesthetic-font-heading: system-ui, -apple-system, sans-serif;
+}
+
+[data-aesthetic="cyber-fixer"] {
+  --aesthetic-background: #0a0512;
+  --aesthetic-surface: #140c24;
+  --aesthetic-surface-alt: #251642;
+  --aesthetic-text: #f0e6ff;
+  --aesthetic-text-muted: #8b72af;
+  --aesthetic-accent: #00ffcc;
+  --aesthetic-accent-muted: #ff007f;
+  --aesthetic-border: #3a1f66;
+  --aesthetic-error: #ff3333;
+  --aesthetic-font-body: var(--font-typewriter);
+  --aesthetic-font-heading: var(--font-sans);
+}
+
+[data-aesthetic="nostromo-console"] {
+  --aesthetic-background: #020804;
+  --aesthetic-surface: #05160b;
+  --aesthetic-surface-alt: #0a2815;
+  --aesthetic-text: #33ff66;
+  --aesthetic-text-muted: #1d8c3b;
+  --aesthetic-accent: #33ff66;
+  --aesthetic-accent-muted: #ff9900;
+  --aesthetic-border: #0d3b1f;
+  --aesthetic-error: #ff3300;
+  --aesthetic-font-body: var(--font-typewriter);
+  --aesthetic-font-heading: var(--font-typewriter);
+}
+
+[data-aesthetic="gothic-manor"] {
+  --aesthetic-background: #08080a;
+  --aesthetic-surface: #121217;
+  --aesthetic-surface-alt: #22222b;
+  --aesthetic-text: #e1e1e6;
+  --aesthetic-text-muted: #82828c;
+  --aesthetic-accent: #990011;
+  --aesthetic-accent-muted: #4a0008;
+  --aesthetic-border: #2a2a35;
+  --aesthetic-error: #ff0011;
+  --aesthetic-font-body: var(--font-typewriter);
+  --aesthetic-font-heading: var(--font-typewriter);
 }
 
 body {
-  @apply bg-noir-dark text-noir-paper font-sans;
+  background-color: var(--aesthetic-background);
+  color: var(--aesthetic-text);
+  font-family: var(--aesthetic-font-body);
+}
+
+/* Force Tailwind utility classes to respect dynamic aesthetic fonts */
+.font-sans {
+  font-family: var(--aesthetic-font-heading), var(--font-sans);
+}
+
+.font-typewriter {
+  font-family: var(--aesthetic-font-body), var(--font-typewriter);
+}
+
+.font-mono {
+  font-family: var(--aesthetic-font-body), var(--font-typewriter);
 }
 
 /* --- ATMOSPHERIC EFFECTS --- */

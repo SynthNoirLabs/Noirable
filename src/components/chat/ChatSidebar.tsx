@@ -85,6 +85,7 @@ export function ChatSidebar({
   onOpenCustomization,
 }: ChatSidebarProps) {
   const aestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  const sfxVolumes = useA2UIStore((state) => state.settings.sfxVolumes);
   const audioPack = getAudioPack(aestheticId);
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
@@ -512,7 +513,12 @@ export function ChatSidebar({
         )}
       </AnimatePresence>
 
-      <NoirSoundEffects enabled={soundSetting} onReady={setSfxControls} sfxConfig={audioPack.sfx} />
+      <NoirSoundEffects
+        enabled={soundSetting}
+        onReady={setSfxControls}
+        sfxConfig={audioPack.sfx}
+        sfxVolumes={sfxVolumes}
+      />
 
       <div
         className="flex-1 overflow-y-auto p-4 space-y-6"
