@@ -5,6 +5,10 @@
 **/node_modules
 /.pnp
 .pnp.*
+
+# pnpm content-addressable store (created locally when store-dir resolves to
+# the repo; must never be committed — prettier --check walks it and CI fails)
+.pnpm-store/
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
