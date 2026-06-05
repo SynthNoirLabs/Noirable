@@ -79,6 +79,35 @@ describe("AESTHETIC_DEFINITIONS", () => {
         "dictaphoneEmptyHint",
       ])
     );
+
+    // Bigger-bets identity layer: style tokens, effects, atmosphere, motion.
+    expect(identity.styleTokens.radius).toBeTruthy();
+    expect(["sharp", "soft", "beveled", "double"]).toContain(identity.styleTokens.borderStyle);
+    expect(["uppercase", "titlecase", "normal"]).toContain(identity.styleTokens.headerCase);
+    expect(["paper", "parchment", "hologram", "wireframe", "flat"]).toContain(identity.effects.card);
+    expect(["wax", "digital", "blood", "none"]).toContain(identity.effects.stamp);
+    expect(["scanlines", "phosphor", "none"]).toContain(identity.effects.screen);
+    expect(identity.effects.bloom).toBeGreaterThanOrEqual(0);
+    expect(["rain", "fog", "grain", "ember", "none"]).toContain(identity.atmosphere.particle);
+    expect(identity.atmosphere.vignetteIntensity).toBeGreaterThanOrEqual(0);
+    expect(identity.atmosphere.vignetteIntensity).toBeLessThanOrEqual(1);
+    expect(identity.atmosphere.lightningFrequency).toBeGreaterThanOrEqual(0);
+    expect(["cinematic", "crisp", "glitch", "terminal", "candle"]).toContain(
+      identity.motion.entrance
+    );
+    expect(identity.motion.durationMs).toBeGreaterThan(0);
+    expect(["darkroom", "crisp", "scanline", "raster", "candle"]).toContain(
+      identity.motion.imageReveal
+    );
+
+    // Structured image spec is complete and has rotating motifs.
+    expect(identity.imageSpec.medium.length).toBeGreaterThan(5);
+    expect(identity.imageSpec.negative.length).toBeGreaterThanOrEqual(1);
+    expect(identity.imageSpec.motifs.length).toBeGreaterThanOrEqual(2);
+
+    // Composition seed + audio event map present.
+    expect(typeof identity.compositionSeed).toBe("number");
+    expect(typeof identity.audioEvents).toBe("object");
   });
 
   it("keeps noir copy/voice byte-identical to its historical values", () => {

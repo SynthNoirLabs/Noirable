@@ -5,7 +5,17 @@
  * registry. Custom profiles resolve through their baseAestheticId.
  */
 import { isBuiltInAestheticId } from "./types";
-import type { AestheticCopy, AestheticId, MusicPreset } from "./types";
+import type {
+  AestheticCopy,
+  AestheticId,
+  Atmosphere,
+  AudioEventMap,
+  EffectsProfile,
+  ImageStyleSpec,
+  MotionPersonality,
+  MusicPreset,
+  StyleTokens,
+} from "./types";
 import { AESTHETIC_DEFINITIONS, getAestheticDefinition } from "./definitions";
 
 /**
@@ -45,4 +55,53 @@ export function getGlowStrength(aestheticId: AestheticId | undefined): number {
     return AESTHETIC_DEFINITIONS[aestheticId].identity.glowStrength;
   }
   return AESTHETIC_DEFINITIONS.noir.identity.glowStrength;
+}
+
+/**
+ * Visual style tokens (radius / border / header case). Falls back to noir.
+ */
+export function getStyleTokens(aestheticId: AestheticId | undefined): StyleTokens {
+  return getAestheticDefinition(aestheticId).identity.styleTokens;
+}
+
+/**
+ * Material + screen effects profile (card material, stamp, screen, bloom).
+ */
+export function getEffectsProfile(aestheticId: AestheticId | undefined): EffectsProfile {
+  return getAestheticDefinition(aestheticId).identity.effects;
+}
+
+/**
+ * Ambient atmosphere block (particle/lightning/vignette colors + intensities).
+ */
+export function getAtmosphere(aestheticId: AestheticId | undefined): Atmosphere {
+  return getAestheticDefinition(aestheticId).identity.atmosphere;
+}
+
+/**
+ * Motion personality (entrance + image-reveal character).
+ */
+export function getMotionPersonality(aestheticId: AestheticId | undefined): MotionPersonality {
+  return getAestheticDefinition(aestheticId).identity.motion;
+}
+
+/**
+ * Structured image spec (preferred over the flat imageStylePrompt).
+ */
+export function getImageSpec(aestheticId: AestheticId | undefined): ImageStyleSpec {
+  return getAestheticDefinition(aestheticId).identity.imageSpec;
+}
+
+/**
+ * Semantic-event → SFX mapping for the reactive audio bus.
+ */
+export function getAudioEvents(aestheticId: AestheticId | undefined): AudioEventMap {
+  return getAestheticDefinition(aestheticId).identity.audioEvents;
+}
+
+/**
+ * Base composition seed for a preset (offset per variant for "Take 1/2/3").
+ */
+export function getCompositionSeed(aestheticId: AestheticId | undefined): number {
+  return getAestheticDefinition(aestheticId).identity.compositionSeed;
 }
