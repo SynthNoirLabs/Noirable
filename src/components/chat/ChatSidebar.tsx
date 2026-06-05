@@ -401,7 +401,15 @@ export function ChatSidebar({
         stopTts();
       }
     },
-    [elevenLabsConfigured, stopTts, ttsPlayingId, ttsSetting, sfxControls]
+    [
+      elevenLabsConfigured,
+      stopTts,
+      ttsPlayingId,
+      ttsSetting,
+      sfxControls,
+      generatedTapes,
+      onUpdateSettings,
+    ]
   );
 
   const ttsDisabledReason = !ttsSetting

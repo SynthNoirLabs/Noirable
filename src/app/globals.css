@@ -277,6 +277,54 @@ body {
   animation: lightning-flash-anim 1.2s ease-out forwards;
 }
 
+/* Darkroom Chemical Photo Development Animations */
+@keyframes photo-develop-image {
+  0% {
+    filter: blur(16px) sepia(1) saturate(0.3) brightness(0.2) contrast(1.5);
+    opacity: 0;
+  }
+  15% {
+    filter: blur(12px) sepia(1) saturate(0.5) brightness(0.4) contrast(1.6);
+    opacity: 0.2;
+  }
+  50% {
+    filter: blur(6px) sepia(0.8) saturate(0.8) brightness(0.85) contrast(1.2);
+    opacity: 0.75;
+  }
+  100% {
+    filter: blur(0px) sepia(0.15) saturate(1) brightness(1) contrast(1);
+    opacity: 1;
+  }
+}
+
+@keyframes darkroom-safelight {
+  0% {
+    background-color: rgba(220, 20, 20, 0.7);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9);
+    opacity: 1;
+  }
+  25% {
+    background-color: rgba(230, 50, 0, 0.55);
+    opacity: 0.9;
+  }
+  65% {
+    background-color: rgba(180, 80, 0, 0.25);
+    opacity: 0.5;
+  }
+  100% {
+    background-color: transparent;
+    opacity: 0;
+  }
+}
+
+.animate-photo-develop {
+  animation: photo-develop-image 4.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-safelight {
+  animation: darkroom-safelight 4.5s ease-in-out forwards;
+}
+
 /* --- GLOBAL REDUCED-MOTION RESET --- */
 
 /* Honour the user's reduced-motion preference everywhere, including effects
@@ -294,5 +342,16 @@ body {
   .crt-glow,
   .eq-bar {
     animation: none;
+  }
+
+  .animate-photo-develop {
+    animation: none !important;
+    filter: sepia(0.15) !important;
+    opacity: 1 !important;
+  }
+
+  .animate-safelight {
+    animation: none !important;
+    display: none !important;
   }
 }

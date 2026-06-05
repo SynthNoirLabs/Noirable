@@ -2,6 +2,7 @@ import React from "react";
 import { a2uiInputSchema, type A2UIInput } from "@/lib/protocol/schema";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { DossierCard } from "@/components/noir/DossierCard";
+import { PhotoDeveloper } from "@/components/noir/PhotoDeveloper";
 import { cn } from "@/lib/utils";
 import { useFormContext, FormProvider, type FormValues } from "./FormContext";
 import {
@@ -346,25 +347,15 @@ function A2UIRendererInner({ data }: Omit<A2UIRendererProps, "onFormSubmit">) {
           );
         }
         return (
-          <figure
+          <PhotoDeveloper
+            src={node.src}
+            alt={node.alt ?? "Generated image"}
             className={cn(
-              "inline-block bg-[#0d0d0d] p-2 pb-7 border border-[var(--aesthetic-border)]/50 rounded-sm rotate-[-0.6deg] shadow-[0_10px_30px_rgba(0,0,0,0.45)]",
               node.style?.width ? widthClasses[node.style.width] : null,
               node.style?.className
             )}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={node.src}
-              alt={node.alt ?? "Generated image"}
-              className="block w-full max-w-full object-cover sepia-[0.15]"
-            />
-            {node.alt && (
-              <figcaption className="mt-2 px-1 font-typewriter text-[10px] uppercase tracking-[0.25em] text-[var(--aesthetic-text)]/60">
-                Exhibit — {node.alt}
-              </figcaption>
-            )}
-          </figure>
+            caption={node.alt ? `Exhibit — ${node.alt}` : undefined}
+          />
         );
       case "input": {
         const inputName = node.name || node.label.toLowerCase().replace(/\s+/g, "_");

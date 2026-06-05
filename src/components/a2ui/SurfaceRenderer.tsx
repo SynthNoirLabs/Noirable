@@ -9,6 +9,7 @@ import { runChecks, type CheckRule } from "@/lib/a2ui/validation";
 import { dispatchAction } from "@/lib/a2ui/events/dispatch";
 import type { ActionMessage, ServerMessage } from "@/lib/a2ui/schema/messages";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
+import { PhotoDeveloper } from "@/components/noir/PhotoDeveloper";
 import { cn } from "@/lib/utils";
 
 // ============================================================================
@@ -620,17 +621,6 @@ function ImageRenderer({ component }: ComponentProps) {
   const url = String(resolve(img.url) ?? "");
   const alt = img.accessibility?.label ? String(resolve(img.accessibility.label)) : "Image";
 
-  const sizeClasses = {
-    icon: "w-6 h-6",
-    avatar: "w-12 h-12 rounded-full",
-    smallFeature: "w-24 h-24",
-    mediumFeature: "w-48 h-48",
-    largeFeature: "w-96 h-64",
-    header: "w-full h-48",
-  };
-
-  const isInline = img.variant === "icon" || img.variant === "avatar";
-
   if (!url) {
     return (
       <div className="border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3 rounded-sm text-xs font-mono text-[var(--aesthetic-text)]/70">
@@ -639,37 +629,10 @@ function ImageRenderer({ component }: ComponentProps) {
     );
   }
 
-  const image = (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={url}
-      alt={alt}
-      className={cn(
-        "object-cover",
-        img.fit === "contain" && "object-contain",
-        img.fit === "fill" && "object-fill",
-        img.fit === "none" && "object-none",
-        img.fit === "scaleDown" && "object-scale-down",
-        isInline
-          ? sizeClasses[img.variant as keyof typeof sizeClasses]
-          : "block w-full max-w-full sepia-[0.15]"
-      )}
-    />
-  );
-
-  if (isInline) {
-    return image;
-  }
+  const caption = img.accessibility?.label ? String(resolve(img.accessibility.label)) : undefined;
 
   return (
-    <figure className="inline-block bg-[#0d0d0d] p-2 pb-7 border border-[var(--aesthetic-border)]/50 rounded-sm rotate-[-0.6deg] shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
-      {image}
-      {Boolean(img.accessibility?.label) && (
-        <figcaption className="mt-2 px-1 font-typewriter text-[10px] uppercase tracking-[0.25em] text-[var(--aesthetic-text)]/60">
-          Exhibit — {alt}
-        </figcaption>
-      )}
-    </figure>
+    <PhotoDeveloper src={url} alt={alt} fit={img.fit} variant={img.variant} caption={caption} />
   );
 }
 
