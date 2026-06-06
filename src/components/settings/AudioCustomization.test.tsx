@@ -208,4 +208,68 @@ describe("AudioCustomization", () => {
       });
     });
   });
+
+  describe("with an active custom profile", () => {
+    beforeEach(() => {
+      mockGetActiveProfile.mockReturnValue({
+        id: "custom-1",
+        name: "My custom profile",
+        baseAestheticId: "noir",
+        audio: {
+          sfxVolumes: { typewriter: 0.2 },
+          musicVolume: 0.3,
+          ambientRainVolume: 0.1,
+        },
+      });
+    });
+
+    it("reads volumes from the profile audio overrides", () => {
+      render(<AudioCustomization />);
+
+      // Profile typewriter 0.2 -> 20%, music 0.3 -> 30%, rain 0.1 -> 10%.
+      expect(screen.getByLabelText("TYPEWRITER volume")).toHaveValue("20");
+      expect(screen.getByLabelText("MUSIC VOLUME volume")).toHaveValue("30");
+      expect(screen.getByLabelText("INTENSITY volume")).toHaveValue("10");
+    });
+
+    it("writes sfx volume to the profile, not the global store", () => {
+      render(<AudioCustomization />);
+
+      const slider = screen.getByLabelText("THUNDER volume");
+      fireEvent.change(slider, { target: { value: "50" } });
+
+      expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+        audio: {
+          sfxVolumes: { typewriter: 0.2, thunder: 0.5 },
+          musicVolume: 0.3,
+          ambientRainVolume: 0.1,
+        },
+      });
+      expect(updateSettingsMock).not.toHaveBeenCalled();
+    });
+
+    it("writes music volume to the profile audio", () => {
+      render(<AudioCustomization />);
+
+      const slider = screen.getByLabelText("MUSIC VOLUME volume");
+      fireEvent.change(slider, { target: { value: "80" } });
+
+      expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+        audio: expect.objectContaining({ musicVolume: 0.8 }),
+      });
+      expect(updateSettingsMock).not.toHaveBeenCalled();
+    });
+
+    it("writes ambient rain volume to the profile audio", () => {
+      render(<AudioCustomization />);
+
+      const slider = screen.getByLabelText("INTENSITY volume");
+      fireEvent.change(slider, { target: { value: "90" } });
+
+      expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+        audio: expect.objectContaining({ ambientRainVolume: 0.9 }),
+      });
+      expect(updateSettingsMock).not.toHaveBeenCalled();
+    });
+  });
 });

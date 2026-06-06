@@ -1,6 +1,7 @@
 "use client";
 
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { cn } from "@/lib/utils";
 import { Droplets, CloudFog, Radio, Type } from "lucide-react";
 
@@ -51,26 +52,59 @@ function Slider({ label, icon, value, min, max, step, unit, onChange }: SliderPr
 
 export function EffectsCustomization() {
   const { settings, updateSettings } = useA2UIStore();
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const updateProfile = useCustomProfileStore((state) => state.updateProfile);
 
-  const effectIntensities = settings.effectIntensities || {
+  // Read from the active profile's effects override (falling back to the global
+  // session settings), so tuning a custom profile's effects survives export and
+  // profile switching. Mirrors VoiceCustomization's dual-branch persistence.
+  const profileEffects = activeProfile?.effects;
+  const globalIntensities = settings.effectIntensities || {
     rain: 0.5,
     fog: 0.5,
     crackle: 0.5,
   };
 
-  const typewriterSpeed = settings.typewriterSpeed ?? 50;
+  const effectIntensities = {
+    rain: profileEffects?.rain ?? globalIntensities.rain ?? 0.5,
+    fog: profileEffects?.fog ?? globalIntensities.fog ?? 0.5,
+    crackle: profileEffects?.crackle ?? globalIntensities.crackle ?? 0.5,
+  };
+
+  const typewriterSpeed = profileEffects?.typewriterSpeed ?? settings.typewriterSpeed ?? 50;
 
   const handleEffectChange = (key: "rain" | "fog" | "crackle", value: number) => {
-    updateSettings({
-      effectIntensities: {
-        ...effectIntensities,
-        [key]: value,
-      },
-    });
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        effects: {
+          ...profileEffects,
+          [key]: value,
+        },
+      });
+    } else {
+      updateSettings({
+        effectIntensities: {
+          ...globalIntensities,
+          [key]: value,
+        },
+      });
+    }
   };
 
   const handleTypewriterSpeedChange = (value: number) => {
-    updateSettings({ typewriterSpeed: value });
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        effects: {
+          ...profileEffects,
+          typewriterSpeed: value,
+        },
+      });
+    } else {
+      updateSettings({ typewriterSpeed: value });
+    }
   };
 
   return (

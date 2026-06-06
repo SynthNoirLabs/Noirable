@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ShieldCheck, ShieldAlert, Wand2 } from "lucide-react";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { injectProfileStyles } from "@/lib/customization/css-injection";
+import {
+  contrastRatio,
+  passesAA,
+  nudgeToAA,
+  paletteFromAccent,
+} from "@/lib/customization/contrast";
+import { cn } from "@/lib/utils";
 import type { ProfileColors, CustomProfile } from "@/lib/customization/types";
 import type { CustomProfileId, BuiltInAestheticId } from "@/lib/aesthetic/types";
 
@@ -110,6 +117,22 @@ function ColorEditor({ initialColors, defaultColors, onUpdate }: ColorEditorProp
     onUpdate(undefined); // undefined means "use defaults"
   };
 
+  // WCAG guardrail: body text over the page background. A failing pair is the
+  // most common legibility trap when users hand-pick a palette.
+  const textRatio = contrastRatio(colors.text, colors.background);
+  const textPasses = passesAA(textRatio);
+
+  const handleFixTextToAA = () => {
+    const fixed = nudgeToAA(colors.text, colors.background);
+    handleColorChange("text", fixed);
+  };
+
+  const handleGenerateFromAccent = () => {
+    const generated = paletteFromAccent(colors.accent);
+    setColors(generated);
+    onUpdate(generated);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-end">
@@ -158,6 +181,50 @@ function ColorEditor({ initialColors, defaultColors, onUpdate }: ColorEditorProp
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Contrast guardrail + harmony helpers */}
+      <div className="space-y-3 border-t border-[var(--aesthetic-border)]/30 pt-6">
+        <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--aesthetic-text-muted)]">
+          Accessibility
+        </h3>
+        <div
+          data-testid="contrast-readout"
+          className={cn(
+            "flex items-center justify-between gap-3 p-3 rounded-sm border text-xs font-mono",
+            textPasses
+              ? "border-green-500/40 bg-green-500/5 text-green-500"
+              : "border-yellow-500/40 bg-yellow-500/5 text-yellow-500"
+          )}
+        >
+          <span className="flex items-center gap-2">
+            {textPasses ? (
+              <ShieldCheck className="w-3.5 h-3.5" />
+            ) : (
+              <ShieldAlert className="w-3.5 h-3.5" />
+            )}
+            Text on Background: {textRatio.toFixed(2)}:1{" "}
+            {textPasses ? "(AA pass)" : "(below AA 4.5:1)"}
+          </span>
+          {!textPasses && (
+            <button
+              onClick={handleFixTextToAA}
+              data-testid="fix-to-aa"
+              className="px-2 py-1 rounded-sm border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10 uppercase tracking-wide transition-colors"
+            >
+              Fix to AA
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={handleGenerateFromAccent}
+          data-testid="generate-from-accent"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider rounded-sm border border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-accent)]/10 hover:border-[var(--aesthetic-accent)] transition-colors"
+        >
+          <Wand2 className="w-3.5 h-3.5" />
+          Generate Palette from Accent
+        </button>
       </div>
     </div>
   );

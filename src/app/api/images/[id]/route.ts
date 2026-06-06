@@ -26,7 +26,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         metadata.prompt,
         metadata.aestheticId,
         metadata.customImageStylePrompt,
-        metadata.imageModel
+        metadata.imageModel,
+        metadata.aspectRatio,
+        metadata.sessionSeed,
+        metadata.imageIndex
       );
 
       if (dataUrl) {

@@ -89,6 +89,14 @@ export interface PendingImageMetadata {
   aestheticId?: string;
   customImageStylePrompt?: string | null;
   imageModel?: string;
+  /** `{width}:{height}` aspect ratio threaded to the provider when supported. (Bet 7.) */
+  aspectRatio?: string;
+  /** Deterministic seed for this image (typically sessionSeed + imageIndex). (Bet 7.) */
+  seed?: number;
+  /** Per-board seed family; combined with imageIndex for intra-board variety. (Bet 7.) */
+  sessionSeed?: number;
+  /** Index of this image within its board; rotates the spec motif. (Bet 7.) */
+  imageIndex?: number;
 }
 
 export async function savePendingImageMetadata(

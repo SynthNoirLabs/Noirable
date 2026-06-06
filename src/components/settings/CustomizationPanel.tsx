@@ -2,25 +2,44 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Palette, Volume2, Mic, Sparkles, Settings, Download, Brain, Key } from "lucide-react";
+import {
+  X,
+  Palette,
+  Volume2,
+  Mic,
+  Sparkles,
+  Settings,
+  Download,
+  Brain,
+  Key,
+  Type,
+  Image as ImageIcon,
+  Wand2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { ProfileSelector } from "./ProfileSelector";
+import { ThemeGenerator } from "./ThemeGenerator";
 import { ColorCustomization } from "./ColorCustomization";
+import { FontCustomization } from "./FontCustomization";
 import { PersonaCustomization } from "./PersonaCustomization";
 import { AudioCustomization } from "./AudioCustomization";
 import { VoiceCustomization } from "./VoiceCustomization";
 import { EffectsCustomization } from "./EffectsCustomization";
+import { ImageStyleCustomization } from "./ImageStyleCustomization";
 import { ApiKeyManager } from "./ApiKeyManager";
 import { ProfilePortability } from "./ProfilePortability";
 
 type TabId =
   | "profile"
+  | "generate"
   | "colors"
+  | "fonts"
   | "persona"
   | "audio"
   | "voice"
   | "effects"
+  | "imageStyle"
   | "portability"
   | "advanced";
 
@@ -32,11 +51,14 @@ interface Tab {
 
 const TABS: Tab[] = [
   { id: "profile", label: "Profile", icon: <Settings className="w-4 h-4" /> },
+  { id: "generate", label: "Generate", icon: <Wand2 className="w-4 h-4" /> },
   { id: "colors", label: "Colors", icon: <Palette className="w-4 h-4" /> },
+  { id: "fonts", label: "Fonts", icon: <Type className="w-4 h-4" /> },
   { id: "persona", label: "Persona", icon: <Brain className="w-4 h-4" /> },
   { id: "audio", label: "Audio", icon: <Volume2 className="w-4 h-4" /> },
   { id: "voice", label: "Voice", icon: <Mic className="w-4 h-4" /> },
   { id: "effects", label: "Effects", icon: <Sparkles className="w-4 h-4" /> },
+  { id: "imageStyle", label: "Image Style", icon: <ImageIcon className="w-4 h-4" /> },
   { id: "portability", label: "Portability", icon: <Download className="w-4 h-4" /> },
   { id: "advanced", label: "Advanced", icon: <Key className="w-4 h-4" /> },
 ];
@@ -132,8 +154,12 @@ function renderTabContent(tabId: TabId): React.ReactNode {
   switch (tabId) {
     case "profile":
       return <ProfileSelector />;
+    case "generate":
+      return <ThemeGenerator />;
     case "colors":
       return <ColorCustomization />;
+    case "fonts":
+      return <FontCustomization />;
     case "persona":
       return <PersonaCustomization />;
     case "audio":
@@ -142,6 +168,8 @@ function renderTabContent(tabId: TabId): React.ReactNode {
       return <VoiceCustomization />;
     case "effects":
       return <EffectsCustomization />;
+    case "imageStyle":
+      return <ImageStyleCustomization />;
     case "portability":
       return <ProfilePortability />;
     case "advanced":

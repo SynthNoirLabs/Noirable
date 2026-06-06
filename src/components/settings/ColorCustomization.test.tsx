@@ -179,6 +179,61 @@ describe("ColorCustomization", () => {
     expect(injectProfileStyles).toHaveBeenCalled();
   });
 
+  it("shows a passing contrast readout for legible defaults", () => {
+    // Default noir text (#e0e0e0) over background (#0f0f0f) clears AA.
+    render(<ColorCustomization />);
+
+    const readout = screen.getByTestId("contrast-readout");
+    expect(readout).toHaveTextContent(/AA pass/i);
+    // No fix button when the pair already passes.
+    expect(screen.queryByTestId("fix-to-aa")).not.toBeInTheDocument();
+  });
+
+  it("warns and offers Fix to AA when text/background contrast fails", () => {
+    mockGetActiveProfile.mockReturnValue({
+      id: "custom-1",
+      colors: {
+        background: "#1a1a1a",
+        text: "#333333", // too close to bg
+      },
+    });
+
+    render(<ColorCustomization />);
+
+    expect(screen.getByTestId("contrast-readout")).toHaveTextContent(/below AA/i);
+
+    const fixButton = screen.getByTestId("fix-to-aa");
+    fireEvent.click(fixButton);
+
+    // Persists a brightened text color that now passes AA.
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
+      "custom-1",
+      expect.objectContaining({
+        colors: expect.objectContaining({ text: expect.stringMatching(/^#[0-9a-f]{6}$/) }),
+      })
+    );
+    expect(injectProfileStyles).toHaveBeenCalled();
+  });
+
+  it("generates a full palette from the accent color", () => {
+    render(<ColorCustomization />);
+
+    const generateButton = screen.getByTestId("generate-from-accent");
+    fireEvent.click(generateButton);
+
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
+      "custom-1",
+      expect.objectContaining({
+        colors: expect.objectContaining({
+          background: expect.stringMatching(/^#[0-9a-f]{6}$/),
+          accent: expect.stringMatching(/^#[0-9a-f]{6}$/),
+          text: expect.stringMatching(/^#[0-9a-f]{6}$/),
+        }),
+      })
+    );
+    expect(injectProfileStyles).toHaveBeenCalled();
+  });
+
   it("handles background image file upload", async () => {
     mockGetActiveProfile.mockReturnValue({
       id: "custom-1",
