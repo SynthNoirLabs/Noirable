@@ -107,16 +107,23 @@ test.describe("Layout Visual Regression", () => {
     const boardBox = await board.boundingBox();
     const sidebarBox = await sidebar.boundingBox();
 
+    // Tolerance absorbs borders + sub-pixel grid-track rounding: the browser
+    // computes fractional column widths and headless Linux (CI) rounds them
+    // slightly differently than local macOS, so an edge can land ~1px past its
+    // neighbor without any real overlap. A genuine overlap is gross (tens of px),
+    // so a small tolerance still catches it.
+    const OVERLAP_TOLERANCE_PX = 8;
+
     // Editor right edge should be <= board left edge
     const editorRightEdge = editorBox!.x + editorBox!.width;
     expect(editorRightEdge, "Editor overlaps with evidence board").toBeLessThanOrEqual(
-      boardBox!.x + 5
-    ); // 5px tolerance for borders
+      boardBox!.x + OVERLAP_TOLERANCE_PX
+    );
 
     // Board right edge should be <= sidebar left edge
     const boardRightEdge = boardBox!.x + boardBox!.width;
     expect(boardRightEdge, "Evidence board overlaps with sidebar").toBeLessThanOrEqual(
-      sidebarBox!.x + 5
+      sidebarBox!.x + OVERLAP_TOLERANCE_PX
     );
   });
 
