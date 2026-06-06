@@ -2,6 +2,9 @@
   "name": "synth-noir-ui",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "dev:lowmem": "RAYON_NUM_THREADS=1 SWC_THREADS=1 next dev --webpack",
