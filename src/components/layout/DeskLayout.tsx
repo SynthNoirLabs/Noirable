@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { NoirEffects } from "@/components/noir/NoirEffects";
 import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
 import type { AmbientSettings, AestheticId } from "@/lib/store/useA2UIStore";
-import { getAestheticCopy } from "@/lib/aesthetic/identity";
+import { getAestheticCopy, getEffectsProfile, getStyleTokens } from "@/lib/aesthetic/identity";
 import { ResizeHandle } from "./ResizeHandle";
 
 interface DeskLayoutProps {
@@ -108,6 +108,14 @@ export function DeskLayout({
   // world (e.g. "MAIN DISPLAY" on nostromo) instead of always-noir. Resolved
   // from the base aesthetic id; custom profiles inherit their base preset copy.
   const copy = getAestheticCopy(aestheticId);
+  // Visual style tokens + material/screen effects for the active world. Emitted
+  // as data-effect-* attributes + CSS custom props on the root so globals.css
+  // can light up the right card material (paper/parchment/hologram/wireframe/
+  // flat) and screen treatment (scanlines/phosphor) without per-aesthetic
+  // duplication. Custom profiles inherit their base preset's tokens/effects via
+  // the already-resolved base `aestheticId`.
+  const styleTokens = getStyleTokens(aestheticId);
+  const effects = getEffectsProfile(aestheticId);
 
   const getGridColsClass = () => {
     const cols: string[] = [];
@@ -128,6 +136,9 @@ export function DeskLayout({
       data-testid="desk-layout"
       data-aesthetic={aestheticId ?? "noir"}
       data-custom-profile={customProfileId || undefined}
+      data-effect-card={effects.card}
+      data-effect-stamp={effects.stamp}
+      data-effect-screen={effects.screen}
       className={cn(
         "min-h-screen grid gap-0 bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] relative isolate overflow-hidden film-grain vignette",
         gridColsClass,
@@ -137,6 +148,11 @@ export function DeskLayout({
         {
           "--editor-w": `${editorWidth}px`,
           "--sidebar-w": `${sidebarWidth}px`,
+          // Material/shape tokens consumed by globals.css data-effect-* rules:
+          // card radius and accent-glow bloom scale. Custom profiles inherit
+          // their base preset's values via the resolved base `aestheticId`.
+          "--aesthetic-radius": styleTokens.radius,
+          "--aesthetic-bloom": String(effects.bloom),
           // Reserve space for fixed sidebar
           marginRight: isSidebarVisible ? `${sidebarWidth}px` : undefined,
         } as React.CSSProperties

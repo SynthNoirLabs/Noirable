@@ -691,8 +691,17 @@ When the request is open-ended, compose like an illuminated manuscript: an ornat
       lighting: "warm candlelight glow, deep chiaroscuro, heavy shadow",
       palette: "crimson and gold accents over brooding near-black",
       lens: "painterly, soft focus edges",
-      framing: "Victorian gothic manor interior, heavy velvet drapes, gilt frame, stormy moonlit window",
-      negative: ["text", "watermark", "bright daylight", "modern setting", "cheerful", "neon", "sci-fi"],
+      framing:
+        "Victorian gothic manor interior, heavy velvet drapes, gilt frame, stormy moonlit window",
+      negative: [
+        "text",
+        "watermark",
+        "bright daylight",
+        "modern setting",
+        "cheerful",
+        "neon",
+        "sci-fi",
+      ],
       motifs: [
         "candelabra casting long shadows in a manor hall",
         "a rain-streaked gothic window over a graveyard",

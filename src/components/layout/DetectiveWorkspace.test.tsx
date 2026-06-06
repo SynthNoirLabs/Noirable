@@ -236,6 +236,42 @@ describe("DetectiveWorkspace", () => {
     expect(state.activeEvidenceId).toBe(state.evidenceHistory?.[0]?.id);
   });
 
+  it("renders the Bet 6 variant + iteration controls when A2UI v0.9 is enabled", () => {
+    mockMessages = [];
+    useA2UIStore.setState({
+      evidence: null,
+      settings: {
+        typewriterSpeed: 30,
+        soundEnabled: true,
+        useA2UIv09: true,
+        modelConfig: { provider: "auto", model: "" },
+        ambient: {
+          rainEnabled: true,
+          rainVolume: 1,
+          fogEnabled: true,
+          intensity: "medium",
+          crackleEnabled: false,
+          crackleVolume: 0.35,
+        },
+      },
+    });
+
+    render(<DetectiveWorkspace />);
+
+    // Toolbar with the explicit (gated) multi-take action + iteration buttons.
+    expect(screen.getByTestId("a2ui-variant-controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Generate three takes")).toBeInTheDocument();
+    expect(screen.getByText("Make it fancier")).toBeInTheDocument();
+    expect(screen.getByText("Simplify")).toBeInTheDocument();
+    expect(screen.getByText("Different angle")).toBeInTheDocument();
+
+    // No prior prompt yet → generation/iteration is gated off.
+    expect(screen.getByLabelText("Generate three takes")).toBeDisabled();
+
+    // No takes captured yet → the Take picker is hidden.
+    expect(screen.queryByTestId("a2ui-take-picker")).not.toBeInTheDocument();
+  });
+
   it("renders nested tool output", async () => {
     mockMessages = [
       {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { AudioEventMap } from "@/lib/aesthetic/types";
+import type { AudioEventName } from "@/lib/audio/audioEvents";
 
 /** Sound effect names that map to a single pooled audio element each. */
 type SfxPool = Partial<Record<SoundEffectName, HTMLAudioElement>>;
@@ -11,6 +13,12 @@ export interface NoirSoundEffectsControls {
   playTypewriter: () => void;
   playThunder: () => void;
   playPhoneRing: () => void;
+  /**
+   * Play the SFX mapped to a semantic event by the active preset's
+   * {@link AudioEventMap}. No-op when the preset leaves the event unmapped, so
+   * every aesthetic — not just noir — reacts to lifecycle/narrative cues.
+   */
+  playByEvent: (event: AudioEventName) => void;
 }
 
 /** SFX configuration type */
@@ -22,7 +30,19 @@ interface NoirSoundEffectsProps {
   /** SFX configuration from audio pack. Overrides defaults. */
   sfxConfig?: SfxConfig;
   sfxVolumes?: { typewriter: number; thunder: number; phone: number };
+  /**
+   * Per-preset semantic-event → SFX map (from `getAudioEvents(aestheticId)`).
+   * Drives {@link NoirSoundEffectsControls.playByEvent}. Defaults to noir's map.
+   */
+  audioEvents?: AudioEventMap;
 }
+
+/** Default semantic-event mapping (noir aesthetic). */
+const DEFAULT_AUDIO_EVENTS: AudioEventMap = {
+  "component.placed": "typewriter",
+  "dramatic.beat": "thunder",
+  error: "phone",
+};
 
 /** Default SFX configuration (noir aesthetic) */
 const DEFAULT_SFX_CONFIG: SfxConfig = {
@@ -45,11 +65,13 @@ export function NoirSoundEffects({
   onReady,
   sfxConfig,
   sfxVolumes,
+  audioEvents,
 }: NoirSoundEffectsProps) {
   const onReadyRef = useCallbackRef(onReady);
 
   // Use provided config or fallback to defaults
   const effectiveSfxConfig = sfxConfig ?? DEFAULT_SFX_CONFIG;
+  const effectiveAudioEvents = audioEvents ?? DEFAULT_AUDIO_EVENTS;
 
   // Pool one audio element per effect rather than allocating a fresh
   // HTMLAudioElement on every trigger (which leaked decoded buffers).
@@ -99,13 +121,25 @@ export function NoirSoundEffects({
     };
   }, []);
 
+  const playByEvent = useCallback(
+    (event: AudioEventName) => {
+      const sfx = effectiveAudioEvents[event];
+      if (!sfx) {
+        return;
+      }
+      playEffect(sfx);
+    },
+    [effectiveAudioEvents, playEffect]
+  );
+
   const controls = useMemo<NoirSoundEffectsControls>(
     () => ({
       playTypewriter: () => playEffect("typewriter"),
       playThunder: () => playEffect("thunder"),
       playPhoneRing: () => playEffect("phone"),
+      playByEvent,
     }),
-    [playEffect]
+    [playEffect, playByEvent]
   );
 
   useEffect(() => {

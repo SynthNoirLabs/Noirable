@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   AlertCircle,
@@ -86,6 +87,8 @@ import { PhotoDeveloper } from "@/components/noir/PhotoDeveloper";
 import { cn } from "@/lib/utils";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
+import { getEffectsProfile, getMotionPersonality, getStyleTokens } from "@/lib/aesthetic/identity";
+import type { StyleTokens } from "@/lib/aesthetic/types";
 
 // ============================================================================
 // Context for component resolution
@@ -166,6 +169,22 @@ function useResolve(): (value: unknown) => unknown {
   const { dataModel } = useSurfaceContext();
   const scope = useContext(ScopeContext);
   return useCallback((value: unknown) => resolveValue(value, dataModel, scope), [dataModel, scope]);
+}
+
+/**
+ * Resolve the active base aesthetic id (a built-in preset key) the same way the
+ * rest of the renderer does: a custom profile reports its `baseAestheticId`,
+ * otherwise the store's selected aesthetic. Drives effect/style/motion lookups
+ * so decoration is data-driven (per the effects profile) rather than keyed on a
+ * hardcoded preset id.
+ */
+function useBaseAestheticId() {
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
+  return activeProfile?.baseAestheticId ?? fallbackAestheticId;
 }
 
 /** RFC 6901 token decode (~1 → "/", ~0 → "~"). */
@@ -265,6 +284,27 @@ function FieldError({ error }: { error: string | null }) {
 // ============================================================================
 
 /**
+ * Map a preset's CSS easing string to a framer-motion-compatible easing.
+ * Named CSS keywords become framer's camelCase names; a `cubic-bezier(a,b,c,d)`
+ * becomes the 4-tuple framer expects; `steps(...)` (nostromo's terminal feel)
+ * has no transform-friendly framer equivalent, so it falls back to "linear",
+ * which still reads as a flat, mechanical reveal alongside its tiny duration.
+ */
+function mapEasing(
+  easing: string
+): "easeOut" | "easeInOut" | "linear" | [number, number, number, number] {
+  if (easing === "ease-out") return "easeOut";
+  if (easing === "ease-in-out") return "easeInOut";
+  const cubic = easing.match(
+    /cubic-bezier\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/
+  );
+  if (cubic) {
+    return [Number(cubic[1]), Number(cubic[2]), Number(cubic[3]), Number(cubic[4])];
+  }
+  return "linear";
+}
+
+/**
  * Render a component's children. `children` is the raw childList field: either
  * a static `string[]` or a template `{ componentId, path }`. Template-expanded
  * children carry a per-item scope, provided to descendants via ScopeContext.
@@ -273,6 +313,12 @@ function FieldError({ error }: { error: string | null }) {
  * "similar to CSS flex-grow ... ONLY when a direct descendant of a Row or
  * Column"), a child with a positive numeric `weight` is wrapped in a flex item
  * that grows proportionally. Unweighted children stay as plain flex items.
+ *
+ * Each child also gets a staggered framer-motion entrance keyed off the active
+ * world's motion personality (duration / stagger / easing). Critically, the
+ * motion element IS the weight wrapper when a child is weighted (never an extra
+ * box around a weighted flex item), so Row/Column flex-grow math is preserved.
+ * Honors prefers-reduced-motion by rendering plain, un-animated children.
  */
 function ChildList({
   childList,
@@ -282,21 +328,85 @@ function ChildList({
   applyWeight?: boolean;
 }) {
   const { getComponent, dataModel } = useSurfaceContext();
+  const baseAestheticId = useBaseAestheticId();
+  const prefersReducedMotion = useReducedMotion();
   const resolved = resolveChildList(childList, dataModel);
+
+  const motionPersonality = getMotionPersonality(baseAestheticId);
+  const childTransition = {
+    duration: motionPersonality.durationMs / 1000,
+    ease: mapEasing(motionPersonality.easing),
+  };
+  const parentVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: motionPersonality.staggerMs / 1000 },
+    },
+  };
+  const childVariants = {
+    hidden: { opacity: 0, y: 8 },
+    show: { opacity: 1, y: 0, transition: childTransition },
+  };
+
+  // Reduced-motion: render plain children with no motion wrapper at all, so the
+  // weighted flex items keep their exact layout and nothing animates.
+  if (prefersReducedMotion) {
+    return (
+      <>
+        {resolved.map(({ componentId, scope, key }) => {
+          const child = getComponent(componentId);
+          if (!child) return <MissingComponent key={key} id={componentId} />;
+          let node = <ComponentRenderer component={child} />;
+          const weight = (child as { weight?: unknown }).weight;
+          if (applyWeight && typeof weight === "number" && weight > 0) {
+            node = (
+              <div style={{ flexGrow: weight }} className="min-w-0">
+                {node}
+              </div>
+            );
+          }
+          return scope !== undefined ? (
+            <ScopeContext.Provider key={key} value={scope}>
+              {node}
+            </ScopeContext.Provider>
+          ) : (
+            <React.Fragment key={key}>{node}</React.Fragment>
+          );
+        })}
+      </>
+    );
+  }
+
+  // The parent uses `display: contents` so it only stages the stagger timing
+  // (via the variants cascade) without inserting a box that would break the
+  // parent Row/Column/Grid/List flex or grid flow — the animated children
+  // remain the layout's own flex/grid items.
   return (
-    <>
+    <motion.div
+      variants={parentVariants}
+      initial="hidden"
+      animate="show"
+      style={{ display: "contents" }}
+    >
       {resolved.map(({ componentId, scope, key }) => {
         const child = getComponent(componentId);
         if (!child) return <MissingComponent key={key} id={componentId} />;
-        let node = <ComponentRenderer component={child} />;
         const weight = (child as { weight?: unknown }).weight;
-        if (applyWeight && typeof weight === "number" && weight > 0) {
-          node = (
-            <div style={{ flexGrow: weight }} className="min-w-0">
-              {node}
-            </div>
-          );
-        }
+        const weighted = applyWeight && typeof weight === "number" && weight > 0;
+        // The motion element IS the weight wrapper when weighted: flexGrow lives
+        // on the same animated box, so no extra block wraps a weighted flex
+        // item. Unweighted children get a minimal animated wrapper that sizes to
+        // its content like the bare child would.
+        const node = weighted ? (
+          <motion.div variants={childVariants} style={{ flexGrow: weight }} className="min-w-0">
+            <ComponentRenderer component={child} />
+          </motion.div>
+        ) : (
+          <motion.div variants={childVariants}>
+            <ComponentRenderer component={child} />
+          </motion.div>
+        );
         return scope !== undefined ? (
           <ScopeContext.Provider key={key} value={scope}>
             {node}
@@ -305,7 +415,7 @@ function ChildList({
           <React.Fragment key={key}>{node}</React.Fragment>
         );
       })}
-    </>
+    </motion.div>
   );
 }
 
@@ -370,6 +480,7 @@ function ListRenderer({ component }: ComponentProps) {
 
 function CardRenderer({ component }: ComponentProps) {
   const { getComponent } = useSurfaceContext();
+  const baseAestheticId = useBaseAestheticId();
   const card = component as SurfaceComponent & { child?: string };
 
   const childComponent = card.child ? getComponent(card.child) : null;
@@ -379,12 +490,19 @@ function CardRenderer({ component }: ComponentProps) {
     <MissingComponent id={card.child || "unknown"} />
   );
 
-  // A dark elevated card with a thin amber top accent — reads as "evidence on
-  // the board" without the jarring light paper block on a dark surface. (The
-  // aged-paper DossierCard look lives elsewhere; the generic renderer stays in
-  // the dark palette so cards never look like unstyled white boxes.)
+  // Data-driven card material: the effects profile (paper/parchment/hologram/
+  // wireframe/flat) is emitted as `data-effect-card` so the per-material rules
+  // in globals.css (scoped to `[data-effect-card="…"] .a2ui-card`) apply the
+  // right treatment — aged paper for noir, neon hologram for cyber, green
+  // wireframe for nostromo, parchment for gothic, clean flat surface for
+  // minimal. Each material rule also re-asserts a contrast-correct body text
+  // color so dark ink reads on light paper/parchment. The Tailwind classes here
+  // are the dark base fallback for renders without a resolved material (e.g.
+  // unit tests, which assert the thin amber `border-t-2` top accent stays).
+  const effects = getEffectsProfile(baseAestheticId);
   return (
     <div
+      data-effect-card={effects.card}
       className={cn(
         "a2ui-card rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/60 p-5",
         "border-t-2 border-t-[var(--aesthetic-accent)]/60 shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
@@ -654,29 +772,63 @@ function ModalRenderer({ component }: ComponentProps) {
 // Content: Text / Image / Icon / Video / AudioPlayer
 // ============================================================================
 
+/**
+ * Map the preset's `headerCase` style token to a Tailwind case-transform class
+ * applied to surface heading levels (h1–h5) only — body/caption text keeps its
+ * authored casing. uppercase → noir/cyber/nostromo, titlecase → gothic,
+ * normal → minimal.
+ */
+function headerCaseClass(headerCase: StyleTokens["headerCase"]): string {
+  switch (headerCase) {
+    case "uppercase":
+      return "uppercase";
+    case "titlecase":
+      return "capitalize";
+    default:
+      return "normal-case";
+  }
+}
+
 function TextRenderer({ component }: ComponentProps) {
   const resolve = useResolve();
+  const baseAestheticId = useBaseAestheticId();
   const text = component as SurfaceComponent & { text?: unknown; variant?: string };
 
   const content = String(resolve(text.text) ?? "");
   const variant = text.variant || "body";
   const baseClass = "text-[var(--aesthetic-text)] font-mono";
+  // Heading case is data-driven from the active world's style tokens so each
+  // preset's headings read in character (UPPERCASE noir, Title Gothic, normal
+  // minimal) without per-aesthetic branches at the call site.
+  const headingCase = headerCaseClass(getStyleTokens(baseAestheticId).headerCase);
 
   switch (variant) {
     case "h1":
       return (
-        <h1 className={cn(baseClass, "text-3xl font-bold font-typewriter mb-4")}>{content}</h1>
+        <h1 className={cn(baseClass, headingCase, "text-3xl font-bold font-typewriter mb-4")}>
+          {content}
+        </h1>
       );
     case "h2":
       return (
-        <h2 className={cn(baseClass, "text-2xl font-bold font-typewriter mb-3")}>{content}</h2>
+        <h2 className={cn(baseClass, headingCase, "text-2xl font-bold font-typewriter mb-3")}>
+          {content}
+        </h2>
       );
     case "h3":
-      return <h3 className={cn(baseClass, "text-xl font-bold font-typewriter mb-2")}>{content}</h3>;
+      return (
+        <h3 className={cn(baseClass, headingCase, "text-xl font-bold font-typewriter mb-2")}>
+          {content}
+        </h3>
+      );
     case "h4":
-      return <h4 className={cn(baseClass, "text-lg font-semibold mb-2")}>{content}</h4>;
+      return (
+        <h4 className={cn(baseClass, headingCase, "text-lg font-semibold mb-2")}>{content}</h4>
+      );
     case "h5":
-      return <h5 className={cn(baseClass, "text-base font-semibold mb-1")}>{content}</h5>;
+      return (
+        <h5 className={cn(baseClass, headingCase, "text-base font-semibold mb-1")}>{content}</h5>
+      );
     case "caption":
       return <span className={cn(baseClass, "text-xs opacity-70")}>{content}</span>;
     default:
@@ -1185,15 +1337,6 @@ function DateTimeInputRenderer({ component }: ComponentProps) {
   );
 }
 
-function useBaseAestheticId() {
-  const activeProfile = useCustomProfileStore((state) => {
-    if (!state.activeCustomProfileId) return null;
-    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
-  });
-  const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
-  return activeProfile?.baseAestheticId ?? fallbackAestheticId;
-}
-
 function KanbanBoardRenderer({ component }: ComponentProps) {
   const board = component as SurfaceComponent & {
     title?: unknown;
@@ -1217,23 +1360,30 @@ function KanbanBoardRenderer({ component }: ComponentProps) {
 
   // Shared, var-driven base styling. Color comes entirely from the aesthetic
   // CSS vars, so noir/minimal/gothic and every custom profile adapt for free
-  // without their own switch arm. Only nostromo + cyber add decoration on top.
-  const isNostromo = baseAestheticId === "nostromo-console";
-  const isCyber = baseAestheticId === "cyber-fixer";
+  // without their own switch arm. Decoration is now driven by the effects
+  // profile rather than a hardcoded preset id, so a custom profile whose base
+  // is nostromo/cyber (or whose effects use scanlines/phosphor/hologram) gets
+  // the matching treatment too.
+  const effects = getEffectsProfile(baseAestheticId);
+  const scanlines = effects.screen === "scanlines";
+  const phosphor = effects.screen === "phosphor";
+  const hologram = effects.card === "hologram";
+  const wireframe = effects.card === "wireframe";
 
   const containerClass = cn(
     "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm",
-    isNostromo && "crt-scanlines",
-    isCyber && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
+    scanlines && "crt-scanlines",
+    phosphor && "crt-glow",
+    hologram && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
   );
   const columnClass = cn(
     "bg-[var(--aesthetic-surface)]/40 border border-[var(--aesthetic-border)]/20 rounded-sm p-3 min-w-[280px] max-w-[320px]",
-    isCyber && "shadow-[0_0_5px_rgba(6,182,212,0.1)]"
+    hologram && "shadow-[0_0_5px_rgba(6,182,212,0.1)]"
   );
   const cardClass = cn(
     "bg-[var(--aesthetic-surface)]/80 border border-[var(--aesthetic-border)]/30 p-3 rounded-sm text-[var(--aesthetic-text)] break-words whitespace-normal shadow-sm hover:border-[var(--aesthetic-accent)]/55 transition-colors",
-    isNostromo && "shadow-[0_0_4px_rgba(34,197,94,0.2)]",
-    isCyber &&
+    wireframe && "shadow-[0_0_4px_rgba(34,197,94,0.2)]",
+    hologram &&
       "border-[var(--aesthetic-accent-muted)]/60 shadow-[0_0_8px_#06b6d4] hover:shadow-[0_0_12px_#06b6d4] transition-shadow duration-200"
   );
   const textClass = "text-xs text-[var(--aesthetic-text)]/75 leading-relaxed font-typewriter";
@@ -1327,25 +1477,30 @@ function DataDashboardRenderer({ component }: ComponentProps) {
   const widgets = dash.widgets || [];
 
   // Shared, var-driven base styling (see KanbanBoardRenderer): noir/minimal/
-  // gothic and custom profiles ride the CSS vars; only nostromo + cyber layer
-  // their phosphor / neon decoration on top.
-  const isNostromo = baseAestheticId === "nostromo-console";
-  const isCyber = baseAestheticId === "cyber-fixer";
+  // gothic and custom profiles ride the CSS vars; the phosphor / neon
+  // decoration is driven by the effects profile (screen + card material) rather
+  // than a hardcoded preset id.
+  const effects = getEffectsProfile(baseAestheticId);
+  const scanlines = effects.screen === "scanlines";
+  const phosphor = effects.screen === "phosphor";
+  const hologram = effects.card === "hologram";
+  const wireframe = effects.card === "wireframe";
 
   const containerClass = cn(
     "font-mono text-[var(--aesthetic-text)] p-4 bg-[var(--aesthetic-background)] border border-[var(--aesthetic-border)]/40 rounded-sm",
-    isNostromo && "crt-scanlines",
-    isCyber && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
+    scanlines && "crt-scanlines",
+    phosphor && "crt-glow",
+    hologram && "shadow-[0_0_10px_#06b6d4,inset_0_0_5px_#06b6d4]"
   );
   const widgetClass = cn(
     "bg-[var(--aesthetic-surface)]/60 border border-[var(--aesthetic-border)]/30 p-4 rounded-sm shadow-sm",
-    isCyber && "border-[var(--aesthetic-accent-muted)]/50 shadow-[0_0_5px_rgba(6,182,212,0.2)]"
+    hologram && "border-[var(--aesthetic-accent-muted)]/50 shadow-[0_0_5px_rgba(6,182,212,0.2)]"
   );
   const textClass = "text-xs text-[var(--aesthetic-text)]/65 font-typewriter";
   const valueClass = cn(
     "text-2xl font-bold text-[var(--aesthetic-accent)] font-typewriter",
-    isNostromo && "tracking-wider shadow-[0_0_2px_#22c55e]",
-    isCyber && "shadow-[0_0_4px_#06b6d4]"
+    wireframe && "tracking-wider shadow-[0_0_2px_#22c55e]",
+    hologram && "shadow-[0_0_4px_#06b6d4]"
   );
   const headerClass =
     "font-typewriter font-bold text-lg mb-4 text-[var(--aesthetic-text)] uppercase tracking-widest border-b border-[var(--aesthetic-border)]/30 pb-2";
@@ -1353,8 +1508,8 @@ function DataDashboardRenderer({ component }: ComponentProps) {
     "bg-[var(--aesthetic-background)]/60 border border-[var(--aesthetic-border)]/20";
   const progressFill = cn(
     "bg-[var(--aesthetic-accent)] shadow-[0_2px_8px_color-mix(in_srgb,var(--aesthetic-accent)_15%,transparent)]",
-    isNostromo && "shadow-[0_0_6px_#22c55e]",
-    isCyber && "shadow-[0_0_8px_#06b6d4]"
+    wireframe && "shadow-[0_0_6px_#22c55e]",
+    hologram && "shadow-[0_0_8px_#06b6d4]"
   );
 
   // Handle missing metrics or invalid dataset structures gracefully

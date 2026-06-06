@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { RESTORE_FACTOR, subscribeMusicDuck } from "@/lib/audio/audioEvents";
 
 /** Default music source (noir aesthetic) */
 const DEFAULT_MUSIC_SRC = "/assets/noir/noir-jazz-loop.mp3";
@@ -34,6 +35,8 @@ export function NoirMusic({
   const resumeHandlerRef = useRef<(() => void) | null>(null);
   const fadeFrameRef = useRef<number | null>(null);
   const attemptPlayRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  // Live ducking multiplier (1 = full, 0.35 while TTS narration speaks).
+  const duckFactorRef = useRef<number>(RESTORE_FACTOR);
 
   const cancelFade = useCallback(() => {
     if (fadeFrameRef.current == null || typeof window === "undefined") {
@@ -172,7 +175,7 @@ export function NoirMusic({
     }
 
     void attemptPlay();
-    fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume)), 900);
+    fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume * duckFactorRef.current)), 900);
   }, [
     attemptPlay,
     detachResumeListeners,
@@ -182,6 +185,23 @@ export function NoirMusic({
     effectiveVolume,
     musicSrc,
   ]);
+
+  // Voice ducking: when TTS narration plays the bed dips to ~35% and restores
+  // on end/pause. ChatSidebar publishes the factor over a module-level channel
+  // because it lives in a disjoint React subtree. We animate the existing
+  // fadeTo() rather than routing through a Web AudioContext, reusing proven
+  // code and sidestepping the one-MediaElementSource-per-element limit.
+  useEffect(() => {
+    const unsubscribe = subscribeMusicDuck((factor) => {
+      duckFactorRef.current = factor;
+      const audio = audioRef.current;
+      if (!audio || !enabled || !soundEnabled || effectiveVolume <= 0) {
+        return;
+      }
+      fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume * factor)), 350);
+    });
+    return unsubscribe;
+  }, [enabled, fadeTo, soundEnabled, effectiveVolume]);
 
   // Handle visibility changes (pause when tab hidden)
   useEffect(() => {
@@ -198,7 +218,7 @@ export function NoirMusic({
       }
       if (enabled && soundEnabled && effectiveVolume > 0) {
         void attemptPlay();
-        fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume)), 600);
+        fadeTo(audio, Math.min(1, Math.max(0, effectiveVolume * duckFactorRef.current)), 600);
       }
     };
 

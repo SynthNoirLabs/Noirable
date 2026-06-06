@@ -84,7 +84,9 @@ describe("AESTHETIC_DEFINITIONS", () => {
     expect(identity.styleTokens.radius).toBeTruthy();
     expect(["sharp", "soft", "beveled", "double"]).toContain(identity.styleTokens.borderStyle);
     expect(["uppercase", "titlecase", "normal"]).toContain(identity.styleTokens.headerCase);
-    expect(["paper", "parchment", "hologram", "wireframe", "flat"]).toContain(identity.effects.card);
+    expect(["paper", "parchment", "hologram", "wireframe", "flat"]).toContain(
+      identity.effects.card
+    );
     expect(["wax", "digital", "blood", "none"]).toContain(identity.effects.stamp);
     expect(["scanlines", "phosphor", "none"]).toContain(identity.effects.screen);
     expect(identity.effects.bloom).toBeGreaterThanOrEqual(0);

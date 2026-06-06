@@ -38,6 +38,11 @@ export function NoirEffects({
 }: NoirEffectsProps) {
   // Get audio pack configuration for the current aesthetic
   const audioPack = getAudioPack(aestheticId);
+  // This is the shared audio coordinator: the ambient layers and the music bed
+  // live here. NoirMusic subscribes to the module-level music-duck channel
+  // (@/lib/audio/audioEvents) so ChatSidebar — which plays TTS from a disjoint
+  // subtree — can duck the bed under narration without prop-drilling. Custom
+  // profiles still resolve their rain/crackle volume overrides via getAudioPack.
   return (
     <>
       <LightningOverlay />

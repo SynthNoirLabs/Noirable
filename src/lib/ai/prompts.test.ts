@@ -102,3 +102,44 @@ describe("buildSystemPrompt with aestheticId", () => {
     expect(prompt).toContain("Detective");
   });
 });
+
+describe("buildSystemPrompt with compositionSeed (Bet 6 variants)", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("appends a terse Composition variant directive when a seed is provided", async () => {
+    const { buildSystemPrompt } = await import("./prompts");
+    const prompt = buildSystemPrompt(undefined, "noir", undefined, 44);
+    expect(prompt).toMatch(/Composition variant/i);
+    expect(prompt).toContain("Variant seed 44");
+    expect(prompt).toMatch(/alternative arrangement/i);
+  });
+
+  it("is byte-identical to the no-seed path when no seed is provided", async () => {
+    const { buildSystemPrompt } = await import("./prompts");
+    // Backward compat: omitting the seed must not change the prompt at all.
+    expect(buildSystemPrompt(undefined, "noir", undefined, undefined)).toBe(
+      buildSystemPrompt(undefined, "noir")
+    );
+    expect(buildSystemPrompt(undefined, "noir")).not.toMatch(/Composition variant/i);
+  });
+
+  it("threads the variant directive alongside evidence", async () => {
+    const { buildSystemPrompt } = await import("./prompts");
+    const evidence = { type: "card", title: "Seeded Card" };
+    const prompt = buildSystemPrompt(evidence, "noir", undefined, 7);
+    expect(prompt).toContain("Variant seed 7");
+    expect(prompt).toContain("Current Evidence");
+    expect(prompt).toContain("Seeded Card");
+  });
+
+  it("varies the directive per seed offset (Take 1 vs Take 2)", async () => {
+    const { buildSystemPrompt } = await import("./prompts");
+    const take1 = buildSystemPrompt(undefined, "noir", undefined, 42);
+    const take2 = buildSystemPrompt(undefined, "noir", undefined, 43);
+    expect(take1).not.toBe(take2);
+    expect(take1).toContain("Variant seed 42");
+    expect(take2).toContain("Variant seed 43");
+  });
+});

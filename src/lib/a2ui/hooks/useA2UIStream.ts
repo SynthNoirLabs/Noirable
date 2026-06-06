@@ -34,7 +34,8 @@ export interface UseA2UIStreamResult {
     customSystemPrompt?: string,
     customImageStylePrompt?: string,
     imageModel?: string,
-    baselineComponents?: SurfaceComponent[]
+    baselineComponents?: SurfaceComponent[],
+    compositionSeed?: number
   ) => Promise<void>;
   /** Whether currently streaming */
   isStreaming: boolean;
@@ -165,7 +166,8 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
       customSystemPrompt?: string,
       customImageStylePrompt?: string,
       imageModel?: string,
-      baselineComponents?: SurfaceComponent[]
+      baselineComponents?: SurfaceComponent[],
+      compositionSeed?: number
     ) => {
       // Abort any existing stream
       if (abortControllerRef.current) {
@@ -194,6 +196,7 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
             customImageStylePrompt,
             imageModel,
             baselineComponents,
+            compositionSeed,
           }),
           signal: abortController.signal,
         });

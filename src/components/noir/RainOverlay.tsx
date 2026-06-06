@@ -113,12 +113,20 @@ export function RainOverlay({ enabled = true, intensity = "medium" }: RainOverla
       {drops.map((drop) => (
         <div
           key={drop.id}
-          className="absolute w-[1px] bg-gradient-to-b from-transparent via-[rgba(190,210,235,0.35)] to-[rgba(210,225,245,0.85)]"
+          className="absolute w-[1px]"
           style={{
             left: `${drop.left}%`,
             top: `-${drop.height}px`,
             height: `${drop.height}px`,
             opacity: drop.opacity,
+            // Particle color is theme-driven (noir blue #bcd2eb, cyber magenta,
+            // nostromo green, gothic crimson) via the inherited CSS var. The two
+            // gradient stops are color-mixes of it so each drop fades from faint
+            // to bright in the active world's palette.
+            backgroundImage:
+              "linear-gradient(to bottom, transparent, " +
+              "color-mix(in srgb, var(--aesthetic-particle-color) 35%, transparent), " +
+              "color-mix(in srgb, var(--aesthetic-particle-color) 85%, transparent))",
             animation: reducedMotion ? undefined : `rain-fall ${drop.duration}s linear infinite`,
             animationDelay: reducedMotion ? undefined : `-${drop.delay}s`,
           }}

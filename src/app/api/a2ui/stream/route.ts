@@ -29,6 +29,13 @@ interface A2UIStreamRequest {
    * on a fresh "new case", present when iterating on an existing surface.
    */
   baselineComponents?: unknown;
+  /**
+   * Optional composition variant seed. When present, buildSystemPrompt appends
+   * a terse directive nudging the model toward an alternative arrangement (the
+   * Take 1/2/3 picker fires the same prompt with offset seeds). Absent on a
+   * normal single send, so behavior is unchanged.
+   */
+  compositionSeed?: number;
 }
 
 /**
@@ -239,6 +246,12 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // Validate prompt
   const { prompt, aestheticId, customSystemPrompt, customImageStylePrompt, imageModel } = body;
+  // Only thread a numeric variant seed; anything else leaves the prompt on the
+  // byte-identical no-variant path.
+  const compositionSeed =
+    typeof body.compositionSeed === "number" && Number.isFinite(body.compositionSeed)
+      ? body.compositionSeed
+      : undefined;
   // Only treat a non-empty component list as a baseline; an empty surface is a
   // fresh start and must not inject an empty "Current Evidence" block.
   const baselineComponents =
@@ -317,7 +330,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         const result = streamText({
           model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
-          system: buildSystemPrompt(baselineComponents, aestheticId, customSystemPrompt),
+          system: buildSystemPrompt(
+            baselineComponents,
+            aestheticId,
+            customSystemPrompt,
+            compositionSeed
+          ),
           tools: {
             generate_ui: {
               ...tools.generate_ui,

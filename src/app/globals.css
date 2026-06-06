@@ -50,6 +50,16 @@
      reads flat while cyber-fixer (1.4) glows harder. Mirrors the
      `glowStrength` field in src/lib/aesthetic/definitions.ts. */
   --aesthetic-glow-strength: 1;
+
+  /* Ambient atmosphere vars driving the overlay re-skin (Bet 3). Mirror the
+     `atmosphere` block in src/lib/aesthetic/definitions.ts so rain/fog/
+     lightning/vignette read in each world's palette instead of noir-hardcoded
+     blue/white. Default = noir. */
+  --aesthetic-particle-color: #bcd2eb;
+  --aesthetic-lightning-color: #ffffff;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0.72;
+  --aesthetic-lightning-frequency: 0.4;
 }
 
 [data-aesthetic="noir"] {
@@ -65,6 +75,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
   --aesthetic-glow-strength: 1;
+  --aesthetic-particle-color: #bcd2eb;
+  --aesthetic-lightning-color: #ffffff;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0.72;
+  --aesthetic-lightning-frequency: 0.4;
   --aesthetic-bg-image: url("/assets/noir/rainy-bg.jpg");
   --aesthetic-case-file-image: url("/assets/noir/Gemini_Generated_Image_hgsjjdhgsjjdhgsj.jpeg");
 }
@@ -82,6 +97,11 @@
   --aesthetic-font-body: system-ui, -apple-system, sans-serif;
   --aesthetic-font-heading: system-ui, -apple-system, sans-serif;
   --aesthetic-glow-strength: 0;
+  --aesthetic-particle-color: #d4d4d8;
+  --aesthetic-lightning-color: #2563eb;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0;
+  --aesthetic-lightning-frequency: 0;
   --aesthetic-bg-image: none;
   --aesthetic-case-file-image: none;
 }
@@ -99,6 +119,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
   --aesthetic-glow-strength: 1.4;
+  --aesthetic-particle-color: #ff007f;
+  --aesthetic-lightning-color: #00ffcc;
+  --aesthetic-vignette-color: #0a0512;
+  --aesthetic-vignette-intensity: 0.5;
+  --aesthetic-lightning-frequency: 1.2;
   --aesthetic-bg-image: url("/assets/cyber-fixer/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -116,6 +141,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
   --aesthetic-glow-strength: 1.1;
+  --aesthetic-particle-color: #33ff66;
+  --aesthetic-lightning-color: #33ff66;
+  --aesthetic-vignette-color: #020804;
+  --aesthetic-vignette-intensity: 0.6;
+  --aesthetic-lightning-frequency: 0.5;
   --aesthetic-bg-image: url("/assets/nostromo-console/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -133,6 +163,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
   --aesthetic-glow-strength: 0.8;
+  --aesthetic-particle-color: #990011;
+  --aesthetic-lightning-color: #cc3344;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0.85;
+  --aesthetic-lightning-frequency: 0.6;
   --aesthetic-bg-image: url("/assets/gothic-manor/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -414,6 +449,149 @@ html {
   animation: darkroom-safelight 4.5s ease-in-out forwards;
 }
 
+/* Per-reveal image-develop keyframe sets (Bet 3). Each is gated behind
+   prefers-reduced-motion: no-preference like the darkroom set; the global
+   reduced-motion reset below also neutralizes them. */
+
+/* Minimal — crisp instant fade-in, no chemistry. */
+@keyframes photo-crisp {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Cyber — scanline reveal: brightens from a dark scan with a quick RGB split. */
+@keyframes photo-scanline {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    filter: brightness(1.4) saturate(1.4) drop-shadow(2px 0 0 rgba(255, 0, 127, 0.6))
+      drop-shadow(-2px 0 0 rgba(0, 255, 204, 0.6));
+    opacity: 0.6;
+  }
+  60% {
+    clip-path: inset(0 0 0 0);
+    filter: brightness(1.2) saturate(1.2) drop-shadow(1px 0 0 rgba(255, 0, 127, 0.4))
+      drop-shadow(-1px 0 0 rgba(0, 255, 204, 0.4));
+    opacity: 0.95;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes scanline-wipe {
+  0% {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--aesthetic-accent) 45%, transparent) 50%,
+      transparent 100%
+    );
+    transform: translateY(-100%);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Nostromo — top-to-bottom phosphor raster print. */
+@keyframes photo-raster {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    filter: brightness(0.4) saturate(0.2) contrast(1.4);
+    opacity: 0.5;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes raster-sweep {
+  0% {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--aesthetic-accent) 55%, transparent) 50%,
+      transparent 100%
+    );
+    transform: translateY(-100%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Gothic — warm fade up from near-black, like an image rising into candlelight. */
+@keyframes photo-candle {
+  0% {
+    filter: brightness(0.1) sepia(0.4) saturate(0.6);
+    opacity: 0;
+  }
+  60% {
+    filter: brightness(0.7) sepia(0.25) saturate(0.85);
+    opacity: 0.85;
+  }
+  100% {
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes candle-glow {
+  0% {
+    background: radial-gradient(
+      ellipse at 50% 60%,
+      color-mix(in srgb, var(--aesthetic-accent) 30%, transparent) 0%,
+      transparent 70%
+    );
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-photo-crisp {
+    animation: photo-crisp 0.32s ease-out forwards;
+  }
+
+  .animate-photo-scanline {
+    animation: photo-scanline 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  .animate-scanline-wipe {
+    animation: scanline-wipe 0.9s linear forwards;
+  }
+
+  .animate-photo-raster {
+    animation: photo-raster 1.4s steps(12, end) forwards;
+  }
+
+  .animate-raster-sweep {
+    animation: raster-sweep 1.4s steps(12, end) forwards;
+  }
+
+  .animate-photo-candle {
+    animation: photo-candle 1.8s ease-in-out forwards;
+  }
+
+  .animate-candle-glow {
+    animation: candle-glow 1.8s ease-in-out forwards;
+  }
+}
+
 /* stylelint-disable */
 
 /* --- THEME-SPECIFIC TYPOGRAPHY --- */
@@ -634,6 +812,120 @@ html {
     inset 0 0 40px rgba(112, 66, 20, 0.08) !important;
 }
 
+/* --- DATA-DRIVEN CARD MATERIALS (Bet 2) --- */
+
+/* The generated-surface Card (`.a2ui-card`) carries its own `data-effect-card`
+   attribute (from the resolved effects profile), so the material treatment is
+   data-driven and reaches custom profiles too — not keyed on a preset id. Each
+   material reads --aesthetic-radius for its corner shape and scales accent
+   glows by --aesthetic-bloom. Paper/parchment are LIGHT, so they re-assert a
+   dark, contrast-correct body text color (overriding the inherited light
+   --aesthetic-text) on the card and its descendants. */
+
+/* Paper (noir) — aged off-white evidence print, dark ink. */
+.a2ui-card[data-effect-card="paper"] {
+  background-color: var(--color-noir-paper);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.05'/%3E%3C/svg%3E");
+  color: var(--color-noir-ink);
+  border: 1px solid var(--aesthetic-border);
+  border-radius: var(--aesthetic-radius, 2px);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    inset 0 0 40px rgba(112, 66, 20, 0.08);
+}
+
+.a2ui-card[data-effect-card="paper"] :where(p, span, td, th, h1, h2, h3, h4, h5, li) {
+  color: var(--color-noir-ink);
+}
+
+/* Parchment (gothic) — warm aged parchment, dark brown ink, double border. */
+.a2ui-card[data-effect-card="parchment"] {
+  background-color: #d7c5a9;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='parchment-noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.72 0 0 0 0 0.63 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23parchment-noise)'/%3E%3C/svg%3E");
+  color: #1f1408;
+  border: 4px double #4a3424;
+  border-radius: var(--aesthetic-radius, 3px);
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.7),
+    inset 0 0 60px rgba(74, 52, 36, 0.2);
+}
+
+.a2ui-card[data-effect-card="parchment"] :where(p, span, td, th, h1, h2, h3, h4, h5, li) {
+  color: #1f1408;
+}
+
+/* Hologram (cyber) — translucent neon pane, glow scaled by bloom; text stays
+   on the inherited light --aesthetic-text (already legible on the dark pane). */
+.a2ui-card[data-effect-card="hologram"] {
+  background-color: rgba(20, 12, 36, 0.85);
+  background-image: none;
+  color: var(--aesthetic-text);
+  border: 1px solid var(--aesthetic-accent);
+  border-radius: var(--aesthetic-radius, 4px);
+  box-shadow:
+    0 0 calc(15px * var(--aesthetic-bloom, 1)) rgba(0, 255, 204, 0.2),
+    inset 0 0 calc(10px * var(--aesthetic-bloom, 1)) rgba(0, 255, 204, 0.1),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Wireframe (nostromo) — dark terminal pane with a phosphor inset + bracket. */
+.a2ui-card[data-effect-card="wireframe"] {
+  background-color: #05160b;
+  background-image: none;
+  color: var(--aesthetic-text);
+  border: 1px solid var(--aesthetic-border);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 calc(15px * var(--aesthetic-bloom, 1)) rgba(51, 255, 102, 0.08),
+    0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.a2ui-card[data-effect-card="wireframe"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--aesthetic-accent);
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+/* Flat (minimal) — clean surface card, hairline border, soft shadow, NO paper
+   texture. Keeps the legible --aesthetic-text on --aesthetic-surface. */
+.a2ui-card[data-effect-card="flat"] {
+  background-color: var(--aesthetic-surface);
+  background-image: none;
+  color: var(--aesthetic-text);
+  border: 1px solid var(--aesthetic-border);
+  border-radius: var(--aesthetic-radius, 10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* --- DATA-DRIVEN SCREEN TREATMENTS (Bet 2) --- */
+
+/* Scanline screen — CRT line overlay across the whole layout root. Driven by
+   the effects profile so custom profiles using "scanlines" get it too. */
+[data-effect-screen="scanlines"] .bg-venetian::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(0, 0, 0, 0.12) 1px,
+    rgba(0, 0, 0, 0.12) 2px
+  );
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.5;
+}
+
+/* Phosphor screen — soft accent bloom haze, intensity scaled by bloom. */
+[data-effect-screen="phosphor"] .bg-venetian {
+  box-shadow: inset 0 0 calc(120px * var(--aesthetic-bloom, 1))
+    color-mix(in srgb, var(--aesthetic-accent) 6%, transparent);
+}
+
 /* --- THEME-SPECIFIC TEXT BLOOM / GLOWS --- */
 
 /* Cyber-Fixer: Neon Cyan Glow */
@@ -734,6 +1026,23 @@ html {
   }
 
   .animate-safelight {
+    animation: none !important;
+    display: none !important;
+  }
+
+  .animate-photo-crisp,
+  .animate-photo-scanline,
+  .animate-photo-raster,
+  .animate-photo-candle {
+    animation: none !important;
+    clip-path: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  .animate-scanline-wipe,
+  .animate-raster-sweep,
+  .animate-candle-glow {
     animation: none !important;
     display: none !important;
   }
