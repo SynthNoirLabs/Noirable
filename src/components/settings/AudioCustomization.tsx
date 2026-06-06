@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Play, Volume2, Music, CloudRain } from "lucide-react";
 import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
-import type { CustomProfile } from "@/lib/customization/types";
+import type { CustomProfile, SfxVolumes } from "@/lib/customization/types";
 import type { CustomProfileId } from "@/lib/aesthetic/types";
 
 interface AudioCustomizationProps {
@@ -55,10 +55,26 @@ const Slider = ({
 export function AudioCustomization({ className }: AudioCustomizationProps) {
   const { settings, updateSettings } = useA2UIStore();
 
+  const { getActiveProfile, updateProfile } = useCustomProfileStore();
+  const activeProfile = getActiveProfile();
+
+  // When a custom profile is active, read/write its audio overrides so tuning
+  // survives export and profile switching. Otherwise fall back to the global
+  // session settings. Mirrors VoiceCustomization's dual-branch persistence.
+  const profileAudio = activeProfile?.audio;
+
+  const sfxVolume = (type: "typewriter" | "thunder" | "phone") =>
+    profileAudio?.sfxVolumes?.[type] ?? settings.sfxVolumes?.[type] ?? 1;
+  const musicVolumeValue = profileAudio?.musicVolume ?? settings.musicVolume ?? 0.5;
+  const rainVolumeValue = profileAudio?.ambientRainVolume ?? settings.ambient.rainVolume;
+  const crackleVolumeValue = profileAudio?.ambientCrackleVolume ?? settings.ambient.crackleVolume;
+
   const handlePreview = (
     type: "typewriter" | "thunder" | "phone" | "music" | "rain" | "crackle"
   ) => {
-    const audioPack = getAudioPack(settings.aestheticId || "noir");
+    const audioPack = getAudioPack(
+      activeProfile?.baseAestheticId ?? settings.aestheticId ?? "noir"
+    );
     let src = "";
     let baseVolume = 1;
     let userVolume = 1;
@@ -67,20 +83,20 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
       const sfx = audioPack.sfx[type];
       src = sfx.src;
       baseVolume = sfx.volume;
-      userVolume = settings.sfxVolumes?.[type] ?? 1;
+      userVolume = sfxVolume(type);
     } else if (type === "music") {
       src = audioPack.music.src;
       baseVolume = audioPack.music.volume;
-      userVolume = settings.musicVolume ?? 0.5;
+      userVolume = musicVolumeValue;
     } else if (type === "rain" && audioPack.ambient.rain) {
       src = audioPack.ambient.rain.src;
       const intensity = settings.ambient.intensity || "medium";
       baseVolume = audioPack.ambient.rain.intensityVolume[intensity];
-      userVolume = settings.ambient.rainVolume;
+      userVolume = rainVolumeValue;
     } else if (type === "crackle" && audioPack.ambient.crackle) {
       src = audioPack.ambient.crackle.src;
       baseVolume = audioPack.ambient.crackle.volume;
-      userVolume = settings.ambient.crackleVolume;
+      userVolume = crackleVolumeValue;
     }
 
     if (src && typeof Audio !== "undefined") {
@@ -91,6 +107,22 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
   };
 
   const updateSfxVolume = (type: "typewriter" | "thunder" | "phone", value: number) => {
+    if (activeProfile) {
+      // sfxVolumes is a Record over the SFX enum; profile overrides are often
+      // partial (one slider touched), so build and assert the merged map.
+      const sfxVolumes = {
+        ...profileAudio?.sfxVolumes,
+        [type]: value,
+      } as SfxVolumes;
+      updateProfile(activeProfile.id, {
+        audio: {
+          ...profileAudio,
+          sfxVolumes,
+        },
+      });
+      return;
+    }
+
     const currentVolumes = settings.sfxVolumes || {
       typewriter: 1,
       thunder: 1,
@@ -106,10 +138,28 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
   };
 
   const updateMusicVolume = (value: number) => {
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        audio: {
+          ...profileAudio,
+          musicVolume: value,
+        },
+      });
+      return;
+    }
     updateSettings({ musicVolume: value });
   };
 
   const updateAmbientVolume = (type: "rain" | "crackle", value: number) => {
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        audio: {
+          ...profileAudio,
+          [type === "rain" ? "ambientRainVolume" : "ambientCrackleVolume"]: value,
+        },
+      });
+      return;
+    }
     updateSettings({
       ambient: {
         ...settings.ambient,
@@ -118,6 +168,8 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
     });
   };
 
+  // Enabled toggles remain session-global: the profile schema only stores
+  // volumes, and an "off" state is best left to the live session.
   const toggleAmbient = (type: "rain" | "crackle") => {
     updateSettings({
       ambient: {
@@ -132,9 +184,6 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
     updateSettings({ musicEnabled: !settings.musicEnabled });
   };
 
-  const { getActiveProfile, updateProfile } = useCustomProfileStore();
-  const activeProfile = getActiveProfile();
-
   return (
     <div className={cn("space-y-8 p-4", className)}>
       {/* SFX Section */}
@@ -146,19 +195,19 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
         <div className="space-y-2">
           <Slider
             label="TYPEWRITER"
-            value={settings.sfxVolumes?.typewriter ?? 1}
+            value={sfxVolume("typewriter")}
             onChange={(v) => updateSfxVolume("typewriter", v)}
             onPreview={() => handlePreview("typewriter")}
           />
           <Slider
             label="THUNDER"
-            value={settings.sfxVolumes?.thunder ?? 1}
+            value={sfxVolume("thunder")}
             onChange={(v) => updateSfxVolume("thunder", v)}
             onPreview={() => handlePreview("thunder")}
           />
           <Slider
             label="PHONE"
-            value={settings.sfxVolumes?.phone ?? 1}
+            value={sfxVolume("phone")}
             onChange={(v) => updateSfxVolume("phone", v)}
             onPreview={() => handlePreview("phone")}
           />
@@ -192,7 +241,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
         >
           <Slider
             label="MUSIC VOLUME"
-            value={settings.musicVolume ?? 0.5}
+            value={musicVolumeValue}
             onChange={updateMusicVolume}
             onPreview={() => handlePreview("music")}
           />
@@ -231,7 +280,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
             >
               <Slider
                 label="INTENSITY"
-                value={settings.ambient.rainVolume}
+                value={rainVolumeValue}
                 onChange={(v) => updateAmbientVolume("rain", v)}
                 onPreview={() => handlePreview("rain")}
               />
@@ -262,7 +311,7 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
             >
               <Slider
                 label="VOLUME"
-                value={settings.ambient.crackleVolume}
+                value={crackleVolumeValue}
                 onChange={(v) => updateAmbientVolume("crackle", v)}
                 onPreview={() => handlePreview("crackle")}
               />

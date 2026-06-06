@@ -3,15 +3,24 @@ import { describe, it, expect } from "vitest";
 import { resolveChildList } from "./template-children";
 
 describe("resolveChildList", () => {
-  it("passes a static string[] through with ids as keys and no scope", () => {
+  it("passes a static string[] through with id+index keys and no scope", () => {
     const result = resolveChildList(["a", "b", "c"], {});
 
     expect(result).toEqual([
-      { componentId: "a", key: "a" },
-      { componentId: "b", key: "b" },
-      { componentId: "c", key: "c" },
+      { componentId: "a", key: "a-0" },
+      { componentId: "b", key: "b-1" },
+      { componentId: "c", key: "c-2" },
     ]);
     expect(result[0].scope).toBeUndefined();
+  });
+
+  it("gives duplicate child ids distinct keys (no React key collision)", () => {
+    const result = resolveChildList(["btn", "btn"], {});
+
+    expect(result).toEqual([
+      { componentId: "btn", key: "btn-0" },
+      { componentId: "btn", key: "btn-1" },
+    ]);
   });
 
   it("expands a template over an array of objects with scopes and stable keys", () => {

@@ -178,6 +178,112 @@ export interface AestheticCopy {
 }
 
 /**
+ * Visual style tokens — decouple palette (colors) from treatment (shape/case).
+ * Emitted as CSS vars at the layout root so renderers read one set of tokens
+ * instead of branching on the aesthetic id. (Bigger Bet 2.)
+ */
+export interface StyleTokens {
+  /** Card / control border radius, e.g. "2px" (noir, sharp) … "10px" (minimal, soft). */
+  radius: string;
+  /** Border treatment for cards and panels. */
+  borderStyle: "sharp" | "soft" | "beveled" | "double";
+  /** Case transform applied to surface headings. */
+  headerCase: "uppercase" | "titlecase" | "normal";
+}
+
+/**
+ * Declarative material + screen effects, emitted as `data-effect-*` attributes
+ * on the layout root so globals.css can light up the right card material
+ * (parchment / hologram / wireframe / paper) and screen treatment (scanlines /
+ * phosphor) without per-aesthetic CSS duplication. (Bigger Bet 2.)
+ */
+export interface EffectsProfile {
+  /** Card material treatment (drives `[data-effect-card="…"]` rules). */
+  card: "paper" | "parchment" | "hologram" | "wireframe" | "flat";
+  /** Decorative stamp / seal on cards. */
+  stamp: "wax" | "digital" | "blood" | "none";
+  /** Full-surface screen treatment (drives `[data-effect-screen="…"]`). */
+  screen: "scanlines" | "phosphor" | "none";
+  /** 0–1+ bloom intensity for accent glows. */
+  bloom: number;
+}
+
+/**
+ * Per-preset atmosphere block driving the ambient overlays (rain / fog /
+ * lightning / vignette). Re-skins the previously noir-hardcoded blue rain and
+ * white flash from CSS vars so every world's weather matches it. (Bigger Bet 3.)
+ */
+export interface Atmosphere {
+  /** Dominant particle system for the ambient layer. */
+  particle: "rain" | "fog" | "grain" | "ember" | "none";
+  /** Particle color (CSS color) — fed to `--aesthetic-particle-color`. */
+  particleColor: string;
+  /** Lightning / arrival-flash color (CSS color). */
+  lightningColor: string;
+  /** Vignette tint (CSS color). */
+  vignetteColor: string;
+  /** 0–1 vignette darkness multiplier. */
+  vignetteIntensity: number;
+  /** 0–1+ flash/lightning frequency & intensity multiplier (0 = no flash). */
+  lightningFrequency: number;
+}
+
+/**
+ * Motion personality — how the generated surface materializes and how images
+ * develop. Drives the framer-motion staggered Reveal in SurfaceRenderer and the
+ * PhotoDeveloper reveal keyframe set. All gated by prefers-reduced-motion at the
+ * consumer. (Bigger Bet 3.)
+ */
+export interface MotionPersonality {
+  /** Entrance style for surface children. */
+  entrance: "cinematic" | "crisp" | "glitch" | "terminal" | "candle";
+  /** Per-child reveal duration in ms. */
+  durationMs: number;
+  /** Stagger between sibling children in ms. */
+  staggerMs: number;
+  /** CSS/framer easing for the reveal. */
+  easing: string;
+  /** Which PhotoDeveloper reveal keyframe set this world uses. */
+  imageReveal: "darkroom" | "crisp" | "scanline" | "raster" | "candle";
+}
+
+/**
+ * Structured image spec assembled into an ordered positive prompt + a true
+ * negative prompt, with rotating motifs for intra-preset variety. Additive: the
+ * flat `imageStylePrompt` string stays as the fallback/back-compat form; image
+ * generation prefers this spec when present. (Bigger Bet 7.)
+ */
+export interface ImageStyleSpec {
+  /** Medium / format, e.g. "1940s black-and-white evidence photograph, 35mm film". */
+  medium: string;
+  /** Lighting description. */
+  lighting: string;
+  /** Color palette description. */
+  palette: string;
+  /** Lens / optics description. */
+  lens: string;
+  /** Framing / composition description. */
+  framing: string;
+  /** True-negative terms, threaded to the provider's negative prompt when supported. */
+  negative: string[];
+  /** Rotating motifs — one is selected per image by index for coherent variety. */
+  motifs: string[];
+}
+
+/**
+ * Maps semantic generation events to SFX names, replacing the noir-only English
+ * keyword scan so every preset is reactive. Keys are optional; an unset event
+ * simply fires nothing. (Bigger Bet 4.)
+ */
+export interface AudioEventMap {
+  "message.start"?: SfxName;
+  "message.complete"?: SfxName;
+  "component.placed"?: SfxName;
+  error?: SfxName;
+  "dramatic.beat"?: SfxName;
+}
+
+/**
  * The data-driven identity layer that makes each preset feel like a different
  * world rather than a recolor. Pure data, client-safe; lives on the
  * AestheticDefinition and is consumed by renderers, CSS, audio, voice, image,
@@ -200,6 +306,20 @@ export interface AestheticIdentity {
   voicePreviewLine: string;
   /** Layout doctrine appended to the persona prompt (per-preset composition). */
   layoutDoctrine: string;
+  /** Visual style tokens (shape/case), decoupled from palette. (Bet 2.) */
+  styleTokens: StyleTokens;
+  /** Material + screen effects profile, emitted as data-effect-* attrs. (Bet 2.) */
+  effects: EffectsProfile;
+  /** Ambient atmosphere block driving the overlays. (Bet 3.) */
+  atmosphere: Atmosphere;
+  /** Motion personality — entrance + image-reveal character. (Bet 3.) */
+  motion: MotionPersonality;
+  /** Structured image spec; preferred over the flat imageStylePrompt. (Bet 7.) */
+  imageSpec: ImageStyleSpec;
+  /** Base layout-composition seed; offset per variant for "Take 1/2/3". (Bet 6.) */
+  compositionSeed: number;
+  /** Semantic-event → SFX mapping for the reactive audio bus. (Bet 4.) */
+  audioEvents: AudioEventMap;
 }
 
 /**
@@ -257,6 +377,8 @@ export interface AestheticDefinition {
   terminology?: Record<string, string>;
   voiceId: string;
   imageStylePrompt: string;
+  /** Preferred image-generation model id for this preset (optional). (Bet 7.) */
+  imageModel?: string;
   identity: AestheticIdentity;
 }
 

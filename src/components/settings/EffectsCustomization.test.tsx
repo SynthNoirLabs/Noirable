@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EffectsCustomization } from "./EffectsCustomization";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 
 // Mock store
 const mockUpdateSettings = vi.fn();
@@ -20,6 +21,25 @@ vi.mock("@/lib/store/useA2UIStore", () => ({
   }),
 }));
 
+// useCustomProfileStore is selector-based here; default it to "no active
+// profile" so the component falls back to the global store.
+vi.mock("@/lib/store/useCustomProfileStore", () => ({
+  useCustomProfileStore: vi.fn(),
+}));
+
+const mockUpdateProfile = vi.fn();
+
+function mockProfileStore(activeProfile: Record<string, unknown> | null) {
+  (useCustomProfileStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+    (selector: (state: unknown) => unknown) =>
+      selector({
+        activeCustomProfileId: activeProfile ? (activeProfile.id as string) : null,
+        customProfiles: activeProfile ? [activeProfile] : [],
+        updateProfile: mockUpdateProfile,
+      })
+  );
+}
+
 // Mock lucide icons
 vi.mock("lucide-react", () => ({
   Droplets: () => <span data-testid="icon-droplets" />,
@@ -31,6 +51,7 @@ vi.mock("lucide-react", () => ({
 describe("EffectsCustomization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProfileStore(null);
   });
 
   it("renders all 4 sliders", () => {
@@ -112,5 +133,52 @@ describe("EffectsCustomization", () => {
 
     expect(screen.getByText(/control the intensity of visual effects/i)).toBeInTheDocument();
     expect(screen.getByText(/Delay between characters/i)).toBeInTheDocument();
+  });
+
+  describe("with an active custom profile", () => {
+    beforeEach(() => {
+      mockProfileStore({
+        id: "custom-1",
+        name: "My Profile",
+        baseAestheticId: "noir",
+        effects: { rain: 0.2 },
+      });
+    });
+
+    it("reads effect values from the active profile", () => {
+      render(<EffectsCustomization />);
+      // rain comes from the profile (0.2 -> 20%), others fall back to global.
+      expect(screen.getByText("20%")).toBeInTheDocument();
+    });
+
+    it("writes effect changes to the profile, not the global store", () => {
+      render(<EffectsCustomization />);
+
+      const fogSlider = screen.getByLabelText("Fog Intensity intensity");
+      fireEvent.change(fogSlider, { target: { value: "30" } });
+
+      expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+        effects: {
+          rain: 0.2,
+          fog: 0.3,
+        },
+      });
+      expect(mockUpdateSettings).not.toHaveBeenCalled();
+    });
+
+    it("writes typewriter speed to the profile effects", () => {
+      render(<EffectsCustomization />);
+
+      const typewriterSlider = screen.getByLabelText("Typewriter Speed speed");
+      fireEvent.change(typewriterSlider, { target: { value: "30" } });
+
+      expect(mockUpdateProfile).toHaveBeenCalledWith("custom-1", {
+        effects: {
+          rain: 0.2,
+          typewriterSpeed: 30,
+        },
+      });
+      expect(mockUpdateSettings).not.toHaveBeenCalled();
+    });
   });
 });

@@ -22,7 +22,11 @@ import { createTrainingExample, shouldCapture } from "@/lib/training";
 // A2UI v0.9 imports
 import { useA2UIStream } from "@/lib/a2ui/hooks/useA2UIStream";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
+import type { SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
+import type { AmbientIntensity } from "@/lib/store/types";
+import { getCompositionSeed } from "@/lib/aesthetic/identity";
 import { A2UIv09Preview } from "@/components/a2ui/A2UIv09Preview";
+import { A2UIVariantControls } from "@/components/a2ui/A2UIVariantControls";
 import { CustomizationPanel } from "@/components/settings/CustomizationPanel";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { injectProfileStyles } from "@/lib/customization/css-injection";
@@ -67,6 +71,21 @@ function getLastUserPrompt(
   return null;
 }
 
+/**
+ * A captured "Take" — a frozen snapshot of one generated surface so the
+ * variant picker can re-load it after subsequent sends clear()/replace the
+ * live surface store.
+ */
+interface CapturedVariant {
+  catalogId: string;
+  theme?: string | Record<string, unknown>;
+  components: SurfaceComponent[];
+  // The surface's data model must be captured too: list/template components
+  // resolve their children from it, so a take restored with an empty model
+  // renders blank even though all its components are present.
+  dataModel: Record<string, unknown>;
+}
+
 export function DetectiveWorkspace() {
   const [json, setJson] = useState(DEFAULT_JSON);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +93,15 @@ export function DetectiveWorkspace() {
   const [showTraining, setShowTraining] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+  // Bet 6: Take 1/2/3 variants. Each completed generation is snapshotted here so
+  // the picker can swap which take is shown without re-calling the model. Empty
+  // until the user explicitly requests variations or iterates.
+  const [variants, setVariants] = useState<CapturedVariant[]>([]);
+  const [activeVariantIndex, setActiveVariantIndex] = useState(0);
+  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  // The most recent v0.9 prompt, so iteration actions ("fancier"/"simplify"/
+  // "different angle") can re-issue it with a canned refinement appended.
+  const lastV09PromptRef = useRef<string | null>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const {
     evidence,
@@ -123,8 +151,26 @@ export function DetectiveWorkspace() {
     const base = settings.ambient;
     if (!activeProfile) return base;
 
+    // A custom profile's effects.{rain,fog,crackle} (0–1) must actually drive the
+    // live overlays, not just persist. The overlays share one low|medium|high
+    // `intensity` enum + per-effect `enabled` flags, so map the continuous values
+    // onto both: a defined 0 turns the effect off; otherwise the strongest of the
+    // defined effects sets the shared intensity bucket. Undefined effects inherit
+    // the base session ambient untouched.
+    const fx = activeProfile.effects;
+    const toEnum = (v: number): AmbientIntensity =>
+      v >= 0.66 ? "high" : v >= 0.33 ? "medium" : "low";
+    const definedFx = [fx?.rain, fx?.fog, fx?.crackle].filter(
+      (v): v is number => typeof v === "number"
+    );
+    const intensity = definedFx.length > 0 ? toEnum(Math.max(...definedFx)) : base.intensity;
+
     return {
       ...base,
+      intensity,
+      rainEnabled: typeof fx?.rain === "number" ? fx.rain > 0 : base.rainEnabled,
+      fogEnabled: typeof fx?.fog === "number" ? fx.fog > 0 : base.fogEnabled,
+      crackleEnabled: typeof fx?.crackle === "number" ? fx.crackle > 0 : base.crackleEnabled,
       rainVolume: activeProfile.audio?.ambientRainVolume ?? base.rainVolume,
       crackleVolume: activeProfile.audio?.ambientCrackleVolume ?? base.crackleVolume,
     };
@@ -297,7 +343,6 @@ export function DetectiveWorkspace() {
             // This effect synchronizes the app with the external AI message
             // stream (the documented Client Synchronization pattern), so it
             // intentionally commits state when a tool result arrives.
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             processNewEvidence(entry, parsed.data);
             setLastFailedPrompt(null);
             captureTraining(parsed.data);
@@ -440,6 +485,101 @@ export function DetectiveWorkspace() {
     [buildRequestBody, sendMessage]
   );
 
+  // Read the live surface store's currently-rendered surface. sendV09Prompt
+  // clear()s the store at the start of each send, so callers must read this
+  // BEFORE sending to capture a baseline / variant snapshot.
+  const readActiveSurface = useCallback(() => {
+    const surfaceStore = useSurfaceStore.getState();
+    const surfaceIds = surfaceStore.getAllSurfaceIds();
+    return surfaceIds.length > 0
+      ? surfaceStore.getSurface(surfaceIds[surfaceIds.length - 1])
+      : undefined;
+  }, []);
+
+  // Single v0.9 exchange: pushes the user line, sends the prompt (optionally
+  // with a composition variant seed and/or an explicit baseline), mirrors the
+  // detective's narration into the chat log, and returns the resulting surface
+  // snapshot so callers can capture it as a Take. Reused by the normal send,
+  // the Variations picker, and the iteration buttons.
+  const runV09Exchange = useCallback(
+    async (params: {
+      text: string;
+      compositionSeed?: number;
+      baselineComponents?: SurfaceComponent[];
+      logUser?: boolean;
+      recordAsBase?: boolean;
+    }): Promise<CapturedVariant | undefined> => {
+      const { text, compositionSeed, baselineComponents, logUser = true, recordAsBase } = params;
+      const stamp = Date.now();
+      v09NarrationRef.current = null;
+      // Only a genuine new user prompt becomes the "base" that variants re-roll
+      // and iterations refine from. Iterations send compounded text but must NOT
+      // overwrite the base, or repeated "make it fancier / simpler" would stack
+      // contradictory instructions and balloon the prompt each round.
+      if (recordAsBase) {
+        lastV09PromptRef.current = text;
+      }
+
+      if (logUser) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `v09-user-${stamp}`, role: "user", parts: [{ type: "text", text }] },
+        ]);
+      }
+      try {
+        await sendV09Prompt(
+          text,
+          activeProfile?.baseAestheticId ?? settings.aestheticId,
+          customSystemPrompt,
+          activeProfile?.imageStylePrompt,
+          settings.imageModel,
+          baselineComponents,
+          compositionSeed
+        );
+        // Prefer the model's real narration; fall back to a varied in-character
+        // line if the stream didn't provide one this run.
+        const V09_FALLBACK_REPLIES = [
+          "Case file's on the board. The evidence speaks for itself — read it and weep.",
+          "Pulled the threads together. It's pinned up and waiting. Don't touch the photos.",
+          "Filed it. The rain's still coming down, but the board's lit. Take a look.",
+          "Another case cracked open on the desk. The details are all there in the evidence.",
+          "Wired the report to the board. Cold facts, warm coffee. Your move, detective.",
+          "It's all laid out — the leads, the faces, the loose ends. Make of it what you will.",
+        ];
+        const narrated = (v09NarrationRef.current ?? "") as string;
+        const reply = narrated.trim() || V09_FALLBACK_REPLIES[stamp % V09_FALLBACK_REPLIES.length];
+        setMessages((prev) => [
+          ...prev,
+          { id: `v09-asst-${stamp}`, role: "assistant", parts: [{ type: "text", text: reply }] },
+        ]);
+        // Snapshot the freshly-rendered surface so it can be re-loaded later.
+        // Capture the data model alongside the components — list/template
+        // children resolve from it, so a restored take needs both to render.
+        const completed = readActiveSurface();
+        return completed
+          ? {
+              catalogId: completed.config.catalogId,
+              theme: completed.config.theme,
+              components: Array.from(completed.components.values()),
+              dataModel: completed.dataModel,
+            }
+          : undefined;
+      } catch {
+        // The hook surfaces the error in the preview pane; leave the log as-is.
+        return undefined;
+      }
+    },
+    [
+      sendV09Prompt,
+      setMessages,
+      readActiveSurface,
+      settings.aestheticId,
+      settings.imageModel,
+      customSystemPrompt,
+      activeProfile,
+    ]
+  );
+
   // Wrap sendMessage to track prompt history
   const handleSendMessage: typeof sendMessage = useCallback(
     async (message, options) => {
@@ -457,55 +597,22 @@ export function DetectiveWorkspace() {
       // v09NarrationRef); mirror the exchange into the chat log ourselves so the
       // Interrogation Log stays populated and TTS can read the detective's reply.
       if (useV09 && text) {
-        const stamp = Date.now();
-        v09NarrationRef.current = null;
-        // Capture the currently-rendered surface BEFORE sending — sendV09Prompt
-        // clear()s the surface store at the start, so the baseline must be read
-        // now. Threading it back lets the model AMEND the live UI (Update Rules)
-        // instead of regenerating from scratch. The active surface is the most
-        // recent one, mirroring A2UIv09Preview.
-        const surfaceStore = useSurfaceStore.getState();
-        const surfaceIds = surfaceStore.getAllSurfaceIds();
-        const activeSurface =
-          surfaceIds.length > 0
-            ? surfaceStore.getSurface(surfaceIds[surfaceIds.length - 1])
-            : undefined;
+        // Don't start a send while a multi-take run is mid-flight: each send
+        // clear()s the surface store, which would wipe a variant still
+        // streaming. (The single-stream case is already serialized by the hook.)
+        if (isGeneratingVariants) {
+          return;
+        }
+        // A normal send is a single take — clear any stale variant picker.
+        setVariants([]);
+        setActiveVariantIndex(0);
+        // Capture the currently-rendered surface BEFORE sending so the model can
+        // AMEND the live UI (Update Rules) instead of regenerating from scratch.
+        const activeSurface = readActiveSurface();
         const baselineComponents = activeSurface
           ? Array.from(activeSurface.components.values())
           : undefined;
-        setMessages((prev) => [
-          ...prev,
-          { id: `v09-user-${stamp}`, role: "user", parts: [{ type: "text", text }] },
-        ]);
-        try {
-          await sendV09Prompt(
-            text,
-            activeProfile?.baseAestheticId ?? settings.aestheticId,
-            customSystemPrompt,
-            activeProfile?.imageStylePrompt,
-            settings.imageModel,
-            baselineComponents
-          );
-          // Prefer the model's real narration; fall back to a varied in-character
-          // line if the stream didn't provide one this run.
-          const V09_FALLBACK_REPLIES = [
-            "Case file's on the board. The evidence speaks for itself — read it and weep.",
-            "Pulled the threads together. It's pinned up and waiting. Don't touch the photos.",
-            "Filed it. The rain's still coming down, but the board's lit. Take a look.",
-            "Another case cracked open on the desk. The details are all there in the evidence.",
-            "Wired the report to the board. Cold facts, warm coffee. Your move, detective.",
-            "It's all laid out — the leads, the faces, the loose ends. Make of it what you will.",
-          ];
-          const narrated = (v09NarrationRef.current ?? "") as string;
-          const reply =
-            narrated.trim() || V09_FALLBACK_REPLIES[stamp % V09_FALLBACK_REPLIES.length];
-          setMessages((prev) => [
-            ...prev,
-            { id: `v09-asst-${stamp}`, role: "assistant", parts: [{ type: "text", text: reply }] },
-          ]);
-        } catch {
-          // The hook surfaces the error in the preview pane; leave the log as-is.
-        }
+        await runV09Exchange({ text, baselineComponents, recordAsBase: true });
         return;
       }
 
@@ -515,13 +622,107 @@ export function DetectiveWorkspace() {
       sendMessageWithContext,
       trackAndSend,
       useV09,
-      sendV09Prompt,
-      setMessages,
-      settings.aestheticId,
-      settings.imageModel,
-      customSystemPrompt,
-      activeProfile,
+      readActiveSurface,
+      runV09Exchange,
+      isGeneratingVariants,
     ]
+  );
+
+  // Bet 6 — Take 1/2/3. Fire the SAME prompt N times with offset composition
+  // seeds and capture each completed surface so the picker can swap between
+  // them. Gated behind an explicit button (it is N× latency/cost). Defaults to
+  // the most recent v0.9 prompt; offsets the per-preset base seed per take.
+  const generateVariants = useCallback(
+    async (count = 3) => {
+      if (isV09Streaming || isGeneratingVariants) return;
+      const text = lastV09PromptRef.current;
+      if (!text) return;
+
+      // Variants are alternative takes of the SAME prompt — each must regenerate
+      // a full surface from scratch, NOT amend the current one. Passing a
+      // baseline would trigger the Update-Rules path and yield a tiny diff (e.g.
+      // a lone container) instead of a complete take, so no baseline here.
+      const baseSeed = getCompositionSeed(activeProfile?.baseAestheticId ?? settings.aestheticId);
+
+      setIsGeneratingVariants(true);
+      setVariants([]);
+      setActiveVariantIndex(0);
+      try {
+        const captured: CapturedVariant[] = [];
+        for (let i = 0; i < count; i++) {
+          // Log only the first take as a user line; the rest are silent re-rolls.
+          const variant = await runV09Exchange({
+            text,
+            compositionSeed: baseSeed + i,
+            logUser: i === 0,
+          });
+          if (variant) {
+            captured.push(variant);
+            // Surface progress incrementally so the picker fills in as takes land.
+            setVariants([...captured]);
+            setActiveVariantIndex(captured.length - 1);
+          }
+        }
+      } finally {
+        setIsGeneratingVariants(false);
+      }
+    },
+    [
+      isV09Streaming,
+      isGeneratingVariants,
+      runV09Exchange,
+      activeProfile?.baseAestheticId,
+      settings.aestheticId,
+    ]
+  );
+
+  // Load a previously-captured Take back into the live surface store so it
+  // becomes the active surface (re-create + repopulate; the store keys by id).
+  const selectVariant = useCallback((index: number, list: CapturedVariant[]) => {
+    const variant = list[index];
+    if (!variant) return;
+    const store = useSurfaceStore.getState();
+    store.clear();
+    const surfaceId = `surface-take-${index + 1}-${Date.now()}`;
+    store.createSurface({
+      surfaceId,
+      catalogId: variant.catalogId,
+      theme: variant.theme,
+    });
+    store.updateComponents(surfaceId, variant.components);
+    // Restore the captured data model (root-path replace) so template/list
+    // children resolve exactly as they did when the take was generated.
+    if (variant.dataModel && Object.keys(variant.dataModel).length > 0) {
+      store.setDataModel(surfaceId, "/", variant.dataModel);
+    }
+    setActiveVariantIndex(index);
+  }, []);
+
+  // Bet 6 — iteration actions. Re-send the current evidence (live surface) as
+  // the baseline with a canned refinement appended to the last prompt, reusing
+  // the already-working baseline-into-prompt flow.
+  const iterateSurface = useCallback(
+    async (instruction: string) => {
+      if (isV09Streaming || isGeneratingVariants) return;
+      const activeSurface = readActiveSurface();
+      const baselineComponents = activeSurface
+        ? Array.from(activeSurface.components.values())
+        : undefined;
+      if (!baselineComponents) return;
+      // A fresh iteration invalidates the variant picker.
+      setVariants([]);
+      setActiveVariantIndex(0);
+      const base = lastV09PromptRef.current;
+      const text = base ? `${base}\n\n${instruction}` : instruction;
+      trackAndSend(instruction);
+      await runV09Exchange({ text, baselineComponents });
+    },
+    [isV09Streaming, isGeneratingVariants, readActiveSurface, runV09Exchange, trackAndSend]
+  );
+
+  const handleSelectVariant = useCallback(
+    (index: number) => selectVariant(index, variants),
+    [selectVariant, variants]
   );
 
   // Retry last failed prompt
@@ -643,7 +844,21 @@ export function DetectiveWorkspace() {
                 )}
               </div>
             ) : useV09 ? (
-              <A2UIv09Preview />
+              <div className="flex flex-col gap-3">
+                <A2UIVariantControls
+                  variants={variants.length}
+                  activeIndex={activeVariantIndex}
+                  isGenerating={isGeneratingVariants}
+                  isStreaming={isV09Streaming}
+                  canIterate={
+                    !isV09Streaming && !isGeneratingVariants && !!lastV09PromptRef.current
+                  }
+                  onGenerateVariants={() => generateVariants(3)}
+                  onSelectVariant={handleSelectVariant}
+                  onIterate={iterateSurface}
+                />
+                <A2UIv09Preview />
+              </div>
             ) : evidence ? (
               <EvidenceBoard
                 entries={evidenceHistory}

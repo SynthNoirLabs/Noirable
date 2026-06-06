@@ -113,6 +113,46 @@ const noir: AestheticDefinition = {
     voicePreviewLine: "The rain never stops in this town. Neither does the code.",
     layoutDoctrine: `LAYOUT DOCTRINE (Noir — case-file dossier):
 When the request is open-ended, lean toward a case-file dossier: a heading, a grid of suspect/evidence cards (2-3 columns), a table acting as an evidence log, and status badges (danger for threats, primary for cleared). Favor a single hero mugshot image inside the top card. Compose like paper laid on a desk — clear hierarchy, terse labels. Alternatives: a surveillance board (dashboard of stats) or an interrogation summary (table + callout).`,
+    styleTokens: { radius: "2px", borderStyle: "sharp", headerCase: "uppercase" },
+    effects: { card: "paper", stamp: "wax", screen: "none", bloom: 0.4 },
+    atmosphere: {
+      particle: "rain",
+      particleColor: "#bcd2eb",
+      lightningColor: "#ffffff",
+      vignetteColor: "#000000",
+      vignetteIntensity: 0.72,
+      lightningFrequency: 0.4,
+    },
+    motion: {
+      entrance: "cinematic",
+      durationMs: 600,
+      staggerMs: 80,
+      easing: "ease-out",
+      imageReveal: "darkroom",
+    },
+    imageSpec: {
+      medium: "1940s detective evidence photograph, 35mm black-and-white film, heavy film grain",
+      lighting: "moody low-key lighting, hard chiaroscuro contrast, deep shadows, light fog",
+      palette: "desaturated black-and-white, no bright saturated color",
+      lens: "35mm, shallow depth of field",
+      framing: "noir cinematic composition, rain-slicked streets",
+      negative: [
+        "text",
+        "watermark",
+        "bright saturated color",
+        "color photography",
+        "modern technology",
+        "cheerful mood",
+      ],
+      motifs: [
+        "rain-slicked alley at night",
+        "cigarette smoke drifting through lamplight",
+        "venetian-blind shadows across a face",
+        "a neon sign reflected in a puddle",
+      ],
+    },
+    compositionSeed: 42,
+    audioEvents: { "component.placed": "typewriter", "dramatic.beat": "thunder", error: "phone" },
   },
 };
 
@@ -216,6 +256,39 @@ const minimal: AestheticDefinition = {
     voicePreviewLine: "Voice preview. This is how I sound.",
     layoutDoctrine: `LAYOUT DOCTRINE (Minimal — clean cards):
 When the request is open-ended, keep it restrained: one clear heading, 2-3 cards in a grid, generous whitespace, and at most a single accent stat. Avoid badges, kanban boards, and dashboards unless explicitly asked. Match complexity to the request — a one-line answer is a single card, not a dashboard. Prefer clarity over decoration.`,
+    styleTokens: { radius: "10px", borderStyle: "soft", headerCase: "normal" },
+    effects: { card: "flat", stamp: "none", screen: "none", bloom: 0 },
+    atmosphere: {
+      particle: "none",
+      particleColor: "#d4d4d8",
+      lightningColor: "#2563eb",
+      vignetteColor: "#000000",
+      vignetteIntensity: 0,
+      lightningFrequency: 0,
+    },
+    motion: {
+      entrance: "crisp",
+      durationMs: 120,
+      staggerMs: 30,
+      easing: "ease-out",
+      imageReveal: "crisp",
+    },
+    imageSpec: {
+      medium: "clean modern minimalist illustration, crisp vector art",
+      lighting: "bright high-key lighting, even and soft",
+      palette: "bright white and neutral gray tones, restrained",
+      lens: "flat, no distortion",
+      framing: "professional corporate presentation slide, generous negative space, no clutter",
+      negative: ["text", "watermark", "clutter", "heavy shadows", "grain", "vintage texture"],
+      motifs: [
+        "a single accent shape on white",
+        "soft geometric composition",
+        "minimal line-art icon",
+        "a calm gradient field",
+      ],
+    },
+    compositionSeed: 17,
+    audioEvents: { "message.complete": "typewriter" },
   },
 };
 
@@ -318,6 +391,43 @@ const cyberFixer: AestheticDefinition = {
     voicePreviewLine: "Neon's bleeding, choom. Deck's hot — what're we running?",
     layoutDoctrine: `LAYOUT DOCTRINE (Cyber Fixer — HUD panels):
 When the request is open-ended, compose like a heads-up display: a stat row across the top (metrics/KPIs), then HUD panels — a DataDashboard of neon charts, tabbed "decks" for grouped content, and a grid of glowing cards. Lean into Stat and DataDashboard. Use a wide HUD banner image. Keep it dense, fast, and futuristic. Alternatives: a netrunner deck (tabs) or a market ticker (table + stats).`,
+    styleTokens: { radius: "4px", borderStyle: "beveled", headerCase: "uppercase" },
+    effects: { card: "hologram", stamp: "digital", screen: "none", bloom: 1.4 },
+    atmosphere: {
+      particle: "rain",
+      particleColor: "#ff007f",
+      lightningColor: "#00ffcc",
+      vignetteColor: "#0a0512",
+      vignetteIntensity: 0.5,
+      lightningFrequency: 1.2,
+    },
+    motion: {
+      entrance: "glitch",
+      durationMs: 320,
+      staggerMs: 50,
+      easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      imageReveal: "scanline",
+    },
+    imageSpec: {
+      medium: "cyberpunk concept art, glowing digital HUD render, synthwave style",
+      lighting: "neon rim lighting, glowing high-tech overlays, volumetric haze",
+      palette: "cyan and magenta neon accents over deep blue-violet night",
+      lens: "wide-angle, anamorphic flare",
+      framing: "futuristic command center, rainy neon cityscape window, wireframe overlays",
+      negative: ["text", "watermark", "daylight", "natural rural setting", "muted colors", "sepia"],
+      motifs: [
+        "neon-drenched rainy megacity street",
+        "holographic interface floating in mid-air",
+        "chrome cybernetic implant close-up",
+        "a lone fixer silhouetted against billboards",
+      ],
+    },
+    compositionSeed: 88,
+    audioEvents: {
+      "message.start": "phone",
+      "component.placed": "typewriter",
+      "dramatic.beat": "thunder",
+    },
   },
 };
 
@@ -420,6 +530,43 @@ const nostromoConsole: AestheticDefinition = {
     voicePreviewLine: "INTERFACE ONLINE. ALL SYSTEMS NOMINAL. AWAITING INPUT.",
     layoutDoctrine: `LAYOUT DOCTRINE (Nostromo — terminal readout):
 When the request is open-ended, print top-to-bottom like a terminal: stacked sections, ALL-CAPS headings, monospace tables, a DataDashboard of ship telemetry, and a status line. Prefer Stat and tables over photos — favor schematics/ASCII over imagery. Keep it dry, bracketed, and official. Alternatives: a diagnostics panel (dashboard) or a manifest (table-heavy).`,
+    styleTokens: { radius: "0px", borderStyle: "sharp", headerCase: "uppercase" },
+    effects: { card: "wireframe", stamp: "none", screen: "scanlines", bloom: 1.1 },
+    atmosphere: {
+      particle: "grain",
+      particleColor: "#33ff66",
+      lightningColor: "#33ff66",
+      vignetteColor: "#020804",
+      vignetteIntensity: 0.6,
+      lightningFrequency: 0.5,
+    },
+    motion: {
+      entrance: "terminal",
+      durationMs: 220,
+      staggerMs: 60,
+      easing: "steps(8, end)",
+      imageReveal: "raster",
+    },
+    imageSpec: {
+      medium: "retro 1980s sci-fi CRT terminal readout, green phosphor monochrome",
+      lighting: "phosphor glow, high contrast monochrome green on black, analog video noise",
+      palette: "monochrome phosphor green and black, scanlines",
+      lens: "flat CRT screen curvature, slight bloom",
+      framing: "spaceship command-deck console, vintage dials and toggle switches",
+      negative: ["text", "watermark", "color photography", "modern UI", "clean digital render"],
+      motifs: [
+        "wireframe ship schematic on a green grid",
+        "scrolling telemetry readout",
+        "a radar sweep over a dark sector map",
+        "blinking warning indicators on a control panel",
+      ],
+    },
+    compositionSeed: 7,
+    audioEvents: {
+      "message.start": "phone",
+      "component.placed": "typewriter",
+      error: "thunder",
+    },
   },
 };
 
@@ -522,6 +669,52 @@ const gothicManor: AestheticDefinition = {
     voicePreviewLine: "The candles gutter, and still the shadows whisper their secrets.",
     layoutDoctrine: `LAYOUT DOCTRINE (Gothic Manor — manuscript / ledger):
 When the request is open-ended, compose like an illuminated manuscript: an ornate serif heading, a single centered chronicle card or a two-column ledger, a table acting as a registry, and a list as a chronicle of events. Favor a portrait image beside the text. Use ornamental dividers between sections. Keep it literary and dramatic. Alternatives: a portrait gallery (grid of cards) or a curse ledger (table-heavy).`,
+    styleTokens: { radius: "3px", borderStyle: "double", headerCase: "titlecase" },
+    effects: { card: "parchment", stamp: "blood", screen: "none", bloom: 0.8 },
+    atmosphere: {
+      particle: "ember",
+      particleColor: "#990011",
+      lightningColor: "#cc3344",
+      vignetteColor: "#000000",
+      vignetteIntensity: 0.85,
+      lightningFrequency: 0.6,
+    },
+    motion: {
+      entrance: "candle",
+      durationMs: 400,
+      staggerMs: 110,
+      easing: "ease-in-out",
+      imageReveal: "candle",
+    },
+    imageSpec: {
+      medium: "classic gothic oil painting, dark academia, ornate detail",
+      lighting: "warm candlelight glow, deep chiaroscuro, heavy shadow",
+      palette: "crimson and gold accents over brooding near-black",
+      lens: "painterly, soft focus edges",
+      framing:
+        "Victorian gothic manor interior, heavy velvet drapes, gilt frame, stormy moonlit window",
+      negative: [
+        "text",
+        "watermark",
+        "bright daylight",
+        "modern setting",
+        "cheerful",
+        "neon",
+        "sci-fi",
+      ],
+      motifs: [
+        "candelabra casting long shadows in a manor hall",
+        "a rain-streaked gothic window over a graveyard",
+        "an oil-painted portrait of a pale aristocrat",
+        "wilting roses beside a melting candle",
+      ],
+    },
+    compositionSeed: 31,
+    audioEvents: {
+      "component.placed": "typewriter",
+      "dramatic.beat": "thunder",
+      error: "phone",
+    },
   },
 };
 

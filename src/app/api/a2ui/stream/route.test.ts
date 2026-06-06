@@ -5,6 +5,14 @@ import { NextRequest } from "next/server";
 // Mock server-only
 vi.mock("server-only", () => ({}));
 
+// Spy on buildSystemPrompt so we can assert the composition-variant seed is
+// threaded through to it (Bet 6). Returns a fixed system string — its content
+// is not the contract under test here.
+const buildSystemPromptMock = vi.fn().mockReturnValue("SYSTEM PROMPT");
+vi.mock("@/lib/ai/prompts", () => ({
+  buildSystemPrompt: (...args: unknown[]) => buildSystemPromptMock(...args),
+}));
+
 // Mock AI factory
 vi.mock("@/lib/ai/factory", () => ({
   getProviderWithOverrides: vi.fn().mockReturnValue({
@@ -294,5 +302,55 @@ describe("/api/a2ui/stream", () => {
       return payload.components[0].id;
     });
     expect(ids).toEqual(["comp-a", "comp-b", "comp-c"]);
+  });
+
+  it("threads compositionSeed into buildSystemPrompt (Bet 6 variants)", async () => {
+    buildSystemPromptMock.mockClear();
+    const { POST } = await import("./route");
+
+    const req = new NextRequest("http://localhost/api/a2ui/stream", {
+      method: "POST",
+      body: JSON.stringify({ prompt: "Create a card", aestheticId: "noir", compositionSeed: 44 }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    await (await POST(req)).text();
+
+    // buildSystemPrompt(baselineComponents, aestheticId, customSystemPrompt, seed)
+    expect(buildSystemPromptMock).toHaveBeenCalled();
+    const call = buildSystemPromptMock.mock.calls[0];
+    expect(call[1]).toBe("noir");
+    expect(call[3]).toBe(44);
+  });
+
+  it("passes undefined seed when none is provided (backward compatible)", async () => {
+    buildSystemPromptMock.mockClear();
+    const { POST } = await import("./route");
+
+    const req = new NextRequest("http://localhost/api/a2ui/stream", {
+      method: "POST",
+      body: JSON.stringify({ prompt: "Create a card" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    await (await POST(req)).text();
+
+    expect(buildSystemPromptMock).toHaveBeenCalled();
+    expect(buildSystemPromptMock.mock.calls[0][3]).toBeUndefined();
+  });
+
+  it("ignores a non-numeric compositionSeed", async () => {
+    buildSystemPromptMock.mockClear();
+    const { POST } = await import("./route");
+
+    const req = new NextRequest("http://localhost/api/a2ui/stream", {
+      method: "POST",
+      body: JSON.stringify({ prompt: "Create a card", compositionSeed: "not-a-number" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    await (await POST(req)).text();
+
+    expect(buildSystemPromptMock.mock.calls[0][3]).toBeUndefined();
   });
 });

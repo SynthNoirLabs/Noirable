@@ -24,12 +24,17 @@ export const SYSTEM_PROMPT = getPersonaPrompt("noir");
  * @param evidence - Current evidence state to include in context
  * @param aestheticId - Aesthetic profile ID (defaults to "noir")
  * @param customSystemPrompt - Optional custom persona body (skips the doctrine)
+ * @param compositionSeed - Optional variant seed. When present, a terse
+ *   "Composition variant" directive nudges the model toward an alternative
+ *   arrangement (used for the Take 1/2/3 picker). Omitting it keeps the prompt
+ *   byte-identical to the no-variant path.
  * @returns Complete system prompt string
  */
 export function buildSystemPrompt(
   evidence?: unknown,
   aestheticId?: AestheticId,
-  customSystemPrompt?: string
+  customSystemPrompt?: string,
+  compositionSeed?: number
 ): string {
   const basePrompt = customSystemPrompt || getPersonaPrompt(aestheticId);
 
@@ -42,7 +47,14 @@ export function buildSystemPrompt(
     ? `${layoutDoctrine}\n\n${COMPONENT_PLAYBOOK}`
     : COMPONENT_PLAYBOOK;
 
-  const promptWithComposition = `${basePrompt}\n\n${composition}`;
+  // A variant seed biases toward a different-but-valid arrangement. Kept terse
+  // to limit token cost; appended only when the caller opts into variants.
+  const variant =
+    typeof compositionSeed === "number"
+      ? `\n\nComposition variant\nVariant seed ${compositionSeed}: bias toward an alternative arrangement — vary the layout, section order, and emphasis from a default take while honoring the doctrine above.`
+      : "";
+
+  const promptWithComposition = `${basePrompt}\n\n${composition}${variant}`;
 
   if (!evidence) return promptWithComposition;
 

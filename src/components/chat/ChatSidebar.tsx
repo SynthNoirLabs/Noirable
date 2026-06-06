@@ -26,6 +26,15 @@ import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
 import { getAudioPack } from "@/lib/aesthetic/audio-packs";
+import { getAudioEvents } from "@/lib/aesthetic/identity";
+import {
+  duckMusic,
+  eventTriggersLightning,
+  restoreMusic,
+  scanTextForAudioEvents,
+  scanTextForAudioEventTimings,
+  type AudioEventName,
+} from "@/lib/audio/audioEvents";
 
 export interface Message {
   id: string;
@@ -91,8 +100,26 @@ export function ChatSidebar({
   });
   const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
   const aestheticId = activeProfile?.baseAestheticId ?? fallbackAestheticId;
-  const sfxVolumes = useA2UIStore((state) => state.settings.sfxVolumes);
+  // Prefer the active custom profile's SFX volumes over the global session
+  // setting so a profile's audio tuning actually drives the live session (not
+  // just export). The profile override is partial, so layer it on top of the
+  // global volumes (which themselves default to full where unset).
+  const globalSfxVolumes = useA2UIStore((state) => state.settings.sfxVolumes);
+  const sfxVolumes =
+    activeProfile?.audio?.sfxVolumes || globalSfxVolumes
+      ? {
+          typewriter: 1,
+          thunder: 1,
+          phone: 1,
+          ...globalSfxVolumes,
+          ...activeProfile?.audio?.sfxVolumes,
+        }
+      : undefined;
+  // Same precedence for the typewriter cadence: a profile's effects.typewriterSpeed
+  // overrides the global session speed when a profile is active.
+  const effectiveTypewriterSpeed = activeProfile?.effects?.typewriterSpeed ?? typewriterSpeed;
   const audioPack = getAudioPack(aestheticId);
+  const audioEvents = getAudioEvents(aestheticId);
   const [localInput, setLocalInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [ttsLoadingId, setTtsLoadingId] = useState<string | null>(null);
@@ -103,6 +130,7 @@ export function ChatSidebar({
     playTypewriter: () => void;
     playThunder: () => void;
     playPhoneRing: () => void;
+    playByEvent: (event: AudioEventName) => void;
   } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -123,6 +151,55 @@ export function ChatSidebar({
   const soundSetting = soundEnabled;
   const ttsSetting = ttsEnabled ?? true;
   const musicSetting = musicEnabled ?? false;
+
+  // Keep the latest SFX controls in a ref so event/throttle helpers stay stable
+  // and never fire through a stale closure mid-stream.
+  const sfxControlsRef = useRef(sfxControls);
+  sfxControlsRef.current = sfxControls;
+
+  // Resolve a semantic audio event through the active preset's map so ALL
+  // presets react (not just noir's old keyword scan). Dramatic beats also flash
+  // the lightning overlay, in sync with whatever SFX the preset assigns.
+  const fireAudioEvent = useCallback(
+    (event: AudioEventName): boolean => {
+      const controls = sfxControlsRef.current;
+      if (!soundSetting || !controls) {
+        return false;
+      }
+      controls.playByEvent(event);
+      if (eventTriggersLightning(event) && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("noir-lightning"));
+      }
+      return true;
+    },
+    [soundSetting]
+  );
+
+  // Hard throttle for per-token typewriter clicks so streaming never spams the
+  // pool. Min 70ms between plays; gated on soundEnabled. Returns false only when
+  // the SFX pool isn't ready yet, so the caller can retry on the next token
+  // rather than swallowing the very first clack of a stream.
+  const lastTypewriterAtRef = useRef(0);
+  const TYPEWRITER_MIN_INTERVAL_MS = 70;
+  const tickTypewriter = useCallback((): boolean => {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (!soundSetting) {
+      // Keep the throttle clock current while muted so re-enabling sound
+      // mid-stream doesn't fire one un-throttled clack on the next token.
+      lastTypewriterAtRef.current = now;
+      return true;
+    }
+    const controls = sfxControlsRef.current;
+    if (!controls) {
+      return false;
+    }
+    if (now - lastTypewriterAtRef.current < TYPEWRITER_MIN_INTERVAL_MS) {
+      return true; // intentionally throttled — still "handled".
+    }
+    lastTypewriterAtRef.current = now;
+    controls.playTypewriter();
+    return true;
+  }, [soundSetting]);
 
   // Scroll only when a message is added/removed, not on every streamed-token
   // identity change (which caused a forced reflow per chunk).
@@ -163,68 +240,74 @@ export function ChatSidebar({
     }
   }, [elevenLabsConfigured, onUpdateSettings, ttsSetting]);
 
-  // Atmospheric Triggering Effect Scanner
-  const triggeredAtmosphericRef = useRef<Record<string, Set<string>>>({});
+  // Per-message bookkeeping for the event-driven SFX bus.
+  const triggeredAtmosphericRef = useRef<Record<string, Set<AudioEventName>>>({});
+  const lastAssistantLenRef = useRef<Record<string, number>>({});
 
+  // Event-driven SFX + throttled typewriter on the streaming assistant text.
+  // Replaces the old noir-only keyword scan: narrative keywords now resolve to
+  // semantic events via the active preset's AudioEventMap, so every aesthetic
+  // reacts. When TTS is on, narrative cues fire in sync with the spoken voice
+  // (scheduled inside playTts) instead.
   useEffect(() => {
-    // If TTS is enabled, atmospheric events will trigger in sync with the spoken voice.
-    // Otherwise, trigger them on the streaming/typewritten text.
-    if (ttsSetting) return;
-
     if (messages.length === 0) return;
 
-    // Find the last assistant message
+    // Find the last assistant message.
     const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
     if (!lastAssistant) return;
 
     const messageId = lastAssistant.id;
-    const content = lastAssistant.content.toLowerCase();
+    const content = lastAssistant.content;
 
-    if (!triggeredAtmosphericRef.current[messageId]) {
-      triggeredAtmosphericRef.current[messageId] = new Set();
+    // Throttled typewriter clack as tokens stream in (only while growing). Only
+    // advance the tracked length once the clack was handled, so a stream that
+    // started before the SFX pool mounted still clacks on its first real token.
+    const prevLen = lastAssistantLenRef.current[messageId] ?? 0;
+    if (content.length > prevLen) {
+      if (tickTypewriter()) {
+        lastAssistantLenRef.current[messageId] = content.length;
+      }
+    } else {
+      lastAssistantLenRef.current[messageId] = content.length;
     }
 
-    const triggered = triggeredAtmosphericRef.current[messageId];
-
-    // 1. Thunder & Lightning keywords
-    const THUNDER_KEYWORDS = ["lightning", "thunder", "relámpago", "trueno"];
-    if (THUNDER_KEYWORDS.some((kw) => content.includes(kw)) && !triggered.has("thunder")) {
-      if (sfxControls) {
-        triggered.add("thunder");
-        sfxControls.playThunder();
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("noir-lightning"));
+    // Atmospheric keyword cues are voiced via playTts when TTS is on.
+    if (!ttsSetting) {
+      if (!triggeredAtmosphericRef.current[messageId]) {
+        triggeredAtmosphericRef.current[messageId] = new Set();
+      }
+      const triggered = triggeredAtmosphericRef.current[messageId];
+      for (const event of scanTextForAudioEvents(content)) {
+        // Only mark as fired once the SFX pool is actually ready (it mounts after
+        // the first paint), so the cue isn't lost to an early no-op.
+        if (!triggered.has(event) && fireAudioEvent(event)) {
+          triggered.add(event);
         }
       }
     }
 
-    // 2. Phone ringing keywords
-    const PHONE_KEYWORDS = [
-      "phone rang",
-      "phone ring",
-      "phone-ring",
-      "telephone rang",
-      "telephone ring",
-      "phone rings",
-      "telephone rings",
-      "phone ringing",
-      "telephone ringing",
-      "teléfono sonó",
-      "teléfono sonando",
-    ];
-    if (PHONE_KEYWORDS.some((kw) => content.includes(kw)) && !triggered.has("phone")) {
-      if (sfxControls) {
-        triggered.add("phone");
-        sfxControls.playPhoneRing();
-      }
-    }
-
-    // Gc triggeredAtmosphericRef to avoid memory leak
+    // GC bookkeeping maps to avoid unbounded growth.
     const keys = Object.keys(triggeredAtmosphericRef.current);
     if (keys.length > 10) {
-      delete triggeredAtmosphericRef.current[keys[0]];
+      const oldest = keys[0];
+      delete triggeredAtmosphericRef.current[oldest];
+      delete lastAssistantLenRef.current[oldest];
     }
-  }, [messages, sfxControls, ttsSetting]);
+    // sfxControls is read via sfxControlsRef but kept in deps so the scan re-runs
+    // once the SFX pool reports ready (it mounts after the first paint).
+  }, [messages, ttsSetting, fireAudioEvent, tickTypewriter, sfxControls]);
+
+  // Fire message.start / message.complete lifecycle events as a generation
+  // begins and ends. These are the primary, preset-agnostic triggers.
+  const wasLoadingRef = useRef(false);
+  useEffect(() => {
+    if (isLoading && !wasLoadingRef.current) {
+      fireAudioEvent("message.start");
+    } else if (!isLoading && wasLoadingRef.current) {
+      fireAudioEvent("message.complete");
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading, fireAudioEvent]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +360,8 @@ export function ChatSidebar({
     }
     ttsAudioRef.current = null;
     ttsUrlRef.current = null;
+    // Voice is no longer speaking — let the music bed back up to full volume.
+    restoreMusic();
     setTtsPlayingId(null);
     setTtsLoadingId(null);
   }, []);
@@ -345,9 +430,24 @@ export function ChatSidebar({
         const audio = new Audio(url);
         ttsUrlRef.current = url;
         ttsAudioRef.current = audio;
-        audio.onended = () => stopTts();
+        // Restore the music bed on any natural end/pause, not just stopTts().
+        // Guard on identity: when a rapid play-B-over-A swap pauses the old
+        // element, its (async) pause/ended events must not tear down or
+        // un-duck the NEW playback — the shared refs already point at B.
+        audio.onended = () => {
+          if (ttsAudioRef.current === audio) {
+            stopTts();
+          }
+        };
+        audio.onpause = () => {
+          if (ttsAudioRef.current === audio) {
+            restoreMusic();
+          }
+        };
         setTtsLoadingId(null);
         setTtsPlayingId(message.id);
+        // Duck the music bed under the narration, then start speaking.
+        duckMusic();
         await audio.play();
 
         const recordingHash = response.headers.get("x-recording-hash");
@@ -366,51 +466,13 @@ export function ChatSidebar({
           }
         }
 
-        // When audio starts playing, schedule the atmospheric effects based on estimated speaking timings
-        if (sfxControls) {
-          const contentLower = text.toLowerCase();
-          const msPerChar = 65; // Heuristic: average 65ms per character speaking rate
-
-          // 1. Check for thunder/lightning keywords
-          const THUNDER_KEYWORDS = ["lightning", "thunder", "relámpago", "trueno"];
-          THUNDER_KEYWORDS.forEach((kw) => {
-            const index = contentLower.indexOf(kw);
-            if (index !== -1) {
-              const delay = index * msPerChar;
-              const timer = setTimeout(() => {
-                sfxControls.playThunder();
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("noir-lightning"));
-                }
-              }, delay);
-              ttsTimeoutsRef.current.push(timer);
-            }
-          });
-
-          // 2. Check for phone ringing keywords
-          const PHONE_KEYWORDS = [
-            "phone rang",
-            "phone ring",
-            "phone-ring",
-            "telephone rang",
-            "telephone ring",
-            "phone rings",
-            "telephone rings",
-            "phone ringing",
-            "telephone ringing",
-            "teléfono sonó",
-            "teléfono sonando",
-          ];
-          PHONE_KEYWORDS.forEach((kw) => {
-            const index = contentLower.indexOf(kw);
-            if (index !== -1) {
-              const delay = index * msPerChar;
-              const timer = setTimeout(() => {
-                sfxControls.playPhoneRing();
-              }, delay);
-              ttsTimeoutsRef.current.push(timer);
-            }
-          });
+        // Schedule narrative SFX cues to land roughly when the narration speaks
+        // each keyword. Routes through the preset's AudioEventMap (fireAudioEvent)
+        // so every aesthetic reacts — not just noir.
+        const msPerChar = 65; // Heuristic: average 65ms per character speaking rate.
+        for (const { event, index } of scanTextForAudioEventTimings(text)) {
+          const timer = setTimeout(() => fireAudioEvent(event), index * msPerChar);
+          ttsTimeoutsRef.current.push(timer);
         }
       } catch (error) {
         console.error("TTS playback failed:", error);
@@ -424,7 +486,7 @@ export function ChatSidebar({
       stopTts,
       ttsPlayingId,
       ttsSetting,
-      sfxControls,
+      fireAudioEvent,
       generatedTapes,
       onUpdateSettings,
       aestheticId,
@@ -504,7 +566,7 @@ export function ChatSidebar({
             className="max-h-[60vh] overflow-y-auto border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/30"
           >
             <ChatSettingsPanel
-              typewriterSpeed={typewriterSpeed}
+              typewriterSpeed={effectiveTypewriterSpeed}
               soundEnabled={soundSetting}
               ttsEnabled={ttsSetting}
               musicEnabled={musicSetting}
@@ -525,6 +587,7 @@ export function ChatSidebar({
         onReady={setSfxControls}
         sfxConfig={audioPack.sfx}
         sfxVolumes={sfxVolumes}
+        audioEvents={audioEvents}
       />
 
       <div
@@ -607,7 +670,7 @@ export function ChatSidebar({
                 ) : (
                   <TypewriterText
                     content={m.content}
-                    speed={typewriterSpeed}
+                    speed={effectiveTypewriterSpeed}
                     glow={false}
                     showCursor={false}
                     className="text-xs leading-relaxed font-mono"

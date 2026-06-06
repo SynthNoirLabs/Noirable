@@ -3,6 +3,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { ChatSidebar } from "./ChatSidebar";
 
+type MockAudioEvent =
+  | "message.start"
+  | "message.complete"
+  | "component.placed"
+  | "error"
+  | "dramatic.beat";
+
 vi.mock("@/components/noir/NoirSoundEffects", () => {
   return {
     NoirSoundEffects: ({
@@ -13,15 +20,26 @@ vi.mock("@/components/noir/NoirSoundEffects", () => {
           playThunder: () => void;
           playPhoneRing: () => void;
           playTypewriter: () => void;
+          playByEvent: (event: MockAudioEvent) => void;
         } | null
       ) => void;
     }) => {
       // We can use the top-level useEffect import directly inside the mock
       useEffect(() => {
+        const playThunder = () => window.dispatchEvent(new CustomEvent("test-thunder"));
+        const playPhoneRing = () => window.dispatchEvent(new CustomEvent("test-phone"));
+        const playTypewriter = () => window.dispatchEvent(new CustomEvent("test-typewriter"));
         onReady({
-          playThunder: () => window.dispatchEvent(new CustomEvent("test-thunder")),
-          playPhoneRing: () => window.dispatchEvent(new CustomEvent("test-phone")),
-          playTypewriter: () => {},
+          playThunder,
+          playPhoneRing,
+          playTypewriter,
+          // Resolve through noir's AudioEventMap so the event-driven bus exercises
+          // the same SFX the old keyword scan fired.
+          playByEvent: (event) => {
+            if (event === "dramatic.beat") playThunder();
+            else if (event === "error") playPhoneRing();
+            else if (event === "component.placed" || event === "message.complete") playTypewriter();
+          },
         });
         return () => onReady(null);
       }, [onReady]);
@@ -285,5 +303,67 @@ describe("ChatSidebar", () => {
     window.removeEventListener("test-thunder", thunderSpy);
     window.removeEventListener("test-phone", phoneSpy);
     window.removeEventListener("noir-lightning", lightningFlashSpy);
+  });
+
+  it("clacks the typewriter as assistant tokens stream in", async () => {
+    const typewriterSpy = vi.fn();
+    window.addEventListener("test-typewriter", typewriterSpy);
+
+    const base = [{ id: "1", role: "user", content: "Hello" }];
+
+    const { rerender } = render(
+      <ChatSidebar
+        messages={[...base, { id: "2", role: "assistant", content: "The" }]}
+        sendMessage={mockSendMessage}
+        isLoading={true}
+        ttsEnabled={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(typewriterSpy).toHaveBeenCalled();
+    });
+
+    // A non-growing rerender (same content) must not re-clack.
+    typewriterSpy.mockReset();
+    rerender(
+      <ChatSidebar
+        messages={[...base, { id: "2", role: "assistant", content: "The" }]}
+        sendMessage={mockSendMessage}
+        isLoading={true}
+        ttsEnabled={false}
+      />
+    );
+    expect(typewriterSpy).not.toHaveBeenCalled();
+
+    window.removeEventListener("test-typewriter", typewriterSpy);
+  });
+
+  it("does not fire SFX while sound is disabled", async () => {
+    const thunderSpy = vi.fn();
+    const typewriterSpy = vi.fn();
+    window.addEventListener("test-thunder", thunderSpy);
+    window.addEventListener("test-typewriter", typewriterSpy);
+
+    render(
+      <ChatSidebar
+        messages={[
+          { id: "1", role: "user", content: "Hello" },
+          { id: "2", role: "assistant", content: "A flash of lightning lit the alley." },
+        ]}
+        sendMessage={mockSendMessage}
+        isLoading={true}
+        soundEnabled={false}
+        ttsEnabled={false}
+      />
+    );
+
+    // Give effects a tick to run; nothing should fire while muted.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(thunderSpy).not.toHaveBeenCalled();
+    expect(typewriterSpy).not.toHaveBeenCalled();
+
+    window.removeEventListener("test-thunder", thunderSpy);
+    window.removeEventListener("test-typewriter", typewriterSpy);
   });
 });

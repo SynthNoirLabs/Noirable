@@ -50,6 +50,16 @@
      reads flat while cyber-fixer (1.4) glows harder. Mirrors the
      `glowStrength` field in src/lib/aesthetic/definitions.ts. */
   --aesthetic-glow-strength: 1;
+
+  /* Ambient atmosphere vars driving the overlay re-skin (Bet 3). Mirror the
+     `atmosphere` block in src/lib/aesthetic/definitions.ts so rain/fog/
+     lightning/vignette read in each world's palette instead of noir-hardcoded
+     blue/white. Default = noir. */
+  --aesthetic-particle-color: #bcd2eb;
+  --aesthetic-lightning-color: #ffffff;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0.72;
+  --aesthetic-lightning-frequency: 0.4;
 }
 
 [data-aesthetic="noir"] {
@@ -65,6 +75,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
   --aesthetic-glow-strength: 1;
+  --aesthetic-particle-color: #bcd2eb;
+  --aesthetic-lightning-color: #ffffff;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0.72;
+  --aesthetic-lightning-frequency: 0.4;
   --aesthetic-bg-image: url("/assets/noir/rainy-bg.jpg");
   --aesthetic-case-file-image: url("/assets/noir/Gemini_Generated_Image_hgsjjdhgsjjdhgsj.jpeg");
 }
@@ -82,6 +97,11 @@
   --aesthetic-font-body: system-ui, -apple-system, sans-serif;
   --aesthetic-font-heading: system-ui, -apple-system, sans-serif;
   --aesthetic-glow-strength: 0;
+  --aesthetic-particle-color: #d4d4d8;
+  --aesthetic-lightning-color: #2563eb;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0;
+  --aesthetic-lightning-frequency: 0;
   --aesthetic-bg-image: none;
   --aesthetic-case-file-image: none;
 }
@@ -99,6 +119,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-sans);
   --aesthetic-glow-strength: 1.4;
+  --aesthetic-particle-color: #ff007f;
+  --aesthetic-lightning-color: #00ffcc;
+  --aesthetic-vignette-color: #0a0512;
+  --aesthetic-vignette-intensity: 0.5;
+  --aesthetic-lightning-frequency: 1.2;
   --aesthetic-bg-image: url("/assets/cyber-fixer/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -116,6 +141,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
   --aesthetic-glow-strength: 1.1;
+  --aesthetic-particle-color: #33ff66;
+  --aesthetic-lightning-color: #33ff66;
+  --aesthetic-vignette-color: #020804;
+  --aesthetic-vignette-intensity: 0.6;
+  --aesthetic-lightning-frequency: 0.5;
   --aesthetic-bg-image: url("/assets/nostromo-console/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -133,6 +163,11 @@
   --aesthetic-font-body: var(--font-typewriter);
   --aesthetic-font-heading: var(--font-typewriter);
   --aesthetic-glow-strength: 0.8;
+  --aesthetic-particle-color: #990011;
+  --aesthetic-lightning-color: #cc3344;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0.85;
+  --aesthetic-lightning-frequency: 0.6;
   --aesthetic-bg-image: url("/assets/gothic-manor/background.png");
   --aesthetic-case-file-image: none;
 }
@@ -318,6 +353,22 @@ html {
   scrollbar-color: var(--aesthetic-accent) transparent;
 }
 
+/* Minimal — intentional restraint: a thin neutral scrollbar (no accent hover),
+   matching the flat card's clean, decoration-free identity. */
+[data-aesthetic="minimal"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-aesthetic="minimal"] ::-webkit-scrollbar-thumb {
+  background: var(--aesthetic-border);
+  border-radius: 3px;
+}
+
+[data-aesthetic="minimal"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--aesthetic-text-muted);
+}
+
 /* Wire-tap equalizer (TTS playing indicator) */
 @keyframes eq-bounce {
   0%,
@@ -412,6 +463,149 @@ html {
 
 .animate-safelight {
   animation: darkroom-safelight 4.5s ease-in-out forwards;
+}
+
+/* Per-reveal image-develop keyframe sets (Bet 3). Each is gated behind
+   prefers-reduced-motion: no-preference like the darkroom set; the global
+   reduced-motion reset below also neutralizes them. */
+
+/* Minimal — crisp instant fade-in, no chemistry. */
+@keyframes photo-crisp {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Cyber — scanline reveal: brightens from a dark scan with a quick RGB split. */
+@keyframes photo-scanline {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    filter: brightness(1.4) saturate(1.4) drop-shadow(2px 0 0 rgba(255, 0, 127, 0.6))
+      drop-shadow(-2px 0 0 rgba(0, 255, 204, 0.6));
+    opacity: 0.6;
+  }
+  60% {
+    clip-path: inset(0 0 0 0);
+    filter: brightness(1.2) saturate(1.2) drop-shadow(1px 0 0 rgba(255, 0, 127, 0.4))
+      drop-shadow(-1px 0 0 rgba(0, 255, 204, 0.4));
+    opacity: 0.95;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes scanline-wipe {
+  0% {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--aesthetic-accent) 45%, transparent) 50%,
+      transparent 100%
+    );
+    transform: translateY(-100%);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Nostromo — top-to-bottom phosphor raster print. */
+@keyframes photo-raster {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    filter: brightness(0.4) saturate(0.2) contrast(1.4);
+    opacity: 0.5;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes raster-sweep {
+  0% {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--aesthetic-accent) 55%, transparent) 50%,
+      transparent 100%
+    );
+    transform: translateY(-100%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Gothic — warm fade up from near-black, like an image rising into candlelight. */
+@keyframes photo-candle {
+  0% {
+    filter: brightness(0.1) sepia(0.4) saturate(0.6);
+    opacity: 0;
+  }
+  60% {
+    filter: brightness(0.7) sepia(0.25) saturate(0.85);
+    opacity: 0.85;
+  }
+  100% {
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes candle-glow {
+  0% {
+    background: radial-gradient(
+      ellipse at 50% 60%,
+      color-mix(in srgb, var(--aesthetic-accent) 30%, transparent) 0%,
+      transparent 70%
+    );
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-photo-crisp {
+    animation: photo-crisp 0.32s ease-out forwards;
+  }
+
+  .animate-photo-scanline {
+    animation: photo-scanline 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  .animate-scanline-wipe {
+    animation: scanline-wipe 0.9s linear forwards;
+  }
+
+  .animate-photo-raster {
+    animation: photo-raster 1.4s steps(12, end) forwards;
+  }
+
+  .animate-raster-sweep {
+    animation: raster-sweep 1.4s steps(12, end) forwards;
+  }
+
+  .animate-photo-candle {
+    animation: photo-candle 1.8s ease-in-out forwards;
+  }
+
+  .animate-candle-glow {
+    animation: candle-glow 1.8s ease-in-out forwards;
+  }
 }
 
 /* stylelint-disable */
@@ -634,6 +828,342 @@ html {
     inset 0 0 40px rgba(112, 66, 20, 0.08) !important;
 }
 
+/* --- DATA-DRIVEN CARD MATERIALS (Bet 2) --- */
+
+/* The generated-surface Card (`.a2ui-card`) carries its own `data-effect-card`
+   attribute (from the resolved effects profile), so the material treatment is
+   data-driven and reaches custom profiles too — not keyed on a preset id. Each
+   material reads --aesthetic-radius for its corner shape and scales accent
+   glows by --aesthetic-bloom. Paper/parchment are LIGHT, so they re-assert a
+   dark, contrast-correct body text color (overriding the inherited light
+   --aesthetic-text) on the card and its descendants. */
+
+/* Paper (noir) — aged off-white evidence print, dark ink. */
+.a2ui-card[data-effect-card="paper"] {
+  background-color: var(--color-noir-paper);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.05'/%3E%3C/svg%3E");
+  color: var(--color-noir-ink);
+  border: 1px solid var(--aesthetic-border);
+  border-radius: var(--aesthetic-radius, 2px);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    inset 0 0 40px rgba(112, 66, 20, 0.08);
+}
+
+.a2ui-card[data-effect-card="paper"] :where(p, span, td, th, h1, h2, h3, h4, h5, li) {
+  color: var(--color-noir-ink);
+}
+
+/* Parchment (gothic) — warm aged parchment, dark brown ink, double border. */
+.a2ui-card[data-effect-card="parchment"] {
+  background-color: #d7c5a9;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='parchment-noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.72 0 0 0 0 0.63 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23parchment-noise)'/%3E%3C/svg%3E");
+  color: #1f1408;
+  border: 4px double #4a3424;
+  border-radius: var(--aesthetic-radius, 3px);
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.7),
+    inset 0 0 60px rgba(74, 52, 36, 0.2);
+}
+
+.a2ui-card[data-effect-card="parchment"] :where(p, span, td, th, h1, h2, h3, h4, h5, li) {
+  color: #1f1408;
+}
+
+/* Hologram (cyber) — translucent neon pane, glow scaled by bloom; text stays
+   on the inherited light --aesthetic-text (already legible on the dark pane). */
+.a2ui-card[data-effect-card="hologram"] {
+  background-color: rgba(20, 12, 36, 0.85);
+  background-image: none;
+  color: var(--aesthetic-text);
+  border: 1px solid var(--aesthetic-accent);
+  border-radius: var(--aesthetic-radius, 4px);
+  box-shadow:
+    0 0 calc(15px * var(--aesthetic-bloom, 1)) rgba(0, 255, 204, 0.2),
+    inset 0 0 calc(10px * var(--aesthetic-bloom, 1)) rgba(0, 255, 204, 0.1),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Wireframe (nostromo) — dark terminal pane with a phosphor inset + bracket. */
+.a2ui-card[data-effect-card="wireframe"] {
+  background-color: #05160b;
+  background-image: none;
+  color: var(--aesthetic-text);
+  border: 1px solid var(--aesthetic-border);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 calc(15px * var(--aesthetic-bloom, 1)) rgba(51, 255, 102, 0.08),
+    0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.a2ui-card[data-effect-card="wireframe"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--aesthetic-accent);
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+/* Flat (minimal) — clean surface card, hairline border, soft shadow, NO paper
+   texture. Keeps the legible --aesthetic-text on --aesthetic-surface. Minimal
+   is intentional restraint: it gets NO stain/tape/tilt/seal decoration below,
+   so the flat card stays clean. The tilt is applied inline only for the paper
+   material, never here. */
+.a2ui-card[data-effect-card="flat"] {
+  background-color: var(--aesthetic-surface);
+  background-image: none;
+  color: var(--aesthetic-text);
+  border: 1px solid var(--aesthetic-border);
+  border-radius: var(--aesthetic-radius, 10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* --- PER-MATERIAL SIGNATURE TOUCHES (per-preset craft, data-driven) --- */
+
+/* These accents key off the card MATERIAL (`data-effect-card`) / stamp
+   (`data-effect-stamp`) rather than a preset id, so custom profiles that adopt
+   a material inherit the matching craft. Each is additive and subtle. The
+   paper/parchment text-contrast rules above are untouched. */
+
+/* NOIR — aged-paper dossier: a faint coffee-stain ring + a strip of corner
+   tape, so the card reads as evidence laid on a desk. (The deterministic tilt
+   is applied inline in CardRenderer, paper only.) Decoration sits above the
+   paper but below the body content's stacking via z-index on the body wrapper
+   is unnecessary — these are translucent, non-interactive overlays. */
+.a2ui-card[data-effect-card="paper"]::before {
+  content: "";
+  position: absolute;
+  top: 14%;
+  right: 12%;
+  width: 58px;
+  height: 58px;
+  border: 2px solid rgba(112, 66, 20, 0.13);
+  border-radius: 49% 51% 52% 48% / 50% 47% 53% 50%;
+  box-shadow: inset 0 0 6px rgba(112, 66, 20, 0.1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.a2ui-card[data-effect-card="paper"]::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 76px;
+  height: 22px;
+  transform: translateX(-50%) rotate(-1.5deg);
+  background: rgba(214, 198, 150, 0.55);
+  border: 1px dashed rgba(60, 44, 18, 0.18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Keep the dossier body legibly above the translucent stain/tape overlays. */
+.a2ui-card[data-effect-card="paper"] > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* CYBER — holographic HUD pane: bracket corner ticks + a slow scanning
+   shimmer, cyan/magenta only via accent tokens (never a literal magenta). */
+.a2ui-card[data-effect-card="hologram"]::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) top left / 14px 2px no-repeat,
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) top left / 2px 14px no-repeat,
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) top right / 14px 2px no-repeat,
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) top right / 2px 14px no-repeat,
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) bottom left / 14px 2px
+      no-repeat,
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) bottom left / 2px 14px
+      no-repeat,
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) bottom right / 14px 2px
+      no-repeat,
+    linear-gradient(var(--aesthetic-accent), var(--aesthetic-accent)) bottom right / 2px 14px
+      no-repeat;
+  opacity: 0.7;
+}
+
+.a2ui-card[data-effect-card="hologram"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--aesthetic-accent) 8%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 100% 220%;
+  background-repeat: no-repeat;
+}
+
+/* Keep the HUD pane content above the bracket ticks + scanning shimmer. */
+.a2ui-card[data-effect-card="hologram"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* NOSTROMO — terminal output: a blinking phosphor block-cursor caret trailing
+   the card, plus ALL-CAPS bracket framing on the top-left corner. The existing
+   wireframe ::after (bracket inset) stays; this caret uses ::before. */
+.a2ui-card[data-effect-card="wireframe"]::before {
+  content: "\2588";
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  font-family: var(--font-typewriter), monospace;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--aesthetic-accent);
+  text-shadow: 0 0 5px var(--aesthetic-accent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* GOTHIC — parchment manuscript: a serif drop-cap on the first letter of an h1
+   inside a parchment card. Pure CSS via ::first-letter so no render change is
+   needed; stays in the dark parchment ink for contrast. */
+.a2ui-card[data-effect-card="parchment"] h1::first-letter {
+  float: left;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3.1em;
+  font-weight: 700;
+  line-height: 0.78;
+  padding-right: 0.06em;
+  margin-top: 0.04em;
+  color: var(--aesthetic-accent);
+}
+
+/* GOTHIC — wax-seal stamp: a small embossed seal anchored to the card when the
+   resolved stamp effect is a physical seal (wax/blood). Keyed off the layout
+   root's `data-effect-stamp`, scoped to parchment cards so it reads as a sealed
+   manuscript and never leaks onto flat/hologram materials. */
+[data-effect-stamp="wax"] .a2ui-card[data-effect-card="parchment"]::before,
+[data-effect-stamp="blood"] .a2ui-card[data-effect-card="parchment"]::before {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 38% 34%,
+    color-mix(in srgb, var(--aesthetic-accent) 85%, white 15%) 0%,
+    var(--aesthetic-accent) 45%,
+    var(--aesthetic-accent-muted) 100%
+  );
+  border: 1px solid var(--aesthetic-accent-muted);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.45),
+    inset 0 0 7px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Keep the manuscript body legibly above the corner wax seal, mirroring the
+   paper dossier's stacking so the seal never sits over bottom-right text. */
+[data-effect-stamp="wax"] .a2ui-card[data-effect-card="parchment"] > *,
+[data-effect-stamp="blood"] .a2ui-card[data-effect-card="parchment"] > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* The gilt museum-plate caption on PhotoDeveloper's gothic candle frame only. */
+.gilt-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: color-mix(in srgb, var(--aesthetic-accent-muted) 70%, #e8d8a0 30%);
+  border-top: 1px solid color-mix(in srgb, var(--aesthetic-accent-muted) 55%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--aesthetic-accent-muted) 55%, transparent);
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.gilt-plate-label {
+  font-variant: small-caps;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: lowercase;
+  color: color-mix(in srgb, var(--aesthetic-accent-muted) 80%, #f0e2b0 20%);
+}
+
+/* Animate the cyber shimmer + nostromo caret blink only when the user has not
+   asked for reduced motion (the global reset below also neutralizes them). */
+@media (prefers-reduced-motion: no-preference) {
+  .a2ui-card[data-effect-card="hologram"]::after {
+    animation: hud-shimmer 4.5s ease-in-out infinite;
+  }
+
+  .a2ui-card[data-effect-card="wireframe"]::before {
+    animation: terminal-caret-blink 1.1s steps(1) infinite;
+  }
+}
+
+/* Slow vertical sweep for the holographic HUD pane. */
+@keyframes hud-shimmer {
+  0% {
+    background-position: 0 -60%;
+  }
+  100% {
+    background-position: 0 160%;
+  }
+}
+
+/* Phosphor block-cursor blink for the terminal (nostromo) card caret. */
+@keyframes terminal-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- DATA-DRIVEN SCREEN TREATMENTS (Bet 2) --- */
+
+/* Scanline screen — CRT line overlay across the whole layout root. Driven by
+   the effects profile so custom profiles using "scanlines" get it too. */
+[data-effect-screen="scanlines"] .bg-venetian::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(0, 0, 0, 0.12) 1px,
+    rgba(0, 0, 0, 0.12) 2px
+  );
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.5;
+}
+
+/* Phosphor screen — soft accent bloom haze, intensity scaled by bloom. */
+[data-effect-screen="phosphor"] .bg-venetian {
+  box-shadow: inset 0 0 calc(120px * var(--aesthetic-bloom, 1))
+    color-mix(in srgb, var(--aesthetic-accent) 6%, transparent);
+}
+
 /* --- THEME-SPECIFIC TEXT BLOOM / GLOWS --- */
 
 /* Cyber-Fixer: Neon Cyan Glow */
@@ -736,5 +1266,34 @@ html {
   .animate-safelight {
     animation: none !important;
     display: none !important;
+  }
+
+  .animate-photo-crisp,
+  .animate-photo-scanline,
+  .animate-photo-raster,
+  .animate-photo-candle {
+    animation: none !important;
+    clip-path: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+
+  .animate-scanline-wipe,
+  .animate-raster-sweep,
+  .animate-candle-glow {
+    animation: none !important;
+    display: none !important;
+  }
+
+  /* Signature touches: stop the HUD shimmer sweep and the terminal caret blink.
+     The caret stays solid (opacity 1) rather than ending on its hidden frame. */
+  .a2ui-card[data-effect-card="hologram"]::after {
+    animation: none !important;
+    opacity: 0.6 !important;
+  }
+
+  .a2ui-card[data-effect-card="wireframe"]::before {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }
