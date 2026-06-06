@@ -452,4 +452,47 @@ describe("useSurfaceStore", () => {
       unsubscribe();
     });
   });
+
+  // Regression: the Bet 6 "Take 1/2/3" picker captures a generated surface and
+  // re-loads it under a NEW surface id. A take that carries a data model (e.g. a
+  // list/template board) must keep BOTH its components AND that data model on
+  // restore, or it renders blank despite having all its components.
+  describe("variant capture / restore round-trip", () => {
+    it("restores components and the data model under a new surface id", () => {
+      const store = useSurfaceStore.getState();
+
+      // A take is captured as { catalogId, theme, components, dataModel }.
+      const captured = {
+        catalogId: "standard",
+        theme: "noir" as const,
+        components: [
+          { id: "root", component: "Column", children: ["list-1"] },
+          { id: "list-1", component: "List", template: "card", items: "/cases" },
+        ] as SurfaceComponent[],
+        dataModel: { cases: [{ name: "Case A" }, { name: "Case B" }] },
+      };
+
+      // selectVariant's restore sequence: clear → createSurface → updateComponents
+      // → setDataModel at root.
+      store.clear();
+      const surfaceId = "surface-take-3-9999";
+      store.createSurface({
+        surfaceId,
+        catalogId: captured.catalogId,
+        theme: captured.theme,
+      });
+      store.updateComponents(surfaceId, captured.components);
+      store.setDataModel(surfaceId, "/", captured.dataModel);
+
+      const restored = useSurfaceStore.getState().getSurface(surfaceId);
+      expect(restored).toBeDefined();
+      // The render root resolves via the "root" component id — it must survive.
+      expect(restored!.components.get("root")?.component).toBe("Column");
+      expect(restored!.components.size).toBe(2);
+      // The data model the list binds to must be present, not reset to {}.
+      expect(restored!.dataModel).toEqual({
+        cases: [{ name: "Case A" }, { name: "Case B" }],
+      });
+    });
+  });
 });

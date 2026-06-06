@@ -79,6 +79,10 @@ interface CapturedVariant {
   catalogId: string;
   theme?: string | Record<string, unknown>;
   components: SurfaceComponent[];
+  // The surface's data model must be captured too: list/template components
+  // resolve their children from it, so a take restored with an empty model
+  // renders blank even though all its components are present.
+  dataModel: Record<string, unknown>;
 }
 
 export function DetectiveWorkspace() {
@@ -530,12 +534,15 @@ export function DetectiveWorkspace() {
           { id: `v09-asst-${stamp}`, role: "assistant", parts: [{ type: "text", text: reply }] },
         ]);
         // Snapshot the freshly-rendered surface so it can be re-loaded later.
+        // Capture the data model alongside the components — list/template
+        // children resolve from it, so a restored take needs both to render.
         const completed = readActiveSurface();
         return completed
           ? {
               catalogId: completed.config.catalogId,
               theme: completed.config.theme,
               components: Array.from(completed.components.values()),
+              dataModel: completed.dataModel,
             }
           : undefined;
       } catch {
@@ -612,12 +619,10 @@ export function DetectiveWorkspace() {
       const text = lastV09PromptRef.current;
       if (!text) return;
 
-      // The variant grid is regenerated from the SAME source prompt, so capture
-      // the baseline ONCE before the first send (each send clear()s the store).
-      const activeSurface = readActiveSurface();
-      const baselineComponents = activeSurface
-        ? Array.from(activeSurface.components.values())
-        : undefined;
+      // Variants are alternative takes of the SAME prompt — each must regenerate
+      // a full surface from scratch, NOT amend the current one. Passing a
+      // baseline would trigger the Update-Rules path and yield a tiny diff (e.g.
+      // a lone container) instead of a complete take, so no baseline here.
       const baseSeed = getCompositionSeed(activeProfile?.baseAestheticId ?? settings.aestheticId);
 
       setIsGeneratingVariants(true);
@@ -630,7 +635,6 @@ export function DetectiveWorkspace() {
           const variant = await runV09Exchange({
             text,
             compositionSeed: baseSeed + i,
-            baselineComponents,
             logUser: i === 0,
           });
           if (variant) {
@@ -647,7 +651,6 @@ export function DetectiveWorkspace() {
     [
       isV09Streaming,
       isGeneratingVariants,
-      readActiveSurface,
       runV09Exchange,
       activeProfile?.baseAestheticId,
       settings.aestheticId,
@@ -668,6 +671,11 @@ export function DetectiveWorkspace() {
       theme: variant.theme,
     });
     store.updateComponents(surfaceId, variant.components);
+    // Restore the captured data model (root-path replace) so template/list
+    // children resolve exactly as they did when the take was generated.
+    if (variant.dataModel && Object.keys(variant.dataModel).length > 0) {
+      store.setDataModel(surfaceId, "/", variant.dataModel);
+    }
     setActiveVariantIndex(index);
   }, []);
 
