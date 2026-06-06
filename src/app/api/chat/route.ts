@@ -236,12 +236,16 @@ export async function POST(req: Request) {
   const securityError = apiSecurityCheck(req);
   if (securityError) return securityError;
 
+  // Parse the body first: a malformed/empty body is a client error (400), not a
+  // server error (500), and shouldn't surface as a scary "API Route Error" log.
+  let json: ChatRequestBody;
   try {
-    const json = (await req.json()) as ChatRequestBody;
-    if (process.env.NODE_ENV !== "production") {
-      console.log("DEBUG: Full Request Body:", JSON.stringify(json, null, 2));
-    }
+    json = (await req.json()) as ChatRequestBody;
+  } catch {
+    return new Response("Invalid JSON body", { status: 400 });
+  }
 
+  try {
     const {
       messages,
       evidence,
