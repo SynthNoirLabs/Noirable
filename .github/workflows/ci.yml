@@ -42,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: check
     continue-on-error: true
+    # Hard backstop: e2e serves a production build (see playwright.config.ts) and
+    # runs ~100 specs; this caps a hung run rather than letting it idle for the
+    # default 6h. Comfortably above the expected build + suite time.
+    timeout-minutes: 20
 
     strategy:
       matrix:
