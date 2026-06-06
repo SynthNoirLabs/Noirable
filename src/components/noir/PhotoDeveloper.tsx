@@ -33,7 +33,21 @@ interface RevealConfig {
   settledClass: string;
   overlayClass: string | null;
   developMs: number;
+  /**
+   * Figcaption className. Noir keeps its exact historical typewritten exhibit
+   * tag (byte-identical snapshot); gothic's candle frame swaps in a centered
+   * gilt "Plate" caption styling. Other reveals reuse the noir caption.
+   */
+  captionClass: string;
+  /**
+   * Optional gilt plate label prefixed to the caption (gothic candle only),
+   * e.g. "Plate I —". Undefined leaves the caption as the bare exhibit tag.
+   */
+  plateLabel?: string;
 }
+
+const NOIR_CAPTION_CLASS =
+  "mt-3 px-1 font-typewriter text-[9px] uppercase tracking-[0.25em] text-[var(--aesthetic-text)]/50 select-text";
 
 const REVEAL_CONFIG: Record<ImageReveal, RevealConfig> = {
   // Noir — the original darkroom develop. Kept byte-identical.
@@ -49,6 +63,7 @@ const REVEAL_CONFIG: Record<ImageReveal, RevealConfig> = {
     settledClass: "sepia-[0.15]",
     overlayClass: "absolute inset-0 pointer-events-none mix-blend-color-dodge animate-safelight",
     developMs: 4500,
+    captionClass: NOIR_CAPTION_CLASS,
   },
   // Minimal — instant clean fade, no frame chrome, hairline border.
   crisp: {
@@ -60,6 +75,7 @@ const REVEAL_CONFIG: Record<ImageReveal, RevealConfig> = {
     settledClass: "",
     overlayClass: null,
     developMs: 320,
+    captionClass: NOIR_CAPTION_CLASS,
   },
   // Cyber — scanline wipe + RGB split inside a HUD pane.
   scanline: {
@@ -76,6 +92,7 @@ const REVEAL_CONFIG: Record<ImageReveal, RevealConfig> = {
     settledClass: "",
     overlayClass: "absolute inset-0 pointer-events-none mix-blend-screen animate-scanline-wipe",
     developMs: 900,
+    captionClass: NOIR_CAPTION_CLASS,
   },
   // Nostromo — top-to-bottom phosphor raster print inside a heavy bezel.
   raster: {
@@ -92,6 +109,7 @@ const REVEAL_CONFIG: Record<ImageReveal, RevealConfig> = {
     settledClass: "",
     overlayClass: "absolute inset-0 pointer-events-none mix-blend-screen animate-raster-sweep",
     developMs: 1400,
+    captionClass: NOIR_CAPTION_CLASS,
   },
   // Gothic — warm fade up from near-black inside a gilt frame.
   candle: {
@@ -104,6 +122,10 @@ const REVEAL_CONFIG: Record<ImageReveal, RevealConfig> = {
     settledClass: "",
     overlayClass: "absolute inset-0 pointer-events-none mix-blend-screen animate-candle-glow",
     developMs: 1800,
+    // Gilt museum-plate caption: centered serif small-caps in the accent-muted
+    // gold, framed by hairline gilt rules (see `.gilt-plate` in globals.css).
+    captionClass: "gilt-plate mt-3 px-1 select-text",
+    plateLabel: "Plate I",
   },
 };
 
@@ -209,8 +231,9 @@ export function PhotoDeveloper({
         )}
       </div>
 
-      {/* Captions / Typewritten Exhibit Tag */}
-      <figcaption className="mt-3 px-1 font-typewriter text-[9px] uppercase tracking-[0.25em] text-[var(--aesthetic-text)]/50 select-text">
+      {/* Captions / Typewritten Exhibit Tag (gilt museum plate for gothic) */}
+      <figcaption className={config.captionClass}>
+        {config.plateLabel && <span className="gilt-plate-label">{config.plateLabel}</span>}
         {caption ?? `Exhibit — ${alt}`}
       </figcaption>
     </figure>
