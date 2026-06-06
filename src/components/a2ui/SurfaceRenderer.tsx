@@ -1689,12 +1689,28 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
   Slider: SliderRenderer,
 };
 
+// Case-insensitive lookup so a stray legacy lowercase type (e.g. "column" that
+// slipped past the legacy→catalog adapter) still renders instead of showing an
+// "[Unknown: column]" error box. The catalog adapter remains the canonical
+// normalizer; this is only a render-time safety net.
+const COMPONENT_MAP_LC: Record<string, React.FC<ComponentProps>> = Object.fromEntries(
+  Object.entries(COMPONENT_MAP).map(([name, renderer]) => [name.toLowerCase(), renderer])
+);
+
+function resolveRenderer(type: unknown): React.FC<ComponentProps> | undefined {
+  if (typeof type !== "string") return undefined;
+  return COMPONENT_MAP[type] ?? COMPONENT_MAP_LC[type.toLowerCase()];
+}
+
 function ComponentRenderer({ component }: ComponentProps) {
-  const Renderer = COMPONENT_MAP[component.component];
-  if (!Renderer) {
+  const renderer = resolveRenderer(component.component);
+  if (!renderer) {
     return <UnknownComponent component={component} />;
   }
-  return <Renderer component={component} />;
+  // createElement (not JSX) because the renderer is resolved dynamically from
+  // the catalog map; a capitalized JSX binding would trip the static-component
+  // lint rule even though every entry is a module-level component.
+  return React.createElement(renderer, { component });
 }
 
 // ============================================================================

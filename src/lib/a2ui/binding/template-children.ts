@@ -29,11 +29,14 @@ export function resolveChildList(
 ): ResolvedChild[] {
   if (Array.isArray(children)) {
     const result: ResolvedChild[] = [];
-    for (const id of children) {
+    children.forEach((id, i) => {
       if (typeof id === "string") {
-        result.push({ componentId: id, key: id });
+        // Key by id+index, not bare id: a container may legitimately list the
+        // same child id twice, and a bare-id key would collide (React would
+        // treat them as one element, sharing focus/animation/state).
+        result.push({ componentId: id, key: `${id}-${i}` });
       }
-    }
+    });
     return result;
   }
 

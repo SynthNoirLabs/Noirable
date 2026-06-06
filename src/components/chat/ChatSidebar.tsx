@@ -100,7 +100,24 @@ export function ChatSidebar({
   });
   const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
   const aestheticId = activeProfile?.baseAestheticId ?? fallbackAestheticId;
-  const sfxVolumes = useA2UIStore((state) => state.settings.sfxVolumes);
+  // Prefer the active custom profile's SFX volumes over the global session
+  // setting so a profile's audio tuning actually drives the live session (not
+  // just export). The profile override is partial, so layer it on top of the
+  // global volumes (which themselves default to full where unset).
+  const globalSfxVolumes = useA2UIStore((state) => state.settings.sfxVolumes);
+  const sfxVolumes =
+    activeProfile?.audio?.sfxVolumes || globalSfxVolumes
+      ? {
+          typewriter: 1,
+          thunder: 1,
+          phone: 1,
+          ...globalSfxVolumes,
+          ...activeProfile?.audio?.sfxVolumes,
+        }
+      : undefined;
+  // Same precedence for the typewriter cadence: a profile's effects.typewriterSpeed
+  // overrides the global session speed when a profile is active.
+  const effectiveTypewriterSpeed = activeProfile?.effects?.typewriterSpeed ?? typewriterSpeed;
   const audioPack = getAudioPack(aestheticId);
   const audioEvents = getAudioEvents(aestheticId);
   const [localInput, setLocalInput] = useState("");
@@ -549,7 +566,7 @@ export function ChatSidebar({
             className="max-h-[60vh] overflow-y-auto border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/50 scrollbar-thin scrollbar-thumb-[var(--aesthetic-border)]/30"
           >
             <ChatSettingsPanel
-              typewriterSpeed={typewriterSpeed}
+              typewriterSpeed={effectiveTypewriterSpeed}
               soundEnabled={soundSetting}
               ttsEnabled={ttsSetting}
               musicEnabled={musicSetting}
@@ -653,7 +670,7 @@ export function ChatSidebar({
                 ) : (
                   <TypewriterText
                     content={m.content}
-                    speed={typewriterSpeed}
+                    speed={effectiveTypewriterSpeed}
                     glow={false}
                     showCursor={false}
                     className="text-xs leading-relaxed font-mono"

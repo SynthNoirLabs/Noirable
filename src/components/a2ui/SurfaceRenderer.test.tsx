@@ -54,6 +54,18 @@ describe("SurfaceRenderer", () => {
     expect(screen.getByText(/Unknown: Bogus/)).toBeInTheDocument();
   });
 
+  it("renders a lowercase legacy component type via the case-insensitive fallback", () => {
+    // A raw legacy "column" that slipped past the catalog adapter must still
+    // render its children, not an "[Unknown: column]" error box.
+    const surface = makeSurface([
+      { id: "root", component: "column", children: ["body"] } as unknown as SurfaceComponent,
+      { id: "body", component: "Text", text: "Recovered evidence" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("Recovered evidence")).toBeInTheDocument();
+    expect(screen.queryByText(/Unknown: column/)).not.toBeInTheDocument();
+  });
+
   // --------------------------------------------------------------------------
   // Full 18-component coverage: the 7 that previously rendered as "Unknown".
   // --------------------------------------------------------------------------
