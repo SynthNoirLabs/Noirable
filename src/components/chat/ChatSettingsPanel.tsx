@@ -19,6 +19,7 @@ import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
 import { useResolvedAesthetic } from "@/lib/aesthetic/useResolvedAesthetic";
 import { getMusicPresets, getMusicStylePrompt } from "@/lib/aesthetic/identity";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 
 interface ChatSettingsPanelProps {
   typewriterSpeed: number;
@@ -55,6 +56,46 @@ export function ChatSettingsPanel({
   const { baseId } = useResolvedAesthetic();
   const musicPresets = getMusicPresets(baseId);
 
+  // When a custom profile is active, settings edited here must persist to THAT
+  // profile (mirroring VoiceCustomization/EffectsCustomization) — otherwise the
+  // value is written to the global store but immediately re-shadowed by the
+  // profile's own value on the next render, so the control appears inert. These
+  // three controls have profile homes; the intensity enum / on-off toggles do
+  // not, so they stay session-global.
+  const activeProfile = useCustomProfileStore((state) => {
+    if (!state.activeCustomProfileId) return null;
+    return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
+  });
+  const updateProfile = useCustomProfileStore((state) => state.updateProfile);
+
+  const setTypewriterSpeed = (speed: number) => {
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        effects: { ...activeProfile.effects, typewriterSpeed: speed },
+      });
+    } else {
+      onUpdateSettings({ typewriterSpeed: speed });
+    }
+  };
+
+  const setRainVolume = (v: number) => {
+    if (activeProfile) {
+      updateProfile(activeProfile.id, { audio: { ...activeProfile.audio, ambientRainVolume: v } });
+    } else {
+      onUpdateSettings({ ambient: { rainVolume: v } });
+    }
+  };
+
+  const setCrackleVolume = (v: number) => {
+    if (activeProfile) {
+      updateProfile(activeProfile.id, {
+        audio: { ...activeProfile.audio, ambientCrackleVolume: v },
+      });
+    } else {
+      onUpdateSettings({ ambient: { crackleVolume: v } });
+    }
+  };
+
   const [showComposer, setShowComposer] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [provider, setProvider] = useState<"elevenlabs" | "lyria">("lyria");
@@ -75,7 +116,7 @@ export function ChatSettingsPanel({
 
   const toggleSpeed = () => {
     const newSpeed = typewriterSpeed === 0 ? 30 : 0;
-    onUpdateSettings({ typewriterSpeed: newSpeed });
+    setTypewriterSpeed(newSpeed);
   };
 
   const toggleSound = () => onUpdateSettings({ soundEnabled: !soundEnabled });
@@ -507,7 +548,7 @@ export function ChatSettingsPanel({
           <VolumeSlider
             label="RAIN VOLUME"
             value={ambientSettings.rainVolume}
-            onChange={(v) => onUpdateSettings({ ambient: { rainVolume: v } })}
+            onChange={(v) => setRainVolume(v)}
             ariaLabel="Rain volume"
           />
         )}
@@ -527,7 +568,7 @@ export function ChatSettingsPanel({
           <VolumeSlider
             label="CRACKLE VOLUME"
             value={ambientSettings.crackleVolume}
-            onChange={(v) => onUpdateSettings({ ambient: { crackleVolume: v } })}
+            onChange={(v) => setCrackleVolume(v)}
             ariaLabel="Crackle volume"
           />
         )}

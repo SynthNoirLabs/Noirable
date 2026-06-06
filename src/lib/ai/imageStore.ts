@@ -75,13 +75,28 @@ export async function readImageFile(fileName: string): Promise<{
   const dir = getImageStoreDir();
   const filePath = path.join(dir, fileName);
   const data = await fs.readFile(filePath).catch(() => null);
-  if (!data) return null;
+  if (data) {
+    const ext = path.extname(fileName).toLowerCase();
+    const contentType = EXT_TO_MEDIA_TYPE[ext];
+    if (!contentType) return null;
+    return { data, contentType };
+  }
 
-  const ext = path.extname(fileName).toLowerCase();
-  const contentType = EXT_TO_MEDIA_TYPE[ext];
-  if (!contentType) return null;
+  // The requested extension may not match what was actually persisted: deferred
+  // images are referenced as `<uuid>.jpg` but saved under the model's real
+  // media type (e.g. `<uuid>.png`). On a reload the pending metadata is gone, so
+  // fall back to resolving the uuid against whatever extension exists on disk.
+  const requestedExt = path.extname(fileName).toLowerCase();
+  const uuid = path.basename(fileName, requestedExt);
+  for (const ext of [".png", ".jpg", ".jpeg", ".webp"]) {
+    if (ext === requestedExt) continue;
+    const candidate = await fs.readFile(path.join(dir, `${uuid}${ext}`)).catch(() => null);
+    if (candidate) {
+      return { data: candidate, contentType: EXT_TO_MEDIA_TYPE[ext] };
+    }
+  }
 
-  return { data, contentType };
+  return null;
 }
 
 export interface PendingImageMetadata {

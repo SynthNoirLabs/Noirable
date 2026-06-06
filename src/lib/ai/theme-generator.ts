@@ -47,6 +47,21 @@ const baseAestheticIdSchema = z
   );
 
 /**
+ * Generation-only palette schema (Copilot review C7). The SHARED
+ * `profileColorsSchema` makes every color optional — correct for profile editing
+ * (a user may override just one swatch) but it lets the model emit `colors: {}`
+ * and produce a base-identical "generated" theme. For generation we require the
+ * four legibility-critical anchors so the model is forced to actually author a
+ * palette; the rest stay optional and inherit the chosen base preset.
+ */
+const generatedColorsSchema = profileColorsSchema.extend({
+  background: z.string(),
+  surface: z.string(),
+  text: z.string(),
+  accent: z.string(),
+});
+
+/**
  * Tool the model fills to author a full custom profile from a free-text vibe.
  * The inputSchema mirrors `customProfileSchema` minus the store-owned id/time
  * fields. Required: name + baseAestheticId. Everything else is an OPTIONAL
@@ -74,11 +89,9 @@ export const themeGeneratorTool = tool({
       .describe("Short, evocative theme name (e.g. 'Sunken Cathedral', 'Neon Bazaar')."),
     description: z.string().max(200).optional().describe("One-line summary of the world's mood."),
     baseAestheticId: baseAestheticIdSchema,
-    colors: profileColorsSchema
-      .optional()
-      .describe(
-        "Coherent palette (hex / rgb() / hsl()). Ensure text vs background and text vs surface meet WCAG AA (>= 4.5:1)."
-      ),
+    colors: generatedColorsSchema.describe(
+      "REQUIRED coherent palette (hex / rgb() / hsl()). Must include at least background, surface, text, and accent — invent a real palette, do not omit it. Ensure text vs background and text vs surface meet WCAG AA (>= 4.5:1)."
+    ),
     fonts: profileFontsSchema
       .optional()
       .describe("Body + heading font presets from system|serif|typewriter|mono."),

@@ -23,6 +23,7 @@ import { createTrainingExample, shouldCapture } from "@/lib/training";
 import { useA2UIStream } from "@/lib/a2ui/hooks/useA2UIStream";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
 import type { SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
+import type { AmbientIntensity } from "@/lib/store/types";
 import { getCompositionSeed } from "@/lib/aesthetic/identity";
 import { A2UIv09Preview } from "@/components/a2ui/A2UIv09Preview";
 import { A2UIVariantControls } from "@/components/a2ui/A2UIVariantControls";
@@ -150,8 +151,26 @@ export function DetectiveWorkspace() {
     const base = settings.ambient;
     if (!activeProfile) return base;
 
+    // A custom profile's effects.{rain,fog,crackle} (0–1) must actually drive the
+    // live overlays, not just persist. The overlays share one low|medium|high
+    // `intensity` enum + per-effect `enabled` flags, so map the continuous values
+    // onto both: a defined 0 turns the effect off; otherwise the strongest of the
+    // defined effects sets the shared intensity bucket. Undefined effects inherit
+    // the base session ambient untouched.
+    const fx = activeProfile.effects;
+    const toEnum = (v: number): AmbientIntensity =>
+      v >= 0.66 ? "high" : v >= 0.33 ? "medium" : "low";
+    const definedFx = [fx?.rain, fx?.fog, fx?.crackle].filter(
+      (v): v is number => typeof v === "number"
+    );
+    const intensity = definedFx.length > 0 ? toEnum(Math.max(...definedFx)) : base.intensity;
+
     return {
       ...base,
+      intensity,
+      rainEnabled: typeof fx?.rain === "number" ? fx.rain > 0 : base.rainEnabled,
+      fogEnabled: typeof fx?.fog === "number" ? fx.fog > 0 : base.fogEnabled,
+      crackleEnabled: typeof fx?.crackle === "number" ? fx.crackle > 0 : base.crackleEnabled,
       rainVolume: activeProfile.audio?.ambientRainVolume ?? base.rainVolume,
       crackleVolume: activeProfile.audio?.ambientCrackleVolume ?? base.crackleVolume,
     };

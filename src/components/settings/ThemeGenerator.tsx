@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Sparkles, Wand2, Shuffle, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { injectProfileStyles } from "@/lib/customization/css-injection";
 import { getDefaultVoiceId } from "@/lib/aesthetic/voice-defaults";
 import { pickSurpriseProfile, SURPRISE_PROFILE_COUNT } from "@/lib/customization/surprise-me";
@@ -21,6 +22,9 @@ import type { CustomProfile } from "@/lib/customization/types";
  */
 export function ThemeGenerator() {
   const { createProfile, updateProfile, setActiveProfile } = useCustomProfileStore();
+  // Use the same provider/model the user picked for chat so generation respects
+  // a non-auto selection instead of silently falling back to the default.
+  const modelConfig = useA2UIStore((state) => state.settings.modelConfig);
   const [vibe, setVibe] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -80,7 +84,7 @@ export function ThemeGenerator() {
       const response = await fetch("/api/theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, modelConfig }),
       });
 
       const data = await response.json().catch(() => ({}));
