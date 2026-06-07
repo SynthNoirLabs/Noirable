@@ -88,7 +88,7 @@ import { cn } from "@/lib/utils";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { getEffectsProfile, getMotionPersonality, getStyleTokens } from "@/lib/aesthetic/identity";
-import type { StyleTokens } from "@/lib/aesthetic/types";
+import type { MotionPersonality, StyleTokens } from "@/lib/aesthetic/types";
 
 // ============================================================================
 // Context for component resolution
@@ -305,6 +305,41 @@ function mapEasing(
 }
 
 /**
+ * The "hidden" (pre-reveal) offset for a surface child, keyed off the preset's
+ * motion-personality entrance. All start invisible (opacity 0) and animate to a
+ * shared settled target (y/x 0, scale 1) — only the starting offset differs, so
+ * each preset's content arrives with its own physics:
+ *   • cinematic (noir)   — drifts up and in from the lower-left like a slow pan.
+ *   • glitch (cyber)     — snaps up from a slightly shrunk "boot-up" scale.
+ *   • terminal (nostromo)— prints downward from above, like a new console line.
+ *   • candle (gothic)    — swells up from a small, flickering candlelit scale.
+ *   • crisp (minimal)    — a short, clean hop with no scale flourish.
+ * Translate distances stay small (≤12px) so the stagger reads as poise, not
+ * jank. Reduced-motion callers skip the motion wrapper entirely, so this is
+ * never used under `prefers-reduced-motion`.
+ */
+function entranceHiddenVariant(entrance: MotionPersonality["entrance"]): {
+  opacity: number;
+  y?: number;
+  x?: number;
+  scale?: number;
+} {
+  switch (entrance) {
+    case "cinematic":
+      return { opacity: 0, y: 12, x: -4 };
+    case "glitch":
+      return { opacity: 0, y: 6, scale: 0.94 };
+    case "terminal":
+      return { opacity: 0, y: -6 };
+    case "candle":
+      return { opacity: 0, y: 4, scale: 0.96 };
+    case "crisp":
+    default:
+      return { opacity: 0, y: 5 };
+  }
+}
+
+/**
  * Render a component's children. `children` is the raw childList field: either
  * a static `string[]` or a template `{ componentId, path }`. Template-expanded
  * children carry a per-item scope, provided to descendants via ScopeContext.
@@ -337,17 +372,23 @@ function ChildList({
     duration: motionPersonality.durationMs / 1000,
     ease: mapEasing(motionPersonality.easing),
   };
-  const parentVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: motionPersonality.staggerMs / 1000 },
-    },
-  };
-  const childVariants = {
-    hidden: { opacity: 0, y: 8 },
-    show: { opacity: 1, y: 0, transition: childTransition },
-  };
+  const staggerStep = motionPersonality.staggerMs / 1000;
+  // Each child reveals itself with its own initial→animate + a per-index delay,
+  // NOT via a parent `staggerChildren` orchestrator. A parent conductor can be
+  // interrupted mid-cascade when a child subtree re-renders (e.g. a generated
+  // <img> finishes loading the instant a take is shown), which strands the
+  // not-yet-cued siblings permanently at their hidden opacity:0. Self-contained
+  // per-child animation is interruption-proof: `animate` is a fixed target
+  // framer-motion settles on and never reverts from, across re-renders/remounts.
+  //
+  // `hiddenTarget` carries each preset's arrival physics, so a child doesn't
+  // just fade up uniformly — it materializes in character: noir drifts in from
+  // the lower-left, cyber snaps from a shrunk "boot" scale, nostromo prints down
+  // like a terminal line, gothic swells from a candlelit scale, minimal makes a
+  // short crisp hop. `showTarget` is the shared settled state (full opacity/size)
+  // so every preset lands in the same place. Reduced-motion never reaches here.
+  const hiddenTarget = entranceHiddenVariant(motionPersonality.entrance);
+  const showTarget = { opacity: 1, y: 0, x: 0, scale: 1 };
 
   // Reduced-motion: render plain children with no motion wrapper at all, so the
   // weighted flex items keep their exact layout and nothing animates.
@@ -378,32 +419,40 @@ function ChildList({
     );
   }
 
-  // The parent uses `display: contents` so it only stages the stagger timing
-  // (via the variants cascade) without inserting a box that would break the
-  // parent Row/Column/Grid/List flex or grid flow — the animated children
-  // remain the layout's own flex/grid items.
+  // No parent wrapper: each child animates independently (so there is no
+  // orchestrator box to insert, and nothing to interrupt). The motion children
+  // remain the parent Row/Column/Grid/List's own direct flex/grid items, same
+  // as before when the wrapper used `display: contents`.
   return (
-    <motion.div
-      variants={parentVariants}
-      initial="hidden"
-      animate="show"
-      style={{ display: "contents" }}
-    >
-      {resolved.map(({ componentId, scope, key }) => {
+    <>
+      {resolved.map(({ componentId, scope, key }, index) => {
         const child = getComponent(componentId);
         if (!child) return <MissingComponent key={key} id={componentId} />;
         const weight = (child as { weight?: unknown }).weight;
         const weighted = applyWeight && typeof weight === "number" && weight > 0;
-        // The motion element IS the weight wrapper when weighted: flexGrow lives
-        // on the same animated box, so no extra block wraps a weighted flex
-        // item. Unweighted children get a minimal animated wrapper that sizes to
-        // its content like the bare child would.
+        // Per-child reveal: initial=hidden → animate=show with a per-index delay
+        // that reproduces the stagger, but self-contained so a mid-flight
+        // re-render can never strand a later sibling at opacity:0. The motion
+        // element IS the weight wrapper when weighted (flexGrow on the animated
+        // box), so Row/Column flex-grow math is preserved; unweighted children
+        // get a minimal animated wrapper that sizes to its content.
+        const childTransitionWithDelay = { ...childTransition, delay: index * staggerStep };
         const node = weighted ? (
-          <motion.div variants={childVariants} style={{ flexGrow: weight }} className="min-w-0">
+          <motion.div
+            initial={hiddenTarget}
+            animate={showTarget}
+            transition={childTransitionWithDelay}
+            style={{ flexGrow: weight }}
+            className="min-w-0"
+          >
             <ComponentRenderer component={child} />
           </motion.div>
         ) : (
-          <motion.div variants={childVariants}>
+          <motion.div
+            initial={hiddenTarget}
+            animate={showTarget}
+            transition={childTransitionWithDelay}
+          >
             <ComponentRenderer component={child} />
           </motion.div>
         );
@@ -415,7 +464,7 @@ function ChildList({
           <React.Fragment key={key}>{node}</React.Fragment>
         );
       })}
-    </motion.div>
+    </>
   );
 }
 
@@ -574,7 +623,7 @@ function TableRenderer({ component }: ComponentProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-sm border border-[var(--aesthetic-border)]/30">
+    <div className="overflow-x-auto rounded-[var(--aesthetic-radius,2px)] border border-[var(--aesthetic-border)]/30">
       <table className="w-full border-collapse font-mono text-sm">
         {columns.length > 0 && (
           <thead>
@@ -845,33 +894,65 @@ function TextRenderer({ component }: ComponentProps) {
   // preset's headings read in character (UPPERCASE noir, Title Gothic, normal
   // minimal) without per-aesthetic branches at the call site.
   const headingCase = headerCaseClass(getStyleTokens(baseAestheticId).headerCase);
+  // `a2ui-heading` is the hook for the per-preset editorial heading treatment in
+  // globals.css (letter-spacing + weight tuned to each aesthetic), so noir reads
+  // as a wide stamped slug, cyber as a tight neon label, nostromo as a spaced
+  // terminal banner, gothic as an airy engraved title, and minimal as a calm
+  // sans — without swapping the loaded face (which would erase noir's signature
+  // typewriter headers). It reaches custom profiles through their base preset.
+  const headingClass = "a2ui-heading";
 
   switch (variant) {
     case "h1":
       return (
-        <h1 className={cn(baseClass, headingCase, "text-3xl font-bold font-typewriter mb-4")}>
+        <h1
+          className={cn(
+            baseClass,
+            headingClass,
+            headingCase,
+            "text-3xl font-bold font-typewriter mb-4"
+          )}
+        >
           {content}
         </h1>
       );
     case "h2":
       return (
-        <h2 className={cn(baseClass, headingCase, "text-2xl font-bold font-typewriter mb-3")}>
+        <h2
+          className={cn(
+            baseClass,
+            headingClass,
+            headingCase,
+            "text-2xl font-bold font-typewriter mb-3"
+          )}
+        >
           {content}
         </h2>
       );
     case "h3":
       return (
-        <h3 className={cn(baseClass, headingCase, "text-xl font-bold font-typewriter mb-2")}>
+        <h3
+          className={cn(
+            baseClass,
+            headingClass,
+            headingCase,
+            "text-xl font-bold font-typewriter mb-2"
+          )}
+        >
           {content}
         </h3>
       );
     case "h4":
       return (
-        <h4 className={cn(baseClass, headingCase, "text-lg font-semibold mb-2")}>{content}</h4>
+        <h4 className={cn(baseClass, headingClass, headingCase, "text-lg font-semibold mb-2")}>
+          {content}
+        </h4>
       );
     case "h5":
       return (
-        <h5 className={cn(baseClass, headingCase, "text-base font-semibold mb-1")}>{content}</h5>
+        <h5 className={cn(baseClass, headingClass, headingCase, "text-base font-semibold mb-1")}>
+          {content}
+        </h5>
       );
     case "caption":
       return <span className={cn(baseClass, "text-xs opacity-70")}>{content}</span>;
@@ -1093,8 +1174,8 @@ function ButtonRenderer({ component }: ComponentProps) {
       className={cn(
         "px-4 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--aesthetic-background)] focus-visible:ring-[var(--aesthetic-accent)]",
         borderless
-          ? "text-[var(--aesthetic-accent)] hover:text-[var(--aesthetic-accent)]/80 border border-[var(--aesthetic-accent)]/40 rounded-sm hover:border-[var(--aesthetic-accent)]"
-          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-sm shadow-[0_2px_12px_rgba(255,191,0,0.25)]"
+          ? "text-[var(--aesthetic-accent)] hover:text-[var(--aesthetic-accent)]/80 border border-[var(--aesthetic-accent)]/40 rounded-[var(--aesthetic-radius,2px)] hover:border-[var(--aesthetic-accent)]"
+          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-[var(--aesthetic-radius,2px)] shadow-[0_2px_12px_rgba(255,191,0,0.25)]"
       )}
     >
       {label}
@@ -1121,7 +1202,7 @@ function TextFieldRenderer({ component }: ComponentProps) {
     field.variant === "obscured" ? "password" : field.variant === "number" ? "number" : "text";
 
   const sharedClass = cn(
-    "bg-[var(--aesthetic-background)]/60 border rounded-sm px-3 py-2.5 text-[var(--aesthetic-text)] font-mono text-sm placeholder:text-[var(--aesthetic-text)]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+    "bg-[var(--aesthetic-background)]/60 border rounded-[var(--aesthetic-radius,2px)] px-3 py-2.5 text-[var(--aesthetic-text)] font-mono text-sm placeholder:text-[var(--aesthetic-text)]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
     error
       ? "border-[var(--aesthetic-error)]/70 focus:border-[var(--aesthetic-error)]"
       : "border-[var(--aesthetic-border)]/40 focus:border-[var(--aesthetic-accent)]"
