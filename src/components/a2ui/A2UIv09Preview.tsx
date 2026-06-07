@@ -57,6 +57,15 @@ export function A2UIv09Preview({ className, onAction }: A2UIv09PreviewProps) {
         </span>
       </div>
       <SurfaceRenderer
+        // Key on the surface id so switching takes (or any surface swap) forces a
+        // clean remount instead of an in-place reconcile. The reveal animations
+        // (framer-motion initial→show, PhotoDeveloper develop) only fire on mount;
+        // without a remount a restored take keeps the prior surface's settled
+        // motion state and its images/staggered children never re-reveal — they
+        // stay at their hidden/zero-opacity start and render blank even though the
+        // components are present and the image bytes load fine. Remounting makes
+        // restore behave exactly like the fresh stream render.
+        key={surface.config.surfaceId}
         surface={surface}
         theme="noir"
         onAction={
