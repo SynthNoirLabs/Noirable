@@ -779,7 +779,17 @@ function ModalRenderer({ component }: ComponentProps) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="relative max-h-[85vh] max-w-lg overflow-auto"
+            className={cn(
+              // Give the dialog a real surface: without this the panel was just
+              // sized + scrollable, so bare content (e.g. a Text node) floated
+              // as unstyled text over the dimmed backdrop. Mirror the Card chrome
+              // (aesthetic surface, border, accent top rule, radius, shadow) so
+              // the modal reads as a solid sheet across every aesthetic. Extra
+              // top padding clears the absolutely-positioned ✕ close button.
+              "relative max-h-[85vh] max-w-lg overflow-auto rounded-sm",
+              "border border-[var(--aesthetic-border)]/40 border-t-2 border-t-[var(--aesthetic-accent)]/60",
+              "bg-[var(--aesthetic-surface)] p-5 pt-9 shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             <button

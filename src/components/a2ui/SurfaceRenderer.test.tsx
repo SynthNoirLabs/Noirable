@@ -105,6 +105,26 @@ describe("SurfaceRenderer", () => {
     expect(screen.getByText("Top secret")).toBeInTheDocument();
   });
 
+  it("gives the Modal content panel a solid aesthetic surface (not bare text)", () => {
+    // Regression: the dialog panel had only sizing/overflow classes, so bare
+    // content (a Text node) floated as unstyled text over the dimmed backdrop.
+    // The panel must carry the aesthetic surface chrome (background + border).
+    const surface = makeSurface([
+      { id: "root", component: "Modal", trigger: "t", content: "c" },
+      { id: "t", component: "Text", text: "Open file" },
+      { id: "c", component: "Text", text: "Top secret" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    fireEvent.click(screen.getByText("Open file"));
+
+    // The panel is the dialog's direct child wrapping the content.
+    const panel = screen
+      .getByText("Top secret")
+      .closest("[class*='bg-[var(--aesthetic-surface)]']");
+    expect(panel).not.toBeNull();
+    expect(panel?.className).toContain("border");
+  });
+
   it("renders a Table as a real grid (header + rows), not flattened text", () => {
     const surface = makeSurface([
       {
