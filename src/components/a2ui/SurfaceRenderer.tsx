@@ -372,24 +372,23 @@ function ChildList({
     duration: motionPersonality.durationMs / 1000,
     ease: mapEasing(motionPersonality.easing),
   };
-  const parentVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: motionPersonality.staggerMs / 1000 },
-    },
-  };
-  // The hidden state gives each preset its own arrival physics, so a child
-  // doesn't just fade up uniformly — it materializes in character. noir drifts
-  // in cinematically from the lower-left; cyber snaps up from a slightly shrunk
-  // "boot" scale; nostromo prints down from above like a terminal line; gothic
-  // swells from a small candlelit scale; minimal makes a short, crisp hop. The
-  // `show` target is shared (settled, full size) so every preset lands in the
-  // same place. Reduced-motion never reaches here (handled below).
-  const childVariants = {
-    hidden: entranceHiddenVariant(motionPersonality.entrance),
-    show: { opacity: 1, y: 0, x: 0, scale: 1, transition: childTransition },
-  };
+  const staggerStep = motionPersonality.staggerMs / 1000;
+  // Each child reveals itself with its own initial→animate + a per-index delay,
+  // NOT via a parent `staggerChildren` orchestrator. A parent conductor can be
+  // interrupted mid-cascade when a child subtree re-renders (e.g. a generated
+  // <img> finishes loading the instant a take is shown), which strands the
+  // not-yet-cued siblings permanently at their hidden opacity:0. Self-contained
+  // per-child animation is interruption-proof: `animate` is a fixed target
+  // framer-motion settles on and never reverts from, across re-renders/remounts.
+  //
+  // `hiddenTarget` carries each preset's arrival physics, so a child doesn't
+  // just fade up uniformly — it materializes in character: noir drifts in from
+  // the lower-left, cyber snaps from a shrunk "boot" scale, nostromo prints down
+  // like a terminal line, gothic swells from a candlelit scale, minimal makes a
+  // short crisp hop. `showTarget` is the shared settled state (full opacity/size)
+  // so every preset lands in the same place. Reduced-motion never reaches here.
+  const hiddenTarget = entranceHiddenVariant(motionPersonality.entrance);
+  const showTarget = { opacity: 1, y: 0, x: 0, scale: 1 };
 
   // Reduced-motion: render plain children with no motion wrapper at all, so the
   // weighted flex items keep their exact layout and nothing animates.
@@ -420,32 +419,40 @@ function ChildList({
     );
   }
 
-  // The parent uses `display: contents` so it only stages the stagger timing
-  // (via the variants cascade) without inserting a box that would break the
-  // parent Row/Column/Grid/List flex or grid flow — the animated children
-  // remain the layout's own flex/grid items.
+  // No parent wrapper: each child animates independently (so there is no
+  // orchestrator box to insert, and nothing to interrupt). The motion children
+  // remain the parent Row/Column/Grid/List's own direct flex/grid items, same
+  // as before when the wrapper used `display: contents`.
   return (
-    <motion.div
-      variants={parentVariants}
-      initial="hidden"
-      animate="show"
-      style={{ display: "contents" }}
-    >
-      {resolved.map(({ componentId, scope, key }) => {
+    <>
+      {resolved.map(({ componentId, scope, key }, index) => {
         const child = getComponent(componentId);
         if (!child) return <MissingComponent key={key} id={componentId} />;
         const weight = (child as { weight?: unknown }).weight;
         const weighted = applyWeight && typeof weight === "number" && weight > 0;
-        // The motion element IS the weight wrapper when weighted: flexGrow lives
-        // on the same animated box, so no extra block wraps a weighted flex
-        // item. Unweighted children get a minimal animated wrapper that sizes to
-        // its content like the bare child would.
+        // Per-child reveal: initial=hidden → animate=show with a per-index delay
+        // that reproduces the stagger, but self-contained so a mid-flight
+        // re-render can never strand a later sibling at opacity:0. The motion
+        // element IS the weight wrapper when weighted (flexGrow on the animated
+        // box), so Row/Column flex-grow math is preserved; unweighted children
+        // get a minimal animated wrapper that sizes to its content.
+        const childTransitionWithDelay = { ...childTransition, delay: index * staggerStep };
         const node = weighted ? (
-          <motion.div variants={childVariants} style={{ flexGrow: weight }} className="min-w-0">
+          <motion.div
+            initial={hiddenTarget}
+            animate={showTarget}
+            transition={childTransitionWithDelay}
+            style={{ flexGrow: weight }}
+            className="min-w-0"
+          >
             <ComponentRenderer component={child} />
           </motion.div>
         ) : (
-          <motion.div variants={childVariants}>
+          <motion.div
+            initial={hiddenTarget}
+            animate={showTarget}
+            transition={childTransitionWithDelay}
+          >
             <ComponentRenderer component={child} />
           </motion.div>
         );
@@ -457,7 +464,7 @@ function ChildList({
           <React.Fragment key={key}>{node}</React.Fragment>
         );
       })}
-    </motion.div>
+    </>
   );
 }
 

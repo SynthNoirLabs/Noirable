@@ -625,6 +625,46 @@ describe("A2UI Templates Aesthetic Styles", () => {
   });
 });
 
+describe("Surface entrance animation (interruption-proof)", () => {
+  // Regression: when a take is shown the instant generation finishes, a child
+  // subtree re-rendering mid-stagger (e.g. a generated <img> finishing load)
+  // used to interrupt the parent `staggerChildren` orchestrator and strand the
+  // not-yet-cued siblings permanently at opacity:0. The fix removes the parent
+  // conductor and gives each child its own self-contained initial→animate, so
+  // there is nothing to interrupt.
+
+  it("renders no `display: contents` stagger-orchestrator parent around the children", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Column", children: ["a", "b", "c"] } as unknown as SurfaceComponent,
+      { id: "a", component: "Text", text: "First" },
+      { id: "b", component: "Text", text: "Second" },
+      { id: "c", component: "Text", text: "Third" },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    // The old interruptible conductor was a `display: contents` motion.div whose
+    // staggerChildren cascade could be aborted; it must be gone.
+    expect(container.innerHTML).not.toContain("display: contents");
+  });
+
+  it("gives each surface child its own animated wrapper (not a shared orchestrated cascade)", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Column", children: ["a", "b", "c"] } as unknown as SurfaceComponent,
+      { id: "a", component: "Text", text: "First" },
+      { id: "b", component: "Text", text: "Second" },
+      { id: "c", component: "Text", text: "Third" },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    // Each child sits in its own wrapper carrying an inline transform/opacity
+    // (its independent reveal). All three siblings must be present and wrapped —
+    // proving none can be left behind by an interrupted parent.
+    const wrappers = container.querySelectorAll('[style*="transform"]');
+    expect(wrappers.length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText("First")).toBeInTheDocument();
+    expect(screen.getByText("Second")).toBeInTheDocument();
+    expect(screen.getByText("Third")).toBeInTheDocument();
+  });
+});
+
 describe("Look-and-feel uplift", () => {
   it("tags generated headings with `a2ui-heading` so per-preset type treatment applies", () => {
     // The editorial heading voice (per-preset letter-spacing/weight) is keyed in
