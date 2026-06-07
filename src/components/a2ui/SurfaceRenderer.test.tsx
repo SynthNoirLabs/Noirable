@@ -630,7 +630,9 @@ describe("Look-and-feel uplift", () => {
     // The editorial heading voice (per-preset letter-spacing/weight) is keyed in
     // globals.css off the `a2ui-heading` hook — without the class on the live
     // heading, the treatment never reaches generated content.
-    const surface = makeSurface([{ id: "root", component: "Text", variant: "h1", text: "DOSSIER" }]);
+    const surface = makeSurface([
+      { id: "root", component: "Text", variant: "h1", text: "DOSSIER" },
+    ]);
     render(<SurfaceRenderer surface={surface} theme="noir" />);
     const heading = screen.getByText("DOSSIER");
     expect(heading.tagName).toBe("H1");
@@ -660,9 +662,7 @@ describe("Look-and-feel uplift", () => {
   });
 
   it("drives TextField corner radius from the aesthetic radius token", () => {
-    const surface = makeSurface([
-      { id: "root", component: "TextField", label: "Name", value: "" },
-    ]);
+    const surface = makeSurface([{ id: "root", component: "TextField", label: "Name", value: "" }]);
     const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
     const input = container.querySelector("input");
     expect(input).not.toBeNull();
