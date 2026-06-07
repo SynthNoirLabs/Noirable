@@ -624,3 +624,69 @@ describe("A2UI Templates Aesthetic Styles", () => {
     });
   });
 });
+
+describe("Look-and-feel uplift", () => {
+  it("tags generated headings with `a2ui-heading` so per-preset type treatment applies", () => {
+    // The editorial heading voice (per-preset letter-spacing/weight) is keyed in
+    // globals.css off the `a2ui-heading` hook — without the class on the live
+    // heading, the treatment never reaches generated content.
+    const surface = makeSurface([{ id: "root", component: "Text", variant: "h1", text: "DOSSIER" }]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const heading = screen.getByText("DOSSIER");
+    expect(heading.tagName).toBe("H1");
+    expect(heading.className).toMatch(/a2ui-heading/);
+  });
+
+  it("keeps noir's signature typewriter heading font (does NOT swap to the sans heading face)", () => {
+    // Guard against the tempting-but-wrong 'wire the heading font' change: noir's
+    // body and heading fonts differ (typewriter vs sans), and noir headers are
+    // defined as typewriter. The heading must stay on `font-typewriter`, never
+    // `font-sans`, or noir loses its identity.
+    const surface = makeSurface([{ id: "root", component: "Text", variant: "h2", text: "CASE" }]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const heading = screen.getByText("CASE");
+    expect(heading.className).toMatch(/font-typewriter/);
+    expect(heading.className).not.toMatch(/font-sans/);
+  });
+
+  it("drives Button corner radius from the aesthetic radius token (not a fixed rounded-sm)", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Button", label: "FILE IT", action: { call: "noop" } },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const button = screen.getByRole("button", { name: "FILE IT" });
+    expect(button.className).toMatch(/rounded-\[var\(--aesthetic-radius/);
+    expect(button.className).not.toMatch(/\brounded-sm\b/);
+  });
+
+  it("drives TextField corner radius from the aesthetic radius token", () => {
+    const surface = makeSurface([
+      { id: "root", component: "TextField", label: "Name", value: "" },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const input = container.querySelector("input");
+    expect(input).not.toBeNull();
+    expect(input?.className).toMatch(/rounded-\[var\(--aesthetic-radius/);
+  });
+
+  it("emits the resolved card material as data-effect-card on the live card", () => {
+    // The material-aware border/glow/gradient in globals.css all hang off
+    // data-effect-card; noir resolves to the paper material.
+    const surface = makeSurface([
+      { id: "root", component: "Card", child: "body" },
+      { id: "body", component: "Text", text: "Evidence" },
+    ]);
+    act(() => {
+      useA2UIStore.setState({
+        settings: { ...useA2UIStore.getState().settings, aestheticId: "noir" },
+      });
+    });
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector('[data-effect-card="paper"]')).not.toBeNull();
+    act(() => {
+      useA2UIStore.setState({
+        settings: { ...useA2UIStore.getState().settings, aestheticId: "noir" },
+      });
+    });
+  });
+});

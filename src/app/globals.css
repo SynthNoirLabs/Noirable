@@ -838,32 +838,46 @@ html {
    dark, contrast-correct body text color (overriding the inherited light
    --aesthetic-text) on the card and its descendants. */
 
-/* Paper (noir) — aged off-white evidence print, dark ink. */
+/* Paper (noir) — aged off-white evidence print, dark ink. A warm sepia wash in
+   the top-right corner (gradient layered ABOVE the fractal-noise texture) gives
+   the flat sheet the volume of light falling across a desk; a stamped accent
+   top rule + a faint amber halo scaled by glow-strength read as the desk lamp. */
 .a2ui-card[data-effect-card="paper"] {
   background-color: var(--color-noir-paper);
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.05'/%3E%3C/svg%3E");
+  background-image:
+    radial-gradient(135% 100% at 88% 6%, rgba(112, 66, 20, 0.11), transparent 58%),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.05'/%3E%3C/svg%3E");
   color: var(--color-noir-ink);
   border: 1px solid var(--aesthetic-border);
+  border-top: 2px solid color-mix(in srgb, var(--aesthetic-accent) 55%, transparent);
   border-radius: var(--aesthetic-radius, 2px);
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.45),
-    inset 0 0 40px rgba(112, 66, 20, 0.08);
+    inset 0 0 40px rgba(112, 66, 20, 0.08),
+    0 0 calc(7px * var(--aesthetic-glow-strength, 1))
+      color-mix(in srgb, var(--aesthetic-accent) 12%, transparent);
 }
 
 .a2ui-card[data-effect-card="paper"] :where(p, span, td, th, h1, h2, h3, h4, h5, li) {
   color: var(--color-noir-ink);
 }
 
-/* Parchment (gothic) — warm aged parchment, dark brown ink, double border. */
+/* Parchment (gothic) — warm aged parchment, dark brown ink, double border. A
+   diagonal crimson-into-shadow wash (over the parchment noise) lends a stained,
+   candlelit depth, and a soft blood-red halo scaled by glow-strength makes the
+   manuscript feel lit by its own dim flame. The double border is preserved. */
 .a2ui-card[data-effect-card="parchment"] {
   background-color: #d7c5a9;
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='parchment-noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.72 0 0 0 0 0.63 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23parchment-noise)'/%3E%3C/svg%3E");
+  background-image:
+    linear-gradient(135deg, rgba(122, 0, 14, 0.1) 0%, transparent 42%, rgba(31, 20, 8, 0.16) 100%),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='parchment-noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.72 0 0 0 0 0.63 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23parchment-noise)'/%3E%3C/svg%3E");
   color: #1f1408;
   border: 4px double #4a3424;
   border-radius: var(--aesthetic-radius, 3px);
   box-shadow:
     0 15px 40px rgba(0, 0, 0, 0.7),
-    inset 0 0 60px rgba(74, 52, 36, 0.2);
+    inset 0 0 60px rgba(74, 52, 36, 0.2),
+    0 0 calc(9px * var(--aesthetic-glow-strength, 1)) rgba(122, 0, 14, 0.22);
 }
 
 .a2ui-card[data-effect-card="parchment"] :where(p, span, td, th, h1, h2, h3, h4, h5, li) {
@@ -871,12 +885,21 @@ html {
 }
 
 /* Hologram (cyber) — translucent neon pane, glow scaled by bloom; text stays
-   on the inherited light --aesthetic-text (already legible on the dark pane). */
+   on the inherited light --aesthetic-text (already legible on the dark pane). A
+   faint diagonal cyan→magenta wash (the two accent tokens, never literal hexes)
+   gives the flat pane the iridescent depth of a projected hologram, and a
+   thicker top rule reads as the emitter edge. */
 .a2ui-card[data-effect-card="hologram"] {
   background-color: rgba(20, 12, 36, 0.85);
-  background-image: none;
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--aesthetic-accent) 10%, transparent) 0%,
+    transparent 48%,
+    color-mix(in srgb, var(--aesthetic-accent-muted) 12%, transparent) 100%
+  );
   color: var(--aesthetic-text);
   border: 1px solid var(--aesthetic-accent);
+  border-top-width: 2px;
   border-radius: var(--aesthetic-radius, 4px);
   box-shadow:
     0 0 calc(15px * var(--aesthetic-bloom, 1)) rgba(0, 255, 204, 0.2),
@@ -884,12 +907,16 @@ html {
     0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Wireframe (nostromo) — dark terminal pane with a phosphor inset + bracket. */
+/* Wireframe (nostromo) — dark terminal pane with a phosphor inset + bracket. A
+   top-down green phosphor wash makes the pane read as a screen lit from its top
+   scanline, and a brighter accent top rule reads as the active line of the
+   terminal. Corners stay sharp (radius 0). */
 .a2ui-card[data-effect-card="wireframe"] {
   background-color: #05160b;
-  background-image: none;
+  background-image: linear-gradient(180deg, rgba(51, 255, 102, 0.1) 0%, transparent 32%);
   color: var(--aesthetic-text);
   border: 1px solid var(--aesthetic-border);
+  border-top: 2px solid color-mix(in srgb, var(--aesthetic-accent) 60%, transparent);
   border-radius: 0;
   box-shadow:
     inset 0 0 calc(15px * var(--aesthetic-bloom, 1)) rgba(51, 255, 102, 0.08),
@@ -915,8 +942,15 @@ html {
   background-image: none;
   color: var(--aesthetic-text);
   border: 1px solid var(--aesthetic-border);
+  /* Faint anchor: a thin accent top hairline + a layered (not flat) soft shadow
+     so even the restrained preset reads as a deliberately composed surface
+     rather than a bare div. No glow/gradient — minimal's glow-strength is 0, so
+     it stays clean and crisp, which is its signature. */
+  border-top: 2px solid color-mix(in srgb, var(--aesthetic-accent) 28%, transparent);
   border-radius: var(--aesthetic-radius, 10px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* --- PER-MATERIAL SIGNATURE TOUCHES (per-preset craft, data-driven) --- */
@@ -1188,6 +1222,74 @@ html {
 [data-aesthetic="nostromo-console"] p,
 [data-aesthetic="nostromo-console"] td {
   text-shadow: 0 0 4px rgba(51, 255, 102, 0.4) !important;
+}
+
+/* Noir: warm desk-lamp amber glow. Scoped to headings + accent-colored text
+   (NOT body copy) so it reads as lit signage, not blur. The alpha scales by
+   --aesthetic-glow-strength via color-mix, so a custom profile dialing glow
+   down softens it. Light paper cards reset this below (dark ink, no glow). */
+[data-aesthetic="noir"] .a2ui-heading,
+[data-aesthetic="noir"] .text-\[var\(--aesthetic-accent\)\] {
+  text-shadow: 0 0 3px
+    color-mix(
+      in srgb,
+      var(--aesthetic-accent) calc(34% * var(--aesthetic-glow-strength, 1)),
+      transparent
+    );
+}
+
+/* Gothic: a dim blood-candle glow on engraved titles + accent text. */
+[data-aesthetic="gothic-manor"] .a2ui-heading,
+[data-aesthetic="gothic-manor"] .text-\[var\(--aesthetic-accent\)\] {
+  text-shadow: 0 0 3px
+    color-mix(
+      in srgb,
+      var(--aesthetic-accent) calc(38% * var(--aesthetic-glow-strength, 1)),
+      transparent
+    );
+}
+
+/* Minimal intentionally gets NO text glow: its glow-strength is 0 and its
+   signature is crisp dark-on-light type. Its compositional "anchor" lives in
+   the flat card's layered shadow + accent top hairline, not in the text. */
+
+/* Light-material reset: paper (noir) and parchment (gothic) cards carry dark
+   ink on a light surface, where any inherited accent glow muddies the text. The
+   invariant is simple — NO descendant text glows inside a light-ink card — so
+   the reset covers every descendant (`:where(*)`, zero specificity) rather than
+   enumerating element types, catching accent-colored buttons/divs/labels too,
+   not just headings/spans. Mirrors the dark-ink color override above. */
+.a2ui-card[data-effect-card="paper"] :where(*),
+.a2ui-card[data-effect-card="parchment"] :where(*) {
+  text-shadow: none !important;
+}
+
+/* --- PER-PRESET EDITORIAL HEADING TREATMENT --- */
+
+/* `a2ui-heading` is set on every generated h1–h5 (TextRenderer). The loaded
+   face is deliberately NOT swapped (noir's typewriter headers are its
+   identity), so the per-preset "voice" comes from spacing + weight: noir reads
+   as a wide stamped case-slug, cyber as a tight neon label, nostromo as a
+   spaced terminal banner, gothic as an airy engraved title, minimal as calm
+   normal-weight sans. Reaches custom profiles via their base [data-aesthetic]. */
+[data-aesthetic="noir"] .a2ui-heading {
+  letter-spacing: 0.04em;
+}
+[data-aesthetic="cyber-fixer"] .a2ui-heading {
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+[data-aesthetic="nostromo-console"] .a2ui-heading {
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+[data-aesthetic="gothic-manor"] .a2ui-heading {
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+[data-aesthetic="minimal"] .a2ui-heading {
+  letter-spacing: -0.015em;
+  font-weight: 600;
 }
 
 /* --- FORM CONTROLS POLISH --- */
