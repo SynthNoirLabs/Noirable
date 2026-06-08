@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
@@ -101,8 +101,12 @@ interface SurfaceContextValue {
   dataModel: Record<string, unknown>;
   /** Write a value back into the data model (two-way binding). */
   setData: (path: string, value: unknown) => void;
-  /** Dispatch a component action (server event or local function call). */
-  runAction: (componentId: string, action: unknown) => void;
+  /**
+   * Dispatch a component action (server event or local function call). The
+   * optional `label` (e.g. the button's text) is used for the click
+   * acknowledgement toast when the action has no otherwise-visible effect.
+   */
+  runAction: (componentId: string, action: unknown, label?: string) => void;
   theme: "noir" | "standard";
 }
 
@@ -1148,6 +1152,31 @@ function AudioPlayerRenderer({ component }: ComponentProps) {
 // Input: Button / TextField / CheckBox / Slider / ChoicePicker / DateTimeInput
 // ============================================================================
 
+/**
+ * Server-event names the deterministic /api/a2ui/action handler actually acts
+ * on — they mutate the data model, so a bound component visibly updates and the
+ * click needs no acknowledgement toast. Every other event name no-ops there
+ * (sets /lastAction), so it DOES get a toast. Keep in sync with the handler in
+ * src/app/api/a2ui/action/route.ts.
+ */
+const EVENTS_WITH_VISIBLE_EFFECT = new Set(["submit", "submit_form", "submit_case", "increment"]);
+
+/**
+ * Turn a machine action name into a human label for the click-acknowledgement
+ * toast, e.g. "track_signal" / "trackSignal" → "Track Signal". Used only as a
+ * fallback when the control has no plain-text label of its own.
+ */
+function humanizeActionName(name: string): string {
+  const words = name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2") // split camelCase
+    .replace(/[_-]+/g, " ") // snake/kebab → spaces
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return "Action";
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
 /** Extract a plain-text label from a button's child component (or `label`). */
 function buttonLabel(
   btn: SurfaceComponent & { child?: string; label?: unknown },
@@ -1183,7 +1212,7 @@ function ButtonRenderer({ component }: ComponentProps) {
   return (
     <button
       type="button"
-      onClick={() => runAction(btn.id, btn.action)}
+      onClick={() => runAction(btn.id, btn.action, label)}
       className={cn(
         "px-4 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--aesthetic-background)] focus-visible:ring-[var(--aesthetic-accent)]",
         borderless
@@ -1978,8 +2007,19 @@ export function SurfaceRenderer({
     [setData, storeHasSurface, storeUpdateComponents, surface.config.surfaceId]
   );
 
+  // Transient acknowledgement shown when a control fires an action whose effect
+  // isn't otherwise visible. A generated button often carries a server `event`
+  // (e.g. "Track Cyber-Signal") that, in this showcase, has no live back-channel
+  // to mutate the surface — so without this it reads as a dead button. The toast
+  // confirms the click landed. `seq` forces a fresh toast even when the same
+  // text repeats, so the dismiss timer restarts on every click.
+  const [toast, setToast] = useState<{ text: string; seq: number } | null>(null);
+  const notify = useCallback((text: string) => {
+    setToast((prev) => ({ text, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
+
   const runAction = useCallback(
-    (componentId: string, action: unknown) => {
+    (componentId: string, action: unknown, label?: string) => {
       if (!action || typeof action !== "object") return;
 
       // Server event → emit a client→server ActionMessage + HTTP round-trip.
@@ -1997,6 +2037,16 @@ export function SurfaceRenderer({
         );
         if (actionEndpoint) {
           void postAction(actionEndpoint, message, applyServerMessages);
+        }
+        // Acknowledge the click ONLY when the action has no otherwise-visible
+        // effect. submit/increment are the events the deterministic handler
+        // actually acts on (they mutate the data model → a bound component
+        // updates), so they confirm themselves and don't need a toast. Every
+        // other event name hits the handler's no-op default (set /lastAction),
+        // or has no back-channel at all, so confirm optimistically using the
+        // button label (falling back to a humanized action name).
+        if (!EVENTS_WITH_VISIBLE_EFFECT.has(event.name)) {
+          notify(label?.trim() || humanizeActionName(event.name));
         }
         return;
       }
@@ -2028,12 +2078,22 @@ export function SurfaceRenderer({
             break;
           }
           default:
-            // Unknown client function — no-op (kept out of the way in the demo).
+            // Unknown client function: no model change to make, so at least
+            // acknowledge the click instead of silently doing nothing.
+            notify(label?.trim() || humanizeActionName(fc.call));
             break;
         }
       }
     },
-    [actionEndpoint, applyServerMessages, dataModel, onAction, setData, surface.config.surfaceId]
+    [
+      actionEndpoint,
+      applyServerMessages,
+      dataModel,
+      notify,
+      onAction,
+      setData,
+      surface.config.surfaceId,
+    ]
   );
 
   // Map a v0.9 object theme onto the aesthetic CSS variables. Only a small,
@@ -2086,10 +2146,57 @@ export function SurfaceRenderer({
 
   return (
     <SurfaceContext.Provider value={contextValue}>
-      <div className={cn("p-4", className)} style={themeStyle}>
+      <div className={cn("relative p-4", className)} style={themeStyle}>
         <ComponentRenderer component={rootComponent} />
+        <ActionToast toast={toast} onDismiss={setToast} />
       </div>
     </SurfaceContext.Provider>
+  );
+}
+
+/**
+ * A small, transient, aesthetic-themed acknowledgement that a control's action
+ * fired. It auto-dismisses after a few seconds (timer restarts on each new
+ * `seq`), and is announced politely to screen readers. Purely a confirmation
+ * surface — it makes no claim about a server result.
+ *
+ * `onDismiss` is the stable React `setToast` setter (not an inline arrow), and
+ * the dismiss effect depends ONLY on `toast?.seq` — so the auto-dismiss timer
+ * re-arms exactly when a NEW toast arrives, never on unrelated parent
+ * re-renders (e.g. typing in a field while a toast is up would otherwise keep
+ * resetting the timer and the toast would never clear).
+ */
+function ActionToast({
+  toast,
+  onDismiss,
+}: {
+  toast: { text: string; seq: number } | null;
+  onDismiss: (next: null) => void;
+}) {
+  const seq = toast?.seq;
+  useEffect(() => {
+    if (seq === undefined) return;
+    const id = setTimeout(() => onDismiss(null), 2600);
+    return () => clearTimeout(id);
+    // Intentionally keyed only on `seq`: a fresh toast (new seq) re-arms the
+    // timer; `onDismiss` is the stable setState setter so it needs no dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seq]);
+
+  if (!toast) return null;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none absolute bottom-3 right-3 z-30 flex items-center gap-2 rounded-[var(--aesthetic-radius,2px)] border border-[var(--aesthetic-accent)]/40 bg-[var(--aesthetic-surface)] px-3 py-2 font-typewriter text-xs text-[var(--aesthetic-text)] shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+    >
+      <span
+        className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--aesthetic-accent)]"
+        aria-hidden
+      />
+      <span className="uppercase tracking-wider">{toast.text}</span>
+    </div>
   );
 }
 
