@@ -240,6 +240,13 @@ const GOOGLE_IMAGE_CONFIG_ASPECTS = new Set([
   "21:9",
 ]);
 
+/**
+ * Aspect ratios Google Imagen accepts via providerOptions.google.aspectRatio
+ * (a narrower set than the Gemini generateText imageConfig above). Anything
+ * outside this set is dropped so the call doesn't fail on an unsupported ratio.
+ */
+const IMAGEN_ASPECTS = new Set(["1:1", "3:4", "4:3", "9:16", "16:9"]);
+
 export async function generateImageDataUrl(
   prompt: string,
   aestheticId?: string,
@@ -305,6 +312,28 @@ export async function generateImageDataUrl(
           google: googleOptions,
         },
       });
+    } else if (provider === "google" && method === "generateImage") {
+      // Google Imagen (e.g. imagen-4.0-generate-001). It MUST go through the
+      // Google provider's image() factory — passing a bare model-id string to
+      // generateImage only resolves via the AI Gateway, so without a gateway key
+      // it throws and the image 404s. Imagen takes its aspect ratio through
+      // providerOptions.google.aspectRatio (a restricted set), NOT the top-level
+      // aspectRatio/seed params (which it ignores), and exposes no seed /
+      // negativePrompt in the current ai-sdk surface — negatives stay in-prompt.
+      const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+      const google = createGoogleGenerativeAI({ apiKey: googleKey! });
+      const imagenPrompt = direction.negativePrompt
+        ? `${styledPrompt}. Avoid: ${direction.negativePrompt}.`
+        : styledPrompt;
+      const imagenProviderOptions =
+        direction.aspectRatio && IMAGEN_ASPECTS.has(direction.aspectRatio)
+          ? { google: { aspectRatio: direction.aspectRatio } }
+          : undefined;
+      result = await generateImage({
+        model: google.image(model.id),
+        prompt: imagenPrompt,
+        ...(imagenProviderOptions ? { providerOptions: imagenProviderOptions } : {}),
+      });
     } else if (provider === "openai" && method === "generateImage") {
       const openaiKey = process.env.OPENAI_API_KEY;
       const openai = createOpenAI({ apiKey: openaiKey });
@@ -319,11 +348,9 @@ export async function generateImageDataUrl(
         ...(typeof direction.seed === "number" ? { seed: direction.seed } : {}),
       });
     } else if (method === "generateImage") {
-      // Generic image path (e.g. Google Imagen via gateway). generateImage
-      // forwards top-level aspectRatio/seed to the provider when supported;
-      // providers that ignore them fall back to defaults. No negativePrompt is
-      // threaded here — Imagen's negativePrompt is not exposed by the current
-      // ai-sdk surface, so it stays in-prompt via the Gemini branch only.
+      // Generic image path for any other provider reachable via the AI Gateway
+      // (string model id). generateImage forwards top-level aspectRatio/seed when
+      // the provider supports them; otherwise they fall back to defaults.
       result = await generateImage({
         model: model.id,
         prompt: styledPrompt,
