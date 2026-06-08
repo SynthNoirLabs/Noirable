@@ -33,24 +33,23 @@ describe("resolveVideoModel", () => {
     delete process.env.AI_VIDEO_MODEL;
   });
 
-  it("defaults to the stable veo-3.0-fast-generate-001 id", () => {
-    expect(resolveVideoModel()).toBe("veo-3.0-fast-generate-001");
+  it("defaults to the current veo-3.1-fast-generate-preview id", () => {
+    expect(resolveVideoModel()).toBe("veo-3.1-fast-generate-preview");
   });
 
   it("defaults to a model that is actually registered as video-capable", () => {
-    // Guards against a fabricated/typo'd default id (a wrong id 404s on Veo).
+    // Guards against a fabricated/typo'd default id (a wrong id 404s on Veo —
+    // e.g. the non-existent `veo-3.1-fast-generate-001`).
     const id = resolveVideoModel();
     expect(getModelInfo(id)?.capabilities.videoGen).toBe(true);
   });
 
-  it("honors an explicit video-capable model", () => {
-    expect(resolveVideoModel("veo-3.1-fast-generate-preview")).toBe(
-      "veo-3.1-fast-generate-preview"
-    );
+  it("honors an explicit video-capable model (e.g. the stable 3.0 fallback)", () => {
+    expect(resolveVideoModel("veo-3.0-fast-generate-001")).toBe("veo-3.0-fast-generate-001");
   });
 
   it("ignores a non-video model id and falls back to the default", () => {
-    expect(resolveVideoModel("imagen-4.0-generate-001")).toBe("veo-3.0-fast-generate-001");
+    expect(resolveVideoModel("imagen-4.0-generate-001")).toBe("veo-3.1-fast-generate-preview");
   });
 });
 
@@ -92,7 +91,7 @@ describe("video generation REST integration", () => {
     expect(result.ok).toBe(true);
     expect(result.operationName).toBe("operations/abc-123");
     const [url, init] = mockFetch.mock.calls[0];
-    expect(url).toContain("veo-3.0-fast-generate-001:predictLongRunning");
+    expect(url).toContain("veo-3.1-fast-generate-preview:predictLongRunning");
     expect(init.headers["x-goog-api-key"]).toBe("k");
     const sent = JSON.parse(init.body);
     expect(sent.instances[0].prompt).toMatch(/neon alley/);

@@ -27,11 +27,12 @@ import type { AestheticId } from "@/lib/aesthetic/types";
  */
 
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-// Default to Veo 3 Fast — the current stable fast model id on the Gemini API.
-// (The 3.1 fast model is preview-suffixed: `veo-3.1-fast-generate-preview`.)
-// Override with AI_VIDEO_MODEL. The id MUST be a real Gemini Veo id or the
-// predictLongRunning endpoint 404s.
-const DEFAULT_VIDEO_MODEL = "veo-3.0-fast-generate-001";
+// Default to Veo 3.1 Fast — the current generation (3.0-fast is slated for
+// discontinuation). NOTE the id is PREVIEW-suffixed: the real Gemini id is
+// `veo-3.1-fast-generate-preview` (there is NO `veo-3.1-fast-generate-001` — a
+// wrong id 404s on predictLongRunning). `veo-3.0-fast-generate-001` stays
+// registered as the stable fallback. Override with AI_VIDEO_MODEL.
+const DEFAULT_VIDEO_MODEL = "veo-3.1-fast-generate-preview";
 
 /** Aspect ratios Veo accepts; anything else is dropped to the provider default. */
 const VEO_ASPECTS = new Set(["16:9", "9:16"]);
