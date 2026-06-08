@@ -121,6 +121,29 @@ const imageInputSchema = z
     message: "Image requires either src or prompt",
   });
 
+// Video — on-demand motion footage. Unlike images (auto-generated), a video's
+// `prompt`/`src` becomes an explicit "Generate footage" placeholder the user
+// clicks, since video generation is expensive. `src` is a real URL; `prompt`
+// is a shot description the renderer treats as the on-demand seed.
+const videoSchema = z.object({
+  type: z.literal("video"),
+  src: z.string(),
+  alt: z.string().optional(),
+  style: styleSchema.optional(),
+});
+
+const videoInputSchema = z
+  .object({
+    type: z.literal("video"),
+    src: z.string().optional(),
+    prompt: z.string().optional(),
+    alt: z.string().optional(),
+    style: styleSchema.optional(),
+  })
+  .refine((value) => Boolean(value.src || value.prompt), {
+    message: "Video requires either src or prompt",
+  });
+
 const inputSchema = z.object({
   type: z.literal("input"),
   name: z.string().optional(),
@@ -199,6 +222,8 @@ type TableComponent = z.infer<typeof tableSchema>;
 type StatComponent = z.infer<typeof statSchema>;
 type ImageComponent = z.infer<typeof imageSchema>;
 type ImageInputComponent = z.infer<typeof imageInputSchema>;
+type VideoComponent = z.infer<typeof videoSchema>;
+type VideoInputComponent = z.infer<typeof videoInputSchema>;
 type InputComponent = z.infer<typeof inputSchema>;
 type TextareaComponent = z.infer<typeof textareaSchema>;
 type SelectComponent = z.infer<typeof selectSchema>;
@@ -255,6 +280,7 @@ export type A2UIComponent =
   | StatComponent
   | TabsComponent
   | ImageComponent
+  | VideoComponent
   | InputComponent
   | TextareaComponent
   | SelectComponent
@@ -319,6 +345,7 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   statSchema,
   tabsSchema,
   imageSchema,
+  videoSchema,
   inputSchema,
   textareaSchema,
   selectSchema,
@@ -542,6 +569,26 @@ export function normalizeA2UI(input: unknown): unknown {
     normalized = { ...normalized, alt: altFallback };
   }
 
+  // Video: unlike images (whose prompt is resolved into a real src), a video's
+  // prompt is kept as the `src` text on purpose — the renderer treats a non-URL
+  // src as the on-demand "Generate footage" seed. So coalesce prompt → src when
+  // only a prompt was given, and supply an alt fallback for accessibility.
+  if (type === "video") {
+    const src =
+      typeof normalized.src === "string" && normalized.src
+        ? normalized.src
+        : typeof normalized.prompt === "string"
+          ? normalized.prompt
+          : "";
+    const altFallback =
+      typeof normalized.alt === "string"
+        ? normalized.alt
+        : typeof normalized.prompt === "string"
+          ? normalized.prompt
+          : "Generated footage";
+    normalized = { ...normalized, src, alt: altFallback };
+  }
+
   if (Array.isArray(normalized.children)) {
     normalized = {
       ...normalized,
@@ -629,6 +676,7 @@ export type A2UIInput =
   | StatComponent
   | TabsInputComponent
   | ImageInputComponent
+  | VideoInputComponent
   | InputComponent
   | TextareaComponent
   | SelectComponent
@@ -688,6 +736,7 @@ export const a2uiInputSchema = z.preprocess(
     statSchema,
     tabsInputSchema,
     imageInputSchema,
+    videoInputSchema,
     inputSchema,
     textareaSchema,
     selectSchema,

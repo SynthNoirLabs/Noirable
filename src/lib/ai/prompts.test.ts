@@ -172,9 +172,10 @@ describe("buildSystemPrompt button-action guidance", () => {
   it("teaches that a Video component is an on-demand footage placeholder", async () => {
     const { buildSystemPrompt } = await import("./prompts");
     const prompt = buildSystemPrompt(undefined, "noir");
-    // Without this, the model never emits a Video node, so the on-demand
-    // "Generate footage" placeholder never appears in a generation.
-    expect(prompt).toContain("Video");
+    // Without this, the model never emits a video node, so the on-demand
+    // "Generate footage" placeholder never appears in a generation. The model
+    // generates in the legacy `type: "video"` vocabulary.
+    expect(prompt).toMatch(/\bvideo\b/i);
     expect(prompt).toMatch(/footage/i);
     expect(prompt).toMatch(/on demand|NOT generated automatically/i);
   });
