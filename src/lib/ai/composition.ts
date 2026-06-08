@@ -18,6 +18,8 @@ export const COMPONENT_PLAYBOOK = `COMPONENT PLAYBOOK (match the component to th
 - Content revealed on click, or "sealed"/"hidden" things → use a \`modal\` (trigger button + content).
 - More than 2 sibling cards → wrap them in a \`grid\` (2-3 columns).
 - Status labels → use \`badge\` (danger for threats/critical, primary for positive, ghost for unknown, secondary otherwise).
+- A still picture / photo / portrait / mugshot → use an \`Image\` whose \`url\` is a short scene DESCRIPTION (not a real link); it is generated automatically.
+- MOTION footage — surveillance clips, security-cam playback, a moving establishing shot, "footage of…", a short video — → use a \`Video\` whose \`url\` is a short shot DESCRIPTION (not a real link), e.g. \`{ "component": "Video", "url": "grainy security-cam footage of a figure crossing a rain-slick alley", "accessibility": { "label": "Alley surveillance" } }\`. The Video renders as an explicit "Generate footage" placeholder the user clicks on demand (video is expensive — it is NOT generated automatically like images). Use it sparingly and only when motion genuinely fits the request; prefer an \`Image\` for anything static.
 
 BUTTON ACTIONS (a \`button\`'s \`action\` must do something concrete — prefer a local \`functionCall\` so the click has a visible effect without a server):
 - Change a value the UI shows → \`{ "functionCall": { "call": "setValue", "args": { "path": "/some/field", "value": <new value> } } }\` (bind a Text/Stat/field to that same \`{ "path": "/some/field" }\` so the change is visible).
