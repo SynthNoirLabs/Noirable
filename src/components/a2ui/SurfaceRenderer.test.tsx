@@ -231,6 +231,27 @@ describe("SurfaceRenderer", () => {
     expect(screen.getByText("Wire tap")).toBeInTheDocument();
   });
 
+  it("shows an explicit Generate-footage button when a Video's url is a prompt, not a source", () => {
+    // Video is expensive + on demand, so a Video node whose url is free text
+    // (a description, not a URL/path) must NOT auto-generate or render a bare
+    // <video>; it offers an explicit generate affordance instead.
+    const surface = makeSurface([
+      { id: "root", component: "Video", url: "a slow dolly through a neon alley" },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector("video")).toBeNull();
+    expect(screen.getByRole("button", { name: "Generate footage" })).toBeInTheDocument();
+  });
+
+  it("plays a root-relative or absolute Video url directly (only free text is a prompt)", () => {
+    // Boundary: a url starting with "/" (or http/data/blob) is a real source and
+    // plays directly; free text is a prompt (covered above). Guards the line.
+    const rooted = makeSurface([{ id: "root", component: "Video", url: "/footage/clip.mp4" }]);
+    const { container } = render(<SurfaceRenderer surface={rooted} theme="noir" />);
+    expect(container.querySelector('video[src="/footage/clip.mp4"]')).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Generate footage" })).not.toBeInTheDocument();
+  });
+
   it("renders Slider, ChoicePicker, and DateTimeInput", () => {
     const surface = makeSurface(
       [

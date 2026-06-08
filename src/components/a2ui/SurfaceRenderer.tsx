@@ -31,6 +31,7 @@ import {
   Feather,
   File,
   FileText,
+  Film,
   Flag,
   Flame,
   Folder,
@@ -41,6 +42,7 @@ import {
   Info,
   Key,
   Link as LinkIcon,
+  Loader2,
   Lock,
   Mail,
   MapPin,
@@ -89,6 +91,7 @@ import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { getEffectsProfile, getMotionPersonality, getStyleTokens } from "@/lib/aesthetic/identity";
 import type { MotionPersonality, StyleTokens } from "@/lib/aesthetic/types";
+import { useVideoConfigured, useVideoGeneration } from "@/lib/hooks/useVideoGeneration";
 
 // ============================================================================
 // Context for component resolution
@@ -1097,6 +1100,7 @@ function IconRenderer({ component }: ComponentProps) {
 
 function VideoRenderer({ component }: ComponentProps) {
   const resolve = useResolve();
+  const baseAestheticId = useBaseAestheticId();
   const video = component as SurfaceComponent & {
     url?: unknown;
     accessibility?: { label?: unknown };
@@ -1104,21 +1108,112 @@ function VideoRenderer({ component }: ComponentProps) {
   const url = String(resolve(video.url) ?? "");
   const label = video.accessibility?.label ? String(resolve(video.accessibility.label)) : undefined;
 
-  if (!url) {
+  // A real playable source plays directly: an absolute/served/data/blob URL, or
+  // any root-relative path (e.g. "/clip.mp4", "/assets/x.webm"). Anything else
+  // (free-text) is treated as a generation prompt below.
+  const isPlayable =
+    url.startsWith("/") ||
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:") ||
+    url.startsWith("blob:");
+
+  if (isPlayable) {
     return (
-      <div className="border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3 rounded-sm text-xs font-mono text-[var(--aesthetic-text)]/70">
-        FOOTAGE PENDING
-      </div>
+      <video
+        src={url}
+        controls
+        aria-label={label}
+        className="block w-full max-w-full rounded-[var(--aesthetic-radius,2px)] border border-[var(--aesthetic-border)]/40 sepia-[0.15]"
+      />
     );
   }
 
+  // Otherwise `url` (or the accessibility label) is a prompt, NOT a source.
+  // Video is expensive + on demand, so it is NEVER auto-generated — the user
+  // must explicitly trigger it here.
+  const prompt = url.trim() || label?.trim() || "";
+  return <VideoGenerator prompt={prompt} aestheticId={baseAestheticId} label={label} />;
+}
+
+/**
+ * On-demand generate affordance for a Video component whose source is still a
+ * prompt. Renders the in-world "FOOTAGE PENDING" placeholder plus an explicit
+ * Generate button (disabled when no API key is configured), shows live progress
+ * while Veo runs, then swaps in the finished clip. Reduced-motion safe (no
+ * spinner animation when the user opts out).
+ */
+function VideoGenerator({
+  prompt,
+  aestheticId,
+  label,
+}: {
+  prompt: string;
+  aestheticId?: string;
+  label?: string;
+}) {
+  const { status, videoUrl, error, generate } = useVideoGeneration();
+  const configured = useVideoConfigured();
+  const prefersReducedMotion = useReducedMotion();
+
+  if (status === "ready" && videoUrl) {
+    return (
+      <video
+        src={videoUrl}
+        controls
+        aria-label={label}
+        className="block w-full max-w-full rounded-[var(--aesthetic-radius,2px)] border border-[var(--aesthetic-border)]/40 sepia-[0.15]"
+      />
+    );
+  }
+
+  const busy = status === "starting" || status === "pending";
+  const disabled = busy || !prompt || configured === false;
+  const disabledReason =
+    configured === false
+      ? "Set GOOGLE_GENERATIVE_AI_API_KEY to enable video"
+      : !prompt
+        ? "No prompt to generate from"
+        : undefined;
+
   return (
-    <video
-      src={url}
-      controls
-      aria-label={label}
-      className="block w-full max-w-full rounded-sm border border-[var(--aesthetic-border)]/40 sepia-[0.15]"
-    />
+    <div className="flex flex-col gap-2 rounded-[var(--aesthetic-radius,2px)] border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/35 px-4 py-3">
+      <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-[var(--aesthetic-text)]/70">
+        <Film className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        {busy ? "Developing footage…" : "Footage pending"}
+      </div>
+      {prompt && (
+        <p className="line-clamp-2 font-mono text-[11px] text-[var(--aesthetic-text)]/45">
+          {prompt}
+        </p>
+      )}
+      {status === "failed" && error && (
+        <p className="font-mono text-[11px] text-[var(--aesthetic-error)]">{error}</p>
+      )}
+      <button
+        type="button"
+        onClick={() => generate(prompt, { aestheticId })}
+        disabled={disabled}
+        title={disabledReason}
+        aria-label="Generate footage"
+        className={cn(
+          "inline-flex w-fit items-center gap-1.5 rounded-[var(--aesthetic-radius,2px)] border px-3 py-1.5 font-typewriter text-[11px] uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+          disabled
+            ? "cursor-not-allowed border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/40"
+            : "border-[var(--aesthetic-accent)]/50 bg-[var(--aesthetic-accent)]/10 text-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-accent)]/25"
+        )}
+      >
+        {busy ? (
+          <Loader2
+            className={cn("h-3.5 w-3.5", !prefersReducedMotion && "animate-spin")}
+            aria-hidden
+          />
+        ) : (
+          <Film className="h-3.5 w-3.5" aria-hidden />
+        )}
+        {busy ? "Generating" : status === "failed" ? "Retry" : "Generate footage"}
+      </button>
+    </div>
   );
 }
 

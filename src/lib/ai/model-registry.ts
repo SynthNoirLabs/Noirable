@@ -3,6 +3,8 @@ export interface ModelCapabilities {
   vision: boolean;
   imageGen: boolean;
   imageGenMethod?: "generateImage" | "generateText";
+  /** Long-running text→video generation (Veo). On-demand only, never bundled. */
+  videoGen?: boolean;
   streaming: boolean;
   tools: boolean;
   contextWindow?: number;
@@ -312,6 +314,37 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       tools: false,
     },
   },
+  // Veo Fast — long-running text→video. On-demand ONLY (Video Lab + explicit
+  // per-component button); deliberately never invoked during UI/chat generation
+  // the way images are, because each clip is comparatively expensive. 3.1-fast
+  // is the current default; 3.0-fast is kept registered for back-compat but is
+  // discontinued by Google on 2026-06-30, so the default points at 3.1.
+  "veo-3.1-fast-generate-001": {
+    id: "veo-3.1-fast-generate-001",
+    name: "Veo 3.1 Fast",
+    provider: "google",
+    capabilities: {
+      chat: false,
+      vision: false,
+      imageGen: false,
+      videoGen: true,
+      streaming: false,
+      tools: false,
+    },
+  },
+  "veo-3.0-fast-generate-001": {
+    id: "veo-3.0-fast-generate-001",
+    name: "Veo 3 Fast (legacy)",
+    provider: "google",
+    capabilities: {
+      chat: false,
+      vision: false,
+      imageGen: false,
+      videoGen: true,
+      streaming: false,
+      tools: false,
+    },
+  },
 };
 
 export function getModelInfo(modelId: string): ModelInfo | undefined {
@@ -330,6 +363,15 @@ export function getModelsWithCapability(
 
 export function getImageGenerationModels(): ModelInfo[] {
   return getModelsWithCapability("imageGen", true);
+}
+
+export function getVideoGenerationModels(): ModelInfo[] {
+  return getModelsWithCapability("videoGen", true);
+}
+
+export function canGenerateVideos(modelId: string): boolean {
+  const model = getModelInfo(modelId);
+  return model?.capabilities.videoGen ?? false;
 }
 
 export function getChatModels(): ModelInfo[] {

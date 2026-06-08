@@ -1,0 +1,243 @@
+import "server-only";
+
+import { getImageSpec } from "@/lib/aesthetic/identity";
+import { getModelInfo } from "@/lib/ai/model-registry";
+import type { AestheticId } from "@/lib/aesthetic/types";
+
+/**
+ * Direct REST integration for Google Veo text→video generation.
+ *
+ * Veo is a LONG-RUNNING operation (start → poll → download) and is NOT exposed
+ * by the `ai` SDK or `@ai-sdk/google`, so this talks to the Gemini REST API
+ * directly. It is invoked ONLY on demand (Video Lab / explicit per-component
+ * button) — never bundled into UI/chat generation the way images are — because
+ * each clip is comparatively expensive.
+ */
+
+const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+// Default to Veo 3.1 Fast: the 3.0-fast generation is discontinued by Google on
+// 2026-06-30, and 3.1-fast is its drop-in successor. Override with AI_VIDEO_MODEL.
+const DEFAULT_VIDEO_MODEL = "veo-3.1-fast-generate-001";
+
+/** Aspect ratios Veo accepts; anything else is dropped to the provider default. */
+const VEO_ASPECTS = new Set(["16:9", "9:16"]);
+
+/**
+ * Hosts the finished-clip download URI is allowed to point at. The URI comes
+ * from Google's authenticated Veo response, but we still constrain it (host +
+ * https) before fetching with the API key, so a compromised/malformed response
+ * can never exfiltrate the key to an arbitrary or internal host (SSRF guard).
+ */
+const ALLOWED_VIDEO_HOSTS = [
+  "generativelanguage.googleapis.com",
+  "storage.googleapis.com",
+  "googleusercontent.com",
+];
+
+function isAllowedVideoUri(videoUri: string): boolean {
+  try {
+    const url = new URL(videoUri);
+    if (url.protocol !== "https:") return false;
+    return ALLOWED_VIDEO_HOSTS.some(
+      (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function getVideoApiKey(): string | undefined {
+  return process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+}
+
+export function isVideoGenerationConfigured(): boolean {
+  return Boolean(getVideoApiKey());
+}
+
+/**
+ * Resolve the Veo model id: explicit arg → AI_VIDEO_MODEL env → default. Only
+ * honored when the registry marks it videoGen-capable; otherwise the default.
+ */
+export function resolveVideoModel(videoModel?: string): string {
+  const candidate = videoModel || process.env.AI_VIDEO_MODEL;
+  if (candidate && getModelInfo(candidate)?.capabilities.videoGen) {
+    return candidate;
+  }
+  return DEFAULT_VIDEO_MODEL;
+}
+
+/**
+ * Fold the active aesthetic's visual language into the user's clip prompt so a
+ * generated video matches the look of its surface (reusing the image spec's
+ * medium/lighting/palette/lens, minus the still-photo framing). Falls back to
+ * the bare prompt when no spec resolves.
+ */
+export function buildVideoPrompt(prompt: string, aestheticId?: string): string {
+  const base = prompt.trim();
+  const spec = getImageSpec(aestheticId as AestheticId | undefined);
+  if (!spec) return base || "A short cinematic clip.";
+
+  const styleParts = [spec.medium, spec.lighting, spec.palette, spec.lens].filter(
+    (part) => part && part.trim().length > 0
+  );
+  if (styleParts.length === 0) return base;
+  const style = styleParts.join(", ");
+  return base ? `${base}. Cinematic style: ${style}.` : style;
+}
+
+export interface StartVideoResult {
+  ok: boolean;
+  /** Veo long-running operation name (operations/...), present when ok. */
+  operationName?: string;
+  /** HTTP-ish status for the caller to relay. */
+  status: number;
+  error?: string;
+}
+
+/**
+ * Kick off a Veo generation. Returns the long-running operation name to poll;
+ * does NOT wait for completion (that would risk a serverless timeout on a
+ * multi-minute clip).
+ */
+export async function startVideoGeneration(opts: {
+  prompt: string;
+  aestheticId?: string;
+  videoModel?: string;
+  aspectRatio?: string;
+}): Promise<StartVideoResult> {
+  const apiKey = getVideoApiKey();
+  if (!apiKey) {
+    return { ok: false, status: 503, error: "Video generation is not configured" };
+  }
+
+  const model = resolveVideoModel(opts.videoModel);
+  const styledPrompt = buildVideoPrompt(opts.prompt, opts.aestheticId);
+
+  const parameters: Record<string, unknown> = {};
+  if (opts.aspectRatio && VEO_ASPECTS.has(opts.aspectRatio)) {
+    parameters.aspectRatio = opts.aspectRatio;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/models/${model}:predictLongRunning`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        instances: [{ prompt: styledPrompt }],
+        ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("[Veo] start failed:", res.status, detail);
+      return { ok: false, status: res.status, error: "Video generation request failed" };
+    }
+
+    const data = (await res.json()) as { name?: string };
+    if (!data.name) {
+      return { ok: false, status: 502, error: "No operation name returned" };
+    }
+    return { ok: true, status: 200, operationName: data.name };
+  } catch (error) {
+    console.error("[Veo] start exception:", error);
+    return { ok: false, status: 500, error: "Video generation failed to start" };
+  }
+}
+
+export interface PollVideoResult {
+  ok: boolean;
+  done: boolean;
+  /** Signed download URI for the finished clip, present when done + ok. */
+  videoUri?: string;
+  status: number;
+  error?: string;
+}
+
+/**
+ * Poll a Veo operation once. When `done`, extracts the signed video download
+ * URI from the response. The caller decides cadence (the client polls the
+ * status route every ~10s) so each request stays short.
+ */
+export async function pollVideoOperation(operationName: string): Promise<PollVideoResult> {
+  const apiKey = getVideoApiKey();
+  if (!apiKey) {
+    return { ok: false, done: false, status: 503, error: "Video generation is not configured" };
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/${operationName}`, {
+      headers: { "x-goog-api-key": apiKey },
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("[Veo] poll failed:", res.status, detail);
+      return { ok: false, done: false, status: res.status, error: "Failed to poll video status" };
+    }
+
+    const data = (await res.json()) as {
+      done?: boolean;
+      error?: { message?: string };
+      response?: {
+        generateVideoResponse?: {
+          generatedSamples?: Array<{ video?: { uri?: string } }>;
+        };
+      };
+    };
+
+    if (!data.done) {
+      return { ok: true, done: false, status: 200 };
+    }
+
+    if (data.error) {
+      return {
+        ok: false,
+        done: true,
+        status: 200,
+        error: data.error.message || "Video generation failed",
+      };
+    }
+
+    const videoUri =
+      data.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri ?? undefined;
+    if (!videoUri) {
+      return { ok: false, done: true, status: 200, error: "No video produced" };
+    }
+    return { ok: true, done: true, status: 200, videoUri };
+  } catch (error) {
+    console.error("[Veo] poll exception:", error);
+    return { ok: false, done: false, status: 500, error: "Failed to poll video status" };
+  }
+}
+
+/**
+ * Download the finished clip bytes from the signed Veo URI (the API key is
+ * required even on the signed URL).
+ */
+export async function downloadVideo(
+  videoUri: string
+): Promise<{ buffer: Buffer; mediaType: string } | null> {
+  const apiKey = getVideoApiKey();
+  if (!apiKey) return null;
+
+  // SSRF guard: never send the API key anywhere but a known Google host.
+  if (!isAllowedVideoUri(videoUri)) {
+    console.error("[Veo] refusing to download from disallowed URI host");
+    return null;
+  }
+
+  try {
+    const res = await fetch(videoUri, { headers: { "x-goog-api-key": apiKey } });
+    if (!res.ok) {
+      console.error("[Veo] download failed:", res.status);
+      return null;
+    }
+    const mediaType = res.headers.get("content-type") || "video/mp4";
+    const buffer = Buffer.from(await res.arrayBuffer());
+    return { buffer, mediaType: mediaType.includes("webm") ? "video/webm" : "video/mp4" };
+  } catch (error) {
+    console.error("[Veo] download exception:", error);
+    return null;
+  }
+}
