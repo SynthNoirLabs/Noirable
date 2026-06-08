@@ -143,3 +143,29 @@ describe("buildSystemPrompt with compositionSeed (Bet 6 variants)", () => {
     expect(take2).toContain("Variant seed 43");
   });
 });
+
+describe("buildSystemPrompt button-action guidance", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("teaches the working button-action vocabulary so generated buttons do something", async () => {
+    const { buildSystemPrompt } = await import("./prompts");
+    const prompt = buildSystemPrompt(undefined, "noir");
+    // The model must learn the action shapes the renderer actually handles, so
+    // it stops emitting made-up event names that no-op (the dead-button bug).
+    expect(prompt).toContain("BUTTON ACTIONS");
+    expect(prompt).toContain("setValue");
+    expect(prompt).toContain("toggle");
+    expect(prompt).toContain("openUrl");
+    expect(prompt).toContain("submit");
+  });
+
+  it("includes the button-action guidance for custom personas too", async () => {
+    const { buildSystemPrompt } = await import("./prompts");
+    // Custom personas skip the per-preset doctrine but still get the playbook.
+    const prompt = buildSystemPrompt(undefined, undefined, "You are a custom persona.");
+    expect(prompt).toContain("BUTTON ACTIONS");
+    expect(prompt).toContain("setValue");
+  });
+});

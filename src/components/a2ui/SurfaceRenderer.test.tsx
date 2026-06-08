@@ -750,3 +750,81 @@ describe("Look-and-feel uplift", () => {
     });
   });
 });
+
+describe("Button action feedback", () => {
+  it("acknowledges a server-event button click with a toast (so it never reads as dead)", () => {
+    // A generated button whose action is a server `event` has no live
+    // back-channel in this showcase, so without feedback the click does nothing
+    // visible. The renderer confirms the click with a polite status toast.
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Button",
+        label: "Track Cyber-Signal",
+        action: { event: { name: "track_signal" } },
+      },
+    ]);
+    // actionEndpoint=null disables the HTTP round-trip; the toast must still fire.
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Track Cyber-Signal" }));
+
+    const toast = screen.getByRole("status");
+    expect(toast).toBeInTheDocument();
+    // Prefers the button's own label over the humanized action name.
+    expect(toast).toHaveTextContent("Track Cyber-Signal");
+  });
+
+  it("acknowledges an unmapped local functionCall (no built-in effect) instead of silently no-opping", () => {
+    // A made-up functionCall hits the no-op default branch; the click must still
+    // be acknowledged. A label-less button uses buttonLabel's "Submit" fallback.
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "Button",
+        action: { functionCall: { call: "track_signal" } },
+      },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
+  it("does not toast for a no-op (action-less) button", () => {
+    const surface = makeSurface([{ id: "root", component: "Button", label: "Inert" }]);
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Inert" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("does not toast for submit/increment server events (they have a built-in visible effect)", () => {
+    // submit/increment mutate the data model via the deterministic handler, so a
+    // bound component updates — they confirm themselves and need no toast.
+    const surface = makeSurface([
+      { id: "root", component: "Button", label: "Submit", action: { event: { name: "submit" } } },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("does not toast for a working local functionCall (setValue has a visible effect)", () => {
+    // setValue mutates the data model (visible via bound components), so it needs
+    // no acknowledgement toast — only unmapped/no-effect actions do.
+    const surface = makeSurface(
+      [
+        {
+          id: "root",
+          component: "Button",
+          label: "Set It",
+          action: { functionCall: { call: "setValue", args: { path: "/x", value: "done" } } },
+        },
+      ],
+      { x: "" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Set It" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});
