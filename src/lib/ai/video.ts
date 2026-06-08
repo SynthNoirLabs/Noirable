@@ -7,11 +7,23 @@ import type { AestheticId } from "@/lib/aesthetic/types";
 /**
  * Direct REST integration for Google Veo text→video generation.
  *
- * Veo is a LONG-RUNNING operation (start → poll → download) and is NOT exposed
- * by the `ai` SDK or `@ai-sdk/google`, so this talks to the Gemini REST API
- * directly. It is invoked ONLY on demand (Video Lab / explicit per-component
- * button) — never bundled into UI/chat generation the way images are — because
- * each clip is comparatively expensive.
+ * Veo is a LONG-RUNNING operation: start → poll the operation → download the
+ * finished clip (up to a few minutes).
+ *
+ * Why direct REST instead of the AI SDK? The SDK does have video generation
+ * (`experimental_generateVideo`, which lists Veo models), but it doesn't fit
+ * here: (1) it is NOT present in our installed `ai@6.0.41` / `@ai-sdk/google@3.0.10`
+ * (no `generateVideo` export, no `google.video()`); (2) `generateVideo` is
+ * synchronous — it awaits the entire multi-minute generation, which would hang
+ * a serverless function (our start→poll→download split is exactly what avoids
+ * that timeout); and (3) its Veo path goes through the AI Gateway string form
+ * (`google/veo-…`), whereas we authenticate Google directly with the same key
+ * as images. If a future SDK upgrade exposes an operation-handle (non-blocking)
+ * video API, this can be revisited.
+ *
+ * Invoked ONLY on demand (Video Lab / explicit per-component button) — never
+ * bundled into UI/chat generation the way images are — because each clip is
+ * comparatively expensive.
  */
 
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
