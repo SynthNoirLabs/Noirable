@@ -685,7 +685,10 @@ function BadgeRenderer({ component }: ComponentProps) {
       className={cn(
         // shrink-0 + whitespace-nowrap keep the pill intact in a tight Row
         // (otherwise flex compresses it and the text clips against the border).
-        "inline-flex shrink-0 items-center w-fit whitespace-nowrap rounded-full border px-3 py-1 font-typewriter text-[10px] uppercase tracking-wider leading-none",
+        // `a2ui-badge` is the hook for per-aesthetic refinement in globals.css
+        // (e.g. nostromo squares its corners to read as a terminal tag) without
+        // disturbing the variant color tokens above.
+        "a2ui-badge inline-flex shrink-0 items-center w-fit whitespace-nowrap rounded-full border px-3 py-1 font-typewriter text-[10px] uppercase tracking-wider leading-none",
         variantClass
       )}
     >
@@ -714,6 +717,7 @@ function GridRenderer({ component }: ComponentProps) {
 // proper KPI rather than loose stacked text.
 function StatRenderer({ component }: ComponentProps) {
   const resolve = useResolve();
+  const baseAestheticId = useBaseAestheticId();
   const stat = component as SurfaceComponent & {
     label?: unknown;
     value?: unknown;
@@ -723,8 +727,17 @@ function StatRenderer({ component }: ComponentProps) {
   const value = String(resolve(stat.value) ?? "");
   const helper = stat.helper ? String(resolve(stat.helper)) : "";
 
+  // Emit the resolved card material as `data-effect-stat` so globals.css can give
+  // the metric a per-material finish (paper inset, neon HUD readout, phosphor
+  // terminal counter, parchment seal-tint, clean flat) — mirroring the
+  // data-effect-card pattern, so custom profiles inherit it via their base.
+  const effects = getEffectsProfile(baseAestheticId);
+
   return (
-    <div className="flex flex-col gap-1 border-l-2 border-[var(--aesthetic-accent)]/60 bg-[var(--aesthetic-text)]/[0.03] px-3 py-2 rounded-sm">
+    <div
+      data-effect-stat={effects.card}
+      className="a2ui-stat flex flex-col gap-1 rounded-[var(--aesthetic-radius,2px)] border-l-2 border-[var(--aesthetic-accent)]/60 bg-[var(--aesthetic-text)]/[0.03] px-3 py-2"
+    >
       <span className="font-typewriter text-[10px] uppercase tracking-widest text-[var(--aesthetic-text)]/55">
         {label}
       </span>
@@ -1300,6 +1313,15 @@ function SliderRenderer({ component }: ComponentProps) {
   const resolved = resolve(slider.value);
   const value = typeof resolved === "number" ? resolved : Number(resolved) || min;
 
+  // Track-fill percentage, exposed as a CSS var so globals.css can paint a
+  // filled segment up to the thumb (a bare range input shows no fill). For a
+  // controlled value the var stays in sync on every render; for an uncontrolled
+  // one it seeds the initial fill and the onInput handler keeps it live without
+  // forcing a React re-render. Guard a zero/negative span so the value never
+  // divides by zero.
+  const span = max - min;
+  const pct = span > 0 ? Math.min(100, Math.max(0, ((value - min) / span) * 100)) : 0;
+
   return (
     <label className="flex flex-col gap-2 text-xs w-full">
       <div className="flex justify-between items-end">
@@ -1312,10 +1334,18 @@ function SliderRenderer({ component }: ComponentProps) {
         max={max}
         {...(step !== undefined ? { step } : {})}
         {...(bindingPath ? { value } : { defaultValue: value })}
+        onInput={(e) => {
+          // Keep the visual fill in lock-step with the thumb even when the slider
+          // is uncontrolled (no {path} binding), where React won't re-render.
+          const el = e.currentTarget;
+          const next = span > 0 ? ((Number(el.value) - min) / span) * 100 : 0;
+          el.style.setProperty("--slider-pct", `${Math.min(100, Math.max(0, next))}%`);
+        }}
         onChange={(e) => {
           if (bindingPath) setData(bindingPath, Number(e.currentTarget.value));
         }}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[var(--aesthetic-accent)] bg-[var(--aesthetic-text)]/15 border border-[var(--aesthetic-border)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
+        style={{ "--slider-pct": `${pct}%` } as React.CSSProperties}
+        className="a2ui-slider w-full cursor-pointer appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]"
       />
     </label>
   );

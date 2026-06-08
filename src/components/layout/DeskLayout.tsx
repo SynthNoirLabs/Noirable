@@ -370,7 +370,12 @@ export function DeskLayout({
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-auto p-8 flex flex-col items-center justify-start">
-          {preview}
+          {/* Constrain the generated surface to a per-aesthetic measure so it
+              reads as a composed layout instead of stretching full-width into
+              empty desk space (long lines tire the eye). The width is a CSS var
+              per [data-aesthetic] in globals.css; mx-auto keeps it centered and
+              w-full lets it shrink on narrow panes. */}
+          <div className="mx-auto w-full max-w-[var(--aesthetic-max-width,72rem)]">{preview}</div>
         </div>
       </div>
 

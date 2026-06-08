@@ -749,4 +749,41 @@ describe("Look-and-feel uplift", () => {
       });
     });
   });
+
+  it("styles the Slider as a real track with a fill percentage var (not a bare range input)", () => {
+    // A bare range input rendered as a faint underline with no thumb/fill;
+    // globals.css paints .a2ui-slider using the --slider-pct var the renderer
+    // sets from the current value. Half-way value → 50% fill.
+    const surface = makeSurface([
+      { id: "root", component: "Slider", label: "Heat", min: 0, max: 10, value: 5 },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const input = container.querySelector("input[type='range']") as HTMLInputElement | null;
+    expect(input).not.toBeNull();
+    expect(input?.className).toMatch(/a2ui-slider/);
+    expect(input?.style.getPropertyValue("--slider-pct")).toBe("50%");
+  });
+
+  it("emits the resolved card material as data-effect-stat on a Stat metric", () => {
+    // The per-material stat finish in globals.css hangs off data-effect-stat;
+    // noir resolves to paper.
+    act(() => {
+      useA2UIStore.setState({
+        settings: { ...useA2UIStore.getState().settings, aestheticId: "noir" },
+      });
+    });
+    const surface = makeSurface([{ id: "root", component: "Stat", label: "Cases", value: "12" }]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(container.querySelector('[data-effect-stat="paper"]')).not.toBeNull();
+  });
+
+  it("tags Badge with the a2ui-badge hook while keeping the pill shape", () => {
+    const surface = makeSurface([
+      { id: "root", component: "Badge", label: "ALIVE", variant: "primary" },
+    ]);
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const pill = screen.getByText("ALIVE");
+    expect(pill.className).toMatch(/a2ui-badge/);
+    expect(pill.className).toMatch(/rounded-full/);
+  });
 });
