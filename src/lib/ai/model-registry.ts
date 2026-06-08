@@ -316,12 +316,13 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
   },
   // Veo Fast — long-running text→video. On-demand ONLY (Video Lab + explicit
   // per-component button); deliberately never invoked during UI/chat generation
-  // the way images are, because each clip is comparatively expensive. 3.1-fast
-  // is the current default; 3.0-fast is kept registered for back-compat but is
-  // discontinued by Google on 2026-06-30, so the default points at 3.1.
-  "veo-3.1-fast-generate-001": {
-    id: "veo-3.1-fast-generate-001",
-    name: "Veo 3.1 Fast",
+  // the way images are, because each clip is comparatively expensive. Model ids
+  // here MUST match Google's actual Veo ids (the @ai-sdk/google VideoModelId
+  // union): the stable fast id is `veo-3.0-fast-generate-001` (the default); the
+  // 3.1 fast model is preview-suffixed (`veo-3.1-fast-generate-preview`).
+  "veo-3.0-fast-generate-001": {
+    id: "veo-3.0-fast-generate-001",
+    name: "Veo 3 Fast",
     provider: "google",
     capabilities: {
       chat: false,
@@ -332,9 +333,9 @@ export const MODEL_REGISTRY: Record<string, ModelInfo> = {
       tools: false,
     },
   },
-  "veo-3.0-fast-generate-001": {
-    id: "veo-3.0-fast-generate-001",
-    name: "Veo 3 Fast (legacy)",
+  "veo-3.1-fast-generate-preview": {
+    id: "veo-3.1-fast-generate-preview",
+    name: "Veo 3.1 Fast (preview)",
     provider: "google",
     capabilities: {
       chat: false,

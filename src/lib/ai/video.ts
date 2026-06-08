@@ -27,9 +27,11 @@ import type { AestheticId } from "@/lib/aesthetic/types";
  */
 
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-// Default to Veo 3.1 Fast: the 3.0-fast generation is discontinued by Google on
-// 2026-06-30, and 3.1-fast is its drop-in successor. Override with AI_VIDEO_MODEL.
-const DEFAULT_VIDEO_MODEL = "veo-3.1-fast-generate-001";
+// Default to Veo 3 Fast — the current stable fast model id on the Gemini API.
+// (The 3.1 fast model is preview-suffixed: `veo-3.1-fast-generate-preview`.)
+// Override with AI_VIDEO_MODEL. The id MUST be a real Gemini Veo id or the
+// predictLongRunning endpoint 404s.
+const DEFAULT_VIDEO_MODEL = "veo-3.0-fast-generate-001";
 
 /** Aspect ratios Veo accepts; anything else is dropped to the provider default. */
 const VEO_ASPECTS = new Set(["16:9", "9:16"]);
@@ -142,8 +144,15 @@ export async function startVideoGeneration(opts: {
 
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
-      console.error("[Veo] start failed:", res.status, detail);
-      return { ok: false, status: res.status, error: "Video generation request failed" };
+      console.error("[Veo] start failed:", res.status, model, detail);
+      // 404 from predictLongRunning means the model id is wrong or video
+      // generation isn't enabled for this key — call that out specifically so
+      // it isn't mistaken for a transient failure.
+      const error =
+        res.status === 404
+          ? `Video model "${model}" is unavailable for this API key`
+          : "Video generation request failed";
+      return { ok: false, status: res.status, error };
     }
 
     const data = (await res.json()) as { name?: string };
