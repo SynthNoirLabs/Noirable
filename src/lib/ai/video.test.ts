@@ -121,11 +121,13 @@ describe("video generation REST integration", () => {
 
     const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
     // referenceImages live INSIDE the instance (sibling to prompt), not parameters.
+    // predictLongRunning uses bytesBase64Encoded (predict family), NOT inlineData.
     expect(sent.instances[0].referenceImages).toEqual([
-      { image: { inlineData: { mimeType: "image/png", data: "AAAA" } }, referenceType: "asset" },
+      { image: { bytesBase64Encoded: "AAAA", mimeType: "image/png" }, referenceType: "asset" },
     ]);
-    // Reference images force these per the Veo API.
-    expect(sent.parameters.durationSeconds).toBe("8");
+    // Reference images force these per the Veo API. durationSeconds is a NUMBER
+    // on the wire (a string is rejected with "needs to be a number").
+    expect(sent.parameters.durationSeconds).toBe(8);
     expect(sent.parameters.personGeneration).toBe("allow_adult");
     expect(sent.parameters.aspectRatio).toBe("9:16");
   });

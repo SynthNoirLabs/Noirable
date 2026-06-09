@@ -147,14 +147,20 @@ export async function startVideoGeneration(opts: {
   const model = resolveVideoModel(opts.videoModel);
   const styledPrompt = buildVideoPrompt(opts.prompt, opts.aestheticId);
 
-  // Veo wraps each asset image as { image: { inlineData }, referenceType }, sitting
-  // INSIDE the instance alongside `prompt` (not under `parameters`).
+  // Veo wraps each asset image as { image, referenceType }, sitting INSIDE the
+  // instance alongside `prompt` (not under `parameters`); see the image encoding
+  // note below for the on-the-wire image shape.
   const referenceImages = (opts.referenceImages ?? []).slice(0, MAX_REFERENCE_IMAGES);
   const hasReferences = referenceImages.length > 0;
   const instance: Record<string, unknown> = { prompt: styledPrompt };
   if (hasReferences) {
+    // The :predictLongRunning endpoint is the predict family (same as Imagen):
+    // images are `bytesBase64Encoded` + `mimeType` directly on the image object.
+    // NOT the generateContent-style `inlineData` wrapper the public REST docs
+    // show — that form is rejected here with "`inlineData` isn't supported by
+    // this model".
     instance.referenceImages = referenceImages.map((ref) => ({
-      image: { inlineData: { mimeType: ref.mimeType, data: ref.base64 } },
+      image: { bytesBase64Encoded: ref.base64, mimeType: ref.mimeType },
       referenceType: "asset",
     }));
   }
@@ -166,7 +172,9 @@ export async function startVideoGeneration(opts: {
   if (hasReferences) {
     // Reference images require an 8s clip and adult-only person generation per
     // the Veo API; set both explicitly so the request isn't rejected.
-    parameters.durationSeconds = "8";
+    // durationSeconds must be a NUMBER on the wire (the docs' quoted "8" is table
+    // notation — the API rejects a string with "needs to be a number").
+    parameters.durationSeconds = 8;
     parameters.personGeneration = "allow_adult";
   }
 
