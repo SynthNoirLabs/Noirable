@@ -38,6 +38,18 @@ const DEFAULT_VIDEO_MODEL = "veo-3.1-fast-generate-preview";
 const VEO_ASPECTS = new Set(["16:9", "9:16"]);
 
 /**
+ * Max "asset" reference images Veo 3.1 accepts in one request (subject/character
+ * consistency). Extra images beyond this are dropped.
+ */
+const MAX_REFERENCE_IMAGES = 3;
+
+/** A reference image already resolved to inline base64 bytes, ready for Veo. */
+export interface VideoReferenceImage {
+  base64: string;
+  mimeType: string;
+}
+
+/**
  * Hosts the finished-clip download URI is allowed to point at. The URI comes
  * from Google's authenticated Veo response, but we still constrain it (host +
  * https) before fetching with the API key, so a compromised/malformed response
@@ -119,6 +131,13 @@ export async function startVideoGeneration(opts: {
   aestheticId?: string;
   videoModel?: string;
   aspectRatio?: string;
+  /**
+   * Up to 3 "asset" reference images for subject/character consistency (e.g. a
+   * suspect's generated mugshot, so the footage looks like the same person).
+   * Veo 3.1 only — and using them forces an 8s duration + allow_adult person
+   * generation (Google API constraints). Extras beyond 3 are dropped.
+   */
+  referenceImages?: VideoReferenceImage[];
 }): Promise<StartVideoResult> {
   const apiKey = getVideoApiKey();
   if (!apiKey) {
@@ -128,9 +147,27 @@ export async function startVideoGeneration(opts: {
   const model = resolveVideoModel(opts.videoModel);
   const styledPrompt = buildVideoPrompt(opts.prompt, opts.aestheticId);
 
+  // Veo wraps each asset image as { image: { inlineData }, referenceType }, sitting
+  // INSIDE the instance alongside `prompt` (not under `parameters`).
+  const referenceImages = (opts.referenceImages ?? []).slice(0, MAX_REFERENCE_IMAGES);
+  const hasReferences = referenceImages.length > 0;
+  const instance: Record<string, unknown> = { prompt: styledPrompt };
+  if (hasReferences) {
+    instance.referenceImages = referenceImages.map((ref) => ({
+      image: { inlineData: { mimeType: ref.mimeType, data: ref.base64 } },
+      referenceType: "asset",
+    }));
+  }
+
   const parameters: Record<string, unknown> = {};
   if (opts.aspectRatio && VEO_ASPECTS.has(opts.aspectRatio)) {
     parameters.aspectRatio = opts.aspectRatio;
+  }
+  if (hasReferences) {
+    // Reference images require an 8s clip and adult-only person generation per
+    // the Veo API; set both explicitly so the request isn't rejected.
+    parameters.durationSeconds = "8";
+    parameters.personGeneration = "allow_adult";
   }
 
   try {
@@ -138,7 +175,7 @@ export async function startVideoGeneration(opts: {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
-        instances: [{ prompt: styledPrompt }],
+        instances: [instance],
         ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
       }),
     });

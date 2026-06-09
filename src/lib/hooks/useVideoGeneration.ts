@@ -58,6 +58,12 @@ export interface GenerateVideoOptions {
   aestheticId?: string;
   videoModel?: string;
   aspectRatio?: string;
+  /**
+   * Same-origin `/api/images/...` urls to feed as Veo subject-reference images
+   * (e.g. a suspect's mugshot so the footage matches). Passed straight through
+   * to the start request; the server resolves them to bytes and caps at 3.
+   */
+  referenceImageUrls?: string[];
 }
 
 const POLL_INTERVAL_MS = 6000;

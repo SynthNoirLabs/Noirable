@@ -108,6 +108,57 @@ describe("video generation REST integration", () => {
     expect(sent.parameters).toBeUndefined();
   });
 
+  it("includes asset reference images inside the instance and forces 8s/allow_adult", async () => {
+    process.env.GEMINI_API_KEY = "k";
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ name: "operations/r" }) });
+
+    await startVideoGeneration({
+      prompt: "the suspect walks out",
+      aestheticId: "noir",
+      aspectRatio: "9:16",
+      referenceImages: [{ base64: "AAAA", mimeType: "image/png" }],
+    });
+
+    const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
+    // referenceImages live INSIDE the instance (sibling to prompt), not parameters.
+    expect(sent.instances[0].referenceImages).toEqual([
+      { image: { inlineData: { mimeType: "image/png", data: "AAAA" } }, referenceType: "asset" },
+    ]);
+    // Reference images force these per the Veo API.
+    expect(sent.parameters.durationSeconds).toBe("8");
+    expect(sent.parameters.personGeneration).toBe("allow_adult");
+    expect(sent.parameters.aspectRatio).toBe("9:16");
+  });
+
+  it("caps reference images at 3 (Veo's asset limit)", async () => {
+    process.env.GEMINI_API_KEY = "k";
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ name: "operations/r" }) });
+
+    await startVideoGeneration({
+      prompt: "a lineup",
+      referenceImages: [
+        { base64: "A", mimeType: "image/png" },
+        { base64: "B", mimeType: "image/png" },
+        { base64: "C", mimeType: "image/jpeg" },
+        { base64: "D", mimeType: "image/png" },
+      ],
+    });
+
+    const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(sent.instances[0].referenceImages).toHaveLength(3);
+  });
+
+  it("omits referenceImages and the forced params when none are passed", async () => {
+    process.env.GEMINI_API_KEY = "k";
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ name: "operations/r" }) });
+
+    await startVideoGeneration({ prompt: "a clip", referenceImages: [] });
+
+    const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(sent.instances[0].referenceImages).toBeUndefined();
+    expect(sent.parameters).toBeUndefined();
+  });
+
   it("pollVideoOperation returns not-done while the op is running", async () => {
     process.env.GEMINI_API_KEY = "k";
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ done: false }) });

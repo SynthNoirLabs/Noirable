@@ -2,7 +2,13 @@ import "server-only";
 
 import crypto from "node:crypto";
 import { apiSecurityCheck } from "@/lib/api/security";
-import { isVideoGenerationConfigured, startVideoGeneration } from "@/lib/ai/video";
+import {
+  isVideoGenerationConfigured,
+  startVideoGeneration,
+  type VideoReferenceImage,
+} from "@/lib/ai/video";
+import { resolveImageBytes } from "@/lib/ai/resolveImageBytes";
+import { isValidImageFilename } from "@/lib/ai/imageStore";
 import { saveVideoJob } from "@/lib/ai/videoStore";
 
 interface VideoGenerateRequest {
@@ -10,6 +16,40 @@ interface VideoGenerateRequest {
   aestheticId?: string;
   videoModel?: string;
   aspectRatio?: string;
+  /**
+   * Same-origin `/api/images/<uuid>.<ext>` urls of generated images to feed as
+   * Veo "asset" reference images (subject consistency). Resolved to bytes
+   * server-side; up to 3 are used. Anything not matching that shape is ignored.
+   */
+  referenceImageUrls?: string[];
+}
+
+/** Veo accepts these as reference-image inline data; others are skipped. */
+const VEO_REFERENCE_MIME_TYPES = new Set(["image/png", "image/jpeg"]);
+
+/**
+ * Pull the `<uuid>.<ext>` filename out of a same-origin image url and resolve it
+ * to inline base64 bytes for Veo. Returns only PNG/JPEG (Veo's accepted inline
+ * types) and silently drops anything malformed, cross-origin, or unresolvable —
+ * a missing reference should degrade to a normal generation, not a hard error.
+ */
+async function resolveReferenceImages(urls: string[]): Promise<VideoReferenceImage[]> {
+  const refs: VideoReferenceImage[] = [];
+  for (const raw of urls) {
+    if (typeof raw !== "string") continue;
+    // Accept only our own image path; take the last segment as the filename.
+    const match = /^\/api\/images\/([^/?#]+)$/.exec(raw.trim());
+    if (!match) continue;
+    const fileName = match[1];
+    if (!isValidImageFilename(fileName)) continue;
+
+    const file = await resolveImageBytes(fileName).catch(() => null);
+    if (!file || !VEO_REFERENCE_MIME_TYPES.has(file.contentType)) continue;
+
+    refs.push({ base64: file.data.toString("base64"), mimeType: file.contentType });
+    if (refs.length >= 3) break;
+  }
+  return refs;
 }
 
 /**
@@ -42,11 +82,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "Missing prompt" }, { status: 400 });
   }
 
+  const referenceImageUrls = Array.isArray(body?.referenceImageUrls)
+    ? body.referenceImageUrls
+    : [];
+  const referenceImages =
+    referenceImageUrls.length > 0 ? await resolveReferenceImages(referenceImageUrls) : [];
+
   const result = await startVideoGeneration({
     prompt,
     aestheticId: body?.aestheticId,
     videoModel: body?.videoModel,
     aspectRatio: body?.aspectRatio,
+    referenceImages,
   });
 
   if (!result.ok || !result.operationName) {
