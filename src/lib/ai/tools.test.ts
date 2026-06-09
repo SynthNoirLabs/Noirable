@@ -47,6 +47,14 @@ describe("AI Tools", () => {
       expect(tools.generate_ui.description).toContain("UI");
     });
 
+    it("lists video in the component vocabulary so the model can emit footage", async () => {
+      const { tools } = await import("./tools");
+      // Root cause of the missing placeholder: the enumerated vocabulary the
+      // model follows must include `video`, not just `image`.
+      expect(tools.generate_ui.description).toContain("video");
+      expect(tools.generate_ui.description).toMatch(/footage/i);
+    });
+
     it("has input schema", async () => {
       const { tools } = await import("./tools");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

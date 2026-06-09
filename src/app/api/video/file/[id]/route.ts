@@ -1,14 +1,17 @@
-import { resolveImageBytes } from "@/lib/ai/resolveImageBytes";
+import "server-only";
+
 import { NextRequest } from "next/server";
+import { readVideoFile } from "@/lib/ai/videoStore";
 
 export const runtime = "nodejs";
 
+/**
+ * GET /api/video/file/[id] — serve a stored generated clip (mp4/webm).
+ */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const fileName = id ?? "";
-
-  // Resolves from disk, or generates on demand if it's a still-deferred image.
-  const file = await resolveImageBytes(fileName);
+  const file = await readVideoFile(fileName);
   if (!file) {
     return new Response("Not found", { status: 404 });
   }

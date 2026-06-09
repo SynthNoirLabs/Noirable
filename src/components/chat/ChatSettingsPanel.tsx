@@ -20,6 +20,7 @@ import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/u
 import { useResolvedAesthetic } from "@/lib/aesthetic/useResolvedAesthetic";
 import { getMusicPresets, getMusicStylePrompt } from "@/lib/aesthetic/identity";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
+import { VideoLab } from "@/components/chat/VideoLab";
 
 interface ChatSettingsPanelProps {
   typewriterSpeed: number;
@@ -494,6 +495,9 @@ export function ChatSettingsPanel({
           </div>
         )}
       </div>
+
+      {/* VIDEO LAB — on-demand Veo generation, decoupled from UI generation */}
+      <VideoLab aestheticId={baseId} />
 
       <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
         <span className="text-[var(--aesthetic-text)]/70">FX TRIGGERS</span>

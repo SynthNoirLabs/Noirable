@@ -73,7 +73,7 @@ export function createTools(
       // JSON string sidesteps that entirely — models reliably emit one string field
       // — and we parse + validate server-side via `a2uiInputSchema`.
       description:
-        'Submit a generated A2UI component tree for rendering. Pass `component` as a JSON string encoding a nested A2UI object: a root node with a `type` (one of: container, row, column, grid, card, tabs, heading, paragraph, text, callout, badge, divider, list, table, stat, image, input, textarea, select, checkbox, button) plus type-specific fields, and for layout types a `children` array of further nodes. Example: \'{"type":"card","title":"Suspect","description":"Wanted"}\'.',
+        'Submit a generated A2UI component tree for rendering. Pass `component` as a JSON string encoding a nested A2UI object: a root node with a `type` (one of: container, row, column, grid, card, tabs, heading, paragraph, text, callout, badge, divider, list, table, stat, image, video, input, textarea, select, checkbox, button) plus type-specific fields, and for layout types a `children` array of further nodes. For `image` and `video`, set their field to a short scene/shot DESCRIPTION (e.g. {"type":"image","prompt":"a rain-slicked alley mugshot"} or {"type":"video","prompt":"grainy security-cam footage of a figure crossing the alley"}); image is generated automatically, video renders as an on-demand "Generate footage" placeholder the user clicks (use video sparingly, only for genuine motion). Example: \'{"type":"card","title":"Suspect","description":"Wanted"}\'.',
       inputSchema: z.object({
         component: z.string().describe("The A2UI component tree, encoded as a JSON string."),
       }),

@@ -206,6 +206,17 @@ function walk(builder: Builder, node: A2UIInput, forcedId?: string): string {
         ...(node.alt ? { accessibility: { label: node.alt } } : {}),
       });
 
+    case "video":
+      // `url` carries the src (a real URL) or, for on-demand footage, the prompt
+      // text (normalizeA2UI coalesced prompt → src). The renderer shows a real
+      // URL as a player and a prompt as the "Generate footage" placeholder.
+      return emit(builder, {
+        id,
+        component: "Video",
+        url: node.src ?? "",
+        ...(node.alt ? { accessibility: { label: node.alt } } : {}),
+      });
+
     case "input":
       return emit(builder, {
         id,

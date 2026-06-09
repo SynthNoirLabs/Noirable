@@ -333,4 +333,33 @@ describe("flattenLegacyToCatalog", () => {
     expect(components.some((c) => c.component === "Text" && c.text === "Form")).toBe(true);
     expect(components.some((c) => c.component === "TextField")).toBe(true);
   });
+
+  it("maps a legacy video node into a catalog Video carrying the prompt as its url", () => {
+    // The model emits motion footage as `{ type: "video", prompt: "…" }`; it must
+    // flatten to a catalog Video whose url is that prompt text, so the renderer
+    // shows the on-demand "Generate footage" placeholder (not a broken player).
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "video",
+      prompt: "grainy security-cam footage of a figure crossing the alley",
+      alt: "Alley surveillance",
+    } as never);
+    const root = components.find((c) => c.id === rootId) as
+      | (SurfaceComponent & { url?: string; accessibility?: { label?: string } })
+      | undefined;
+    expect(root?.component).toBe("Video");
+    expect(root?.url).toBe("grainy security-cam footage of a figure crossing the alley");
+    expect(root?.accessibility?.label).toBe("Alley surveillance");
+  });
+
+  it("keeps a real video src url intact (plays directly, not a prompt)", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "video",
+      src: "/footage/clip.mp4",
+    } as never);
+    const root = components.find((c) => c.id === rootId) as
+      | (SurfaceComponent & { url?: string })
+      | undefined;
+    expect(root?.component).toBe("Video");
+    expect(root?.url).toBe("/footage/clip.mp4");
+  });
 });
