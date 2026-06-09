@@ -82,9 +82,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Missing prompt" }, { status: 400 });
   }
 
-  const referenceImageUrls = Array.isArray(body?.referenceImageUrls)
-    ? body.referenceImageUrls
-    : [];
+  const referenceImageUrls = Array.isArray(body?.referenceImageUrls) ? body.referenceImageUrls : [];
   const referenceImages =
     referenceImageUrls.length > 0 ? await resolveReferenceImages(referenceImageUrls) : [];
 
