@@ -1,13 +1,19 @@
 "use client";
 
-import React from "react";
 import { cn } from "@/lib/utils";
+import { useResolvedAesthetic } from "@/lib/aesthetic/useResolvedAesthetic";
 
 interface EvidenceSkeletonProps {
   className?: string;
 }
 
 export function EvidenceSkeleton({ className }: EvidenceSkeletonProps) {
+  // In-world loading copy per preset (noir: "Generating..." / "Compiling
+  // evidence"; nostromo: "RENDERING IMAGE..." / "Compiling log"; etc.) — the
+  // longest single visual moment shouldn't read as generic.
+  const { identity } = useResolvedAesthetic();
+  const { loadingImageLabel, loadingStatus } = identity.copy;
+
   return (
     <div className={cn("w-full max-w-2xl mx-auto animate-pulse", className)}>
       {/* Card skeleton */}
@@ -31,7 +37,7 @@ export function EvidenceSkeleton({ className }: EvidenceSkeletonProps) {
         {/* Image placeholder */}
         <div className="h-32 bg-[var(--aesthetic-border)]/20 rounded flex items-center justify-center">
           <div className="text-[var(--aesthetic-text-muted)]/40 text-xs font-typewriter uppercase tracking-wider">
-            Generating...
+            {loadingImageLabel}
           </div>
         </div>
 
@@ -57,7 +63,7 @@ export function EvidenceSkeleton({ className }: EvidenceSkeletonProps) {
           style={{ animationDelay: "300ms" }}
         />
         <span className="ml-2 text-xs font-typewriter uppercase tracking-wider">
-          Compiling evidence
+          {loadingStatus}
         </span>
       </div>
     </div>

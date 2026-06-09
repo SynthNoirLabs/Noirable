@@ -175,6 +175,10 @@ export interface AestheticCopy {
   dictaphoneDeleteLabel: string;
   /** Hint shown when no recording is loaded */
   dictaphoneEmptyHint: string;
+  /** Label inside the loading skeleton's image placeholder, e.g. "Generating..." */
+  loadingImageLabel: string;
+  /** Status line under the loading skeleton's typing indicator, e.g. "Compiling evidence" */
+  loadingStatus: string;
 }
 
 /**

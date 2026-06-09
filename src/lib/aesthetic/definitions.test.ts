@@ -77,6 +77,8 @@ describe("AESTHETIC_DEFINITIONS", () => {
         "dictaphoneItemLabel",
         "dictaphoneDeleteLabel",
         "dictaphoneEmptyHint",
+        "loadingImageLabel",
+        "loadingStatus",
       ])
     );
 
