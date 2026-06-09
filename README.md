@@ -9,7 +9,7 @@ An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interfa
 
 ![Detective workspace with evidence board and chat](docs/screenshots/noirable_screen.jpg)
 
-![Evidence board with generated UI component](docs/screenshots/evidence-board.png)
+![Generated suspect case file with a mugshot and matching AI-generated surveillance footage](docs/screenshots/fullgenwithvideo.jpg)
 
 ![Generated suspect-profile component with variant controls and the Composer Lab](docs/screenshots/composer-workspace.jpg)
 

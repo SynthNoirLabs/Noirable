@@ -53,15 +53,21 @@ function selectImageModel(
 
   // Prefer the active aesthetic's declared imageModel before the env/key chain,
   // so a preset can pin its own generator (Bet 7). Only honored if it can
-  // actually generate images; otherwise fall through to the existing logic.
+  // actually generate images AND the key for its provider is configured —
+  // otherwise a preset pinned to (say) an OpenAI model on a Google-only
+  // deployment would hard-fail instead of falling through to an available one.
   const presetModel = aestheticId ? getAestheticDefinition(aestheticId).imageModel : undefined;
   if (presetModel) {
     const modelInfo = getModelInfo(presetModel);
-    if (modelInfo?.capabilities.imageGen) {
-      return {
-        model: modelInfo,
-        provider: modelInfo.provider as "google" | "openai",
-      };
+    const provider = modelInfo?.provider as "google" | "openai" | undefined;
+    const providerKeyAvailable =
+      provider === "google"
+        ? Boolean(googleKey)
+        : provider === "openai"
+          ? Boolean(openaiKey || gatewayKey)
+          : false;
+    if (modelInfo?.capabilities.imageGen && providerKeyAvailable) {
+      return { model: modelInfo, provider: provider as "google" | "openai" };
     }
   }
 

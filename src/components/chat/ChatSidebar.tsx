@@ -469,7 +469,18 @@ export function ChatSidebar({
         // Schedule narrative SFX cues to land roughly when the narration speaks
         // each keyword. Routes through the preset's AudioEventMap (fireAudioEvent)
         // so every aesthetic reacts — not just noir.
-        const msPerChar = 65; // Heuristic: average 65ms per character speaking rate.
+        //
+        // Derive the per-character pace from the clip's ACTUAL duration when it's
+        // known, so a cue lands on its word at any voice speed (preset prosody
+        // now varies — the slow robotic nostromo voice vs. the fast cyber one).
+        // Fall back to a fixed heuristic if duration isn't available yet (it can
+        // be NaN/Infinity until metadata loads).
+        const FALLBACK_MS_PER_CHAR = 65; // ~average speaking rate.
+        const duration = audio.duration;
+        const msPerChar =
+          Number.isFinite(duration) && duration > 0 && text.length > 0
+            ? (duration * 1000) / text.length
+            : FALLBACK_MS_PER_CHAR;
         for (const { event, index } of scanTextForAudioEventTimings(text)) {
           const timer = setTimeout(() => fireAudioEvent(event), index * msPerChar);
           ttsTimeoutsRef.current.push(timer);

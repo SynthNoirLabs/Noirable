@@ -10,6 +10,7 @@ import { generateNarration } from "@/lib/ai/narration";
 import { a2uiInputSchema, normalizeA2UI } from "@/lib/protocol/schema";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
 import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
+import { enrichA2UI } from "@/lib/a2ui/enrich";
 import { apiSecurityCheck } from "@/lib/api/security";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
@@ -360,8 +361,11 @@ export async function POST(req: NextRequest): Promise<Response> {
           // valid tree; fall back to the raw component if validation fails.
           const validated = a2uiInputSchema.safeParse(normalizeA2UI(component));
           if (validated.success) {
+            // Deterministic tidy-ups (auto-grid card stacks, promote a leading
+            // title) before image resolution + catalog flattening.
+            const enriched = enrichA2UI(validated.data);
             component = (await resolveA2UIImagePrompts(
-              validated.data,
+              enriched,
               aestheticId,
               customImageStylePrompt,
               imageModel
