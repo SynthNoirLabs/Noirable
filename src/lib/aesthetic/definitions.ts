@@ -63,6 +63,8 @@ const noir: AestheticDefinition = {
   voiceId: "r5wMVcYycQezNCms1jJb",
   imageStylePrompt:
     "shot as a 1940s detective's evidence photograph, noir cinematic, rain-slicked streets, moody low-key lighting, hard chiaroscuro contrast, heavy film grain, 35mm black-and-white photography, deep shadows, light fog, desaturated palette, no bright saturated color, no text or watermark",
+  // Photoreal evidence look — Imagen renders film-grain B&W photography cleanly.
+  imageModel: "imagen-4.0-generate-001",
   identity: {
     glowStrength: 1,
     voiceDirection: { stability: 0.35, similarityBoost: 0.5, style: 0.55, speed: 0.85 },
@@ -104,6 +106,8 @@ const noir: AestheticDefinition = {
       dictaphoneItemLabel: "Cassette Log",
       dictaphoneDeleteLabel: "Incinerate Tape",
       dictaphoneEmptyHint: "Load a recording from the archive",
+      loadingImageLabel: "Generating...",
+      loadingStatus: "Compiling evidence",
     },
     samplePrompts: [
       "Open a case file on three suspects with mugshots, status badges, and an evidence log table",
@@ -206,6 +210,8 @@ const minimal: AestheticDefinition = {
   voiceId: "21m00Tcm4TlvDq8ikWAM",
   imageStylePrompt:
     "clean, modern, minimalist aesthetic, bright white and neutral gray tones, professional corporate presentation slide style, crisp vector art, clean lines, high-key lighting, no clutter, no text or watermark",
+  // Crisp high-key product/vector look — Imagen handles clean lines well.
+  imageModel: "imagen-4.0-generate-001",
   identity: {
     glowStrength: 0,
     voiceDirection: { stability: 0.7, similarityBoost: 0.75, style: 0.1, speed: 1.05 },
@@ -247,6 +253,8 @@ const minimal: AestheticDefinition = {
       dictaphoneItemLabel: "Recording",
       dictaphoneDeleteLabel: "Delete recording",
       dictaphoneEmptyHint: "Select a recording to play it",
+      loadingImageLabel: "Generating",
+      loadingStatus: "Generating",
     },
     samplePrompts: [
       "Create a clean pricing page with three plan cards and a feature comparison",
@@ -341,6 +349,8 @@ const cyberFixer: AestheticDefinition = {
   voiceId: "pNInz6obpgDQGcFmaJgB",
   imageStylePrompt:
     "cyberpunk aesthetic, futuristic cyberpunk command center, neon lights, high-tech overlays, glowing digital HUD, cybernetic implants, wireframe graphics, cyan and magenta accents, rainy futuristic cityscape window, synthwave style, no text or watermark",
+  // Dense neon/HUD detail — the higher-fidelity Gemini Pro image model.
+  imageModel: "gemini-3-pro-image",
   identity: {
     glowStrength: 1.4,
     voiceDirection: { stability: 0.2, similarityBoost: 0.6, style: 0.8, speed: 1.1 },
@@ -382,6 +392,8 @@ const cyberFixer: AestheticDefinition = {
       dictaphoneItemLabel: "Shard",
       dictaphoneDeleteLabel: "Wipe Shard",
       dictaphoneEmptyHint: "Jack in a recording from the cache",
+      loadingImageLabel: "RENDERING...",
+      loadingStatus: "Injecting grid load",
     },
     samplePrompts: [
       "Spin up a netrunner HUD with system stats, a target deck, and neon status badges",
@@ -480,6 +492,8 @@ const nostromoConsole: AestheticDefinition = {
   voiceId: "N2lVS1w4EtoT3dr4eOWO",
   imageStylePrompt:
     "retro sci-fi terminal screen, green phosphor CRT monitor, computer console dashboard, vintage dials and toggle switches, 1980s spaceship command deck, high contrast monochrome green and black, analog video noise, scanlines, no text or watermark",
+  // Flat monochrome CRT look — Imagen is fine and fast for this.
+  imageModel: "imagen-4.0-generate-001",
   identity: {
     glowStrength: 1.1,
     voiceDirection: { stability: 0.85, similarityBoost: 0.75, style: 0.0, speed: 0.8 },
@@ -521,6 +535,8 @@ const nostromoConsole: AestheticDefinition = {
       dictaphoneItemLabel: "Log Entry",
       dictaphoneDeleteLabel: "Purge Log",
       dictaphoneEmptyHint: "Mount a log entry to replay",
+      loadingImageLabel: "RENDERING IMAGE...",
+      loadingStatus: "Compiling log",
     },
     samplePrompts: [
       "COMPILE a ship status readout with hull telemetry stats and a crew manifest table",
@@ -619,6 +635,8 @@ const gothicManor: AestheticDefinition = {
   voiceId: "JBFqnCBsd6RMkjVDRZzb",
   imageStylePrompt:
     "dark Victorian gothic manor interior, candelabras glowing, heavy velvet drapes, gothic window showing stormy moonlit night and graveyard, classic oil painting style, moody dark academia, crimson and gold accents, no text or watermark",
+  // Painterly oil-painting rendering — the higher-fidelity Gemini Pro image model.
+  imageModel: "gemini-3-pro-image",
   identity: {
     glowStrength: 0.8,
     voiceDirection: { stability: 0.3, similarityBoost: 0.65, style: 0.7, speed: 0.8 },
@@ -660,6 +678,8 @@ const gothicManor: AestheticDefinition = {
       dictaphoneItemLabel: "Confession",
       dictaphoneDeleteLabel: "Banish Recording",
       dictaphoneEmptyHint: "Summon a recording from the archive",
+      loadingImageLabel: "Manifesting...",
+      loadingStatus: "Manifesting the chronicle",
     },
     samplePrompts: [
       "Inscribe a family chronicle — portrait cards of three heirs, a curse ledger table, and ominous badges",
