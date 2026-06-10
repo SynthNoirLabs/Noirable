@@ -6,6 +6,10 @@
 /.pnp
 .pnp.*
 
+# pnpm is the only package manager (see packageManager field); the npm lockfile
+# must never be committed — a stale one once drifted from pnpm-lock.yaml.
+package-lock.json
+
 # pnpm content-addressable store (created locally when store-dir resolves to
 # the repo; must never be committed — prettier --check walks it and CI fails)
 .pnpm-store/

@@ -152,19 +152,69 @@ describe("AESTHETIC_DEFINITIONS", () => {
     }
   });
 
-  it("globals.css --aesthetic-accent matches each def's accent color", () => {
+  it("globals.css [data-aesthetic] vars stay in parity with each def", () => {
+    // The per-preset palette is mirrored in BOTH definitions.ts (the source of
+    // truth) and the hand-maintained [data-aesthetic="…"] blocks in globals.css.
+    // Until those blocks are code-generated, this asserts EVERY mirrored var
+    // matches the def so a color/scalar change in one can't silently drift from
+    // the other (previously only --aesthetic-accent was guarded).
     const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    // Map each `--aesthetic-*` CSS var to the def value it must equal. Colors are
+    // compared case-insensitively; scalars are compared as numbers.
+    const colorVar = (cssVar: string, value: string) => ({
+      cssVar,
+      expected: value.toLowerCase(),
+      kind: "color" as const,
+    });
+    const numberVar = (cssVar: string, value: number) => ({
+      cssVar,
+      expected: String(value),
+      kind: "number" as const,
+    });
+
     for (const id of IDS) {
       const def = AESTHETIC_DEFINITIONS[id];
-      // Find the [data-aesthetic="id"] block and check its accent var.
+      const c = def.theme.colors;
+      const a = def.identity.atmosphere;
+
+      // Match the [data-aesthetic="id"] block (the first/colors block; the regex
+      // is non-greedy so it stops at the first closing brace).
       const blockRe = new RegExp(`\\[data-aesthetic="${id}"\\]\\s*\\{([^}]*)\\}`);
       const match = css.match(blockRe);
       expect(match, `no [data-aesthetic="${id}"] block in globals.css`).toBeTruthy();
       const block = match![1];
-      const accentRe = /--aesthetic-accent:\s*([^;]+);/;
-      const accentMatch = block.match(accentRe);
-      expect(accentMatch, `${id}: no --aesthetic-accent`).toBeTruthy();
-      expect(accentMatch![1].trim().toLowerCase()).toBe(def.theme.colors.accent.toLowerCase());
+
+      const expectations = [
+        colorVar("--aesthetic-background", c.background),
+        colorVar("--aesthetic-surface", c.surface),
+        colorVar("--aesthetic-surface-alt", c.surfaceAlt),
+        colorVar("--aesthetic-text", c.text),
+        colorVar("--aesthetic-text-muted", c.textMuted),
+        colorVar("--aesthetic-accent", c.accent),
+        colorVar("--aesthetic-accent-muted", c.accentMuted),
+        colorVar("--aesthetic-border", c.border),
+        colorVar("--aesthetic-error", c.error),
+        colorVar("--aesthetic-particle-color", a.particleColor),
+        colorVar("--aesthetic-lightning-color", a.lightningColor),
+        colorVar("--aesthetic-vignette-color", a.vignetteColor),
+        numberVar("--aesthetic-vignette-intensity", a.vignetteIntensity),
+        numberVar("--aesthetic-lightning-frequency", a.lightningFrequency),
+        numberVar("--aesthetic-glow-strength", def.identity.glowStrength),
+      ];
+
+      for (const { cssVar, expected, kind } of expectations) {
+        // Escape the var name for the regex; capture up to the `;`.
+        const re = new RegExp(`${cssVar.replace(/[-]/g, "\\-")}:\\s*([^;]+);`);
+        const m = block.match(re);
+        expect(m, `${id}: missing ${cssVar} in globals.css block`).toBeTruthy();
+        const actual = m![1].trim();
+        if (kind === "color") {
+          expect(actual.toLowerCase(), `${id}: ${cssVar} drift`).toBe(expected);
+        } else {
+          expect(Number(actual), `${id}: ${cssVar} drift`).toBe(Number(expected));
+        }
+      }
     }
   });
 });

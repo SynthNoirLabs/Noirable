@@ -188,7 +188,7 @@ The Vitest thresholds in `vitest.config.ts` are the gate:
 - Functions: **65%**
 - Statements: **70%**
 
-Run `pnpm test:coverage` to check. The suite currently has 875 tests across 91 test files.
+Run `pnpm test:coverage` to check. The suite currently has 1,200+ tests across 100+ test files.
 
 ---
 

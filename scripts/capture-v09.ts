@@ -10,7 +10,7 @@
  *  - harness-validated — after an invalid email (validation error visible)
  *  - harness-action    — after the server-action round-trip updates /status
  */
-import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "@playwright/test";
 import path from "path";
 
 const BASE_URL = "http://localhost:3000";

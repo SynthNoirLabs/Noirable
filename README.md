@@ -5,7 +5,7 @@
 An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interface: generated UI arrives with a matching palette, typography, voice, and soundtrack. The chat → generate → eject-to-code loop draws on tools like [Lovable](https://lovable.dev) and v0, but the rest of the app is its own thing.
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-1193%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1200%2B%20passing-brightgreen)]()
 
 ![Detective workspace with evidence board and chat](docs/screenshots/noirable_screen.jpg)
 
@@ -20,7 +20,7 @@ synthNoirUI is a full-stack reference implementation of the **A2UI (Agent to UI)
 The project implements two protocol versions:
 
 - **A2UI v0.9** -- 18 components in the standard catalog, streamed via SSE as JSONL messages (`createSurface`, `updateComponents`)
-- **Legacy protocol** -- 23 component types delivered through Vercel AI SDK tool calls, validated with Zod schemas
+- **Legacy protocol** -- 24 component types delivered through Vercel AI SDK tool calls, validated with Zod schemas
 
 Both protocols produce the same visual output. The v0.9 path is the active development target.
 

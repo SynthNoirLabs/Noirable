@@ -5,21 +5,21 @@
  * Requires E2E=1 so the app uses mock providers.
  * Start dev server first: E2E=1 pnpm dev
  */
-import { chromium } from "playwright";
+import { chromium, type Page } from "@playwright/test";
 import path from "path";
 
 const BASE_URL = "http://localhost:3000";
 const OUT_DIR = path.resolve("docs/screenshots");
 
 /** Type a message into the chat input and submit it. */
-async function sendChat(page: import("playwright").Page, message: string) {
+async function sendChat(page: Page, message: string) {
   const input = page.locator('input[name="chat-input"]');
   await input.fill(message);
   await input.press("Enter");
 }
 
 /** Wait for n assistant messages to appear in the chat sidebar. */
-async function waitForAssistantMessages(page: import("playwright").Page) {
+async function waitForAssistantMessages(page: Page) {
   // The evidence stamp appears once a component renders on the board
   await page.waitForSelector('[data-testid="evidence-stamp"]', { timeout: 10_000 });
   // Give the UI a moment to finish animations
