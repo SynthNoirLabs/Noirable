@@ -165,3 +165,87 @@ describe("generateImageDataUrl — Imagen routing", () => {
     expect(call.providerOptions).toBeUndefined();
   });
 });
+
+describe("generateImageDataUrl — capacity (429) fallback", () => {
+  const ORIGINAL_ENV = process.env;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...ORIGINAL_ENV, GOOGLE_GENERATIVE_AI_API_KEY: "test-key" };
+  });
+
+  afterEach(() => {
+    process.env = ORIGINAL_ENV;
+  });
+
+  /** Shape of an AI SDK retry error wrapping a 429 capacity APICallError. */
+  const capacityError = () =>
+    Object.assign(new Error("Failed after 3 attempts"), {
+      reason: "maxRetriesExceeded",
+      lastError: Object.assign(
+        new Error("Unable to submit request because the service is temporarily out of capacity."),
+        { statusCode: 429 }
+      ),
+    });
+
+  it("falls back to the Gemini-native model when Imagen is out of capacity (429)", async () => {
+    const { generateImageDataUrl } = await import("./images");
+    const { generateImage, generateText } = await import("ai");
+
+    // Imagen (generateImage) is saturated; the Gemini path (generateText) is fine.
+    (generateImage as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(capacityError());
+
+    const dataUrl = await generateImageDataUrl(
+      "a mugshot",
+      "cyber-fixer",
+      null,
+      "imagen-4.0-generate-001" // explicit Imagen pin → primary attempt
+    );
+
+    // Primary Imagen call was attempted and rejected…
+    expect(generateImage).toHaveBeenCalledTimes(1);
+    // …then it failed over to a Gemini-native (generateText) image model.
+    expect(generateText).toHaveBeenCalledTimes(1);
+    // And the caller still gets a usable image instead of null.
+    expect(dataUrl).toBe("data:image/png;base64,QUJD");
+  });
+
+  it("does NOT fall back on a non-capacity error (e.g. a 400)", async () => {
+    const { generateImageDataUrl } = await import("./images");
+    const { generateImage, generateText } = await import("ai");
+
+    (generateImage as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      Object.assign(new Error("Invalid prompt"), { statusCode: 400 })
+    );
+
+    const dataUrl = await generateImageDataUrl(
+      "a mugshot",
+      "cyber-fixer",
+      null,
+      "imagen-4.0-generate-001"
+    );
+
+    expect(generateImage).toHaveBeenCalledTimes(1);
+    expect(generateText).not.toHaveBeenCalled(); // no failover
+    expect(dataUrl).toBeNull();
+  });
+
+  it("returns null when both the primary and the fallback model are out of capacity", async () => {
+    const { generateImageDataUrl } = await import("./images");
+    const { generateImage, generateText } = await import("ai");
+
+    (generateImage as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(capacityError());
+    (generateText as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(capacityError());
+
+    const dataUrl = await generateImageDataUrl(
+      "a mugshot",
+      "cyber-fixer",
+      null,
+      "imagen-4.0-generate-001"
+    );
+
+    expect(generateImage).toHaveBeenCalledTimes(1);
+    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(dataUrl).toBeNull();
+  });
+});
