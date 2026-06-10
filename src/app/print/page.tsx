@@ -1,13 +1,31 @@
 "use client";
 
-import React from "react";
+import { useMemo } from "react";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
-import { A2UIRenderer } from "@/components/renderer/A2UIRenderer";
+import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
+import { SurfaceRenderer } from "@/components/a2ui/SurfaceRenderer";
+import type { SurfaceState } from "@/lib/a2ui/surfaces/manager";
 
 export default function PrintPage() {
   const { evidence, evidenceHistory, activeEvidenceId } = useA2UIStore();
   const activeEntry = evidenceHistory.find((entry) => entry.id === activeEvidenceId);
   const data = activeEntry?.data ?? evidence;
+
+  // Build a transient v0.9 surface from the stored legacy A2UI tree so the print
+  // view renders through the same SurfaceRenderer the rest of the app uses
+  // (the legacy A2UIRenderer was retired). flattenLegacyToCatalog handles the
+  // full legacy shape, so nothing is lost versus the old renderer.
+  const surface = useMemo<SurfaceState | null>(() => {
+    if (!data) return null;
+    const { components } = flattenLegacyToCatalog(data, { rootId: "root" });
+    const map = new Map(components.map((c) => [c.id, c]));
+    return {
+      config: { surfaceId: "print", catalogId: "standard" },
+      components: map,
+      dataModel: {},
+      createdAt: 0,
+    };
+  }, [data]);
 
   return (
     <div className="min-h-screen bg-[#f6f2e9] text-[#1c1c1c] p-8 font-sans">
@@ -36,8 +54,8 @@ export default function PrintPage() {
           </button>
         </header>
 
-        {data ? (
-          <A2UIRenderer data={data} />
+        {surface ? (
+          <SurfaceRenderer surface={surface} theme="noir" />
         ) : (
           <div className="text-sm text-[#6b6256] uppercase tracking-widest">
             No evidence available.

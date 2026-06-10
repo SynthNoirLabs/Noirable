@@ -1,24 +1,17 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { DeskLayout } from "./DeskLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
-import { a2uiInputSchema } from "@/lib/protocol/schema";
-import { EvidenceBoard } from "@/components/board/EvidenceBoard";
 import { CaseBoardEmptyState } from "@/components/board/CaseBoardEmptyState";
 import { EjectPanel } from "@/components/eject/EjectPanel";
-import { deriveEvidenceLabel, deriveEvidenceStatus } from "@/lib/evidence/utils";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { TemplatePanel } from "@/components/templates/TemplatePanel";
 import { EvidenceSkeleton } from "@/components/board/EvidenceSkeleton";
 import { NoirErrorBoundary } from "@/components/shared/NoirErrorBoundary";
-import { TrainingDataPanel } from "@/components/training/TrainingDataPanel";
 import { DictaphonePanel } from "@/components/noir/DictaphonePanel";
 import type { A2UIInput } from "@/lib/protocol/schema";
-import { createTrainingExample, shouldCapture } from "@/lib/training";
 // A2UI v0.9 imports
 import { useA2UIStream } from "@/lib/a2ui/hooks/useA2UIStream";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
@@ -41,34 +34,12 @@ const DEFAULT_JSON = JSON.stringify(
   2
 );
 
-/**
- * Extract the last user prompt from messages array
- */
-function getLastUserPrompt(
-  messages: Array<{ role: string; content?: string; parts?: unknown[] }>
-): string | null {
-  // Traverse from the end to find the most recent user message
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg.role === "user") {
-      // Extract text from parts if available
-      if (Array.isArray(msg.parts)) {
-        const textParts = msg.parts
-          .filter(
-            (part): part is { type: "text"; text: string } =>
-              typeof part === "object" &&
-              part !== null &&
-              (part as { type?: string }).type === "text"
-          )
-          .map((part) => part.text)
-          .join("");
-        if (textParts) return textParts;
-      }
-      // Fallback to content
-      if (msg.content) return msg.content;
-    }
-  }
-  return null;
+/** A chat-log line. The v0.9 path drives the log by hand (it is not served by
+ * an SDK), so this is a plain local message shape, not a UIMessage. */
+interface ChatLogMessage {
+  id: string;
+  role: "user" | "assistant";
+  parts: { type: "text"; text: string }[];
 }
 
 /**
@@ -90,9 +61,12 @@ export function DetectiveWorkspace() {
   const [json, setJson] = useState(DEFAULT_JSON);
   const [error, setError] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [showTraining, setShowTraining] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+  // The interrogation-log messages. The v0.9 stream is a one-shot POST (no SDK
+  // chat transport), so we drive the log ourselves: each exchange pushes a user
+  // line and the detective's narrated reply.
+  const [messages, setMessages] = useState<ChatLogMessage[]>([]);
   // Bet 6: Take 1/2/3 variants. Each completed generation is snapshotted here so
   // the picker can swap which take is shown without re-calling the model. Empty
   // until the user explicitly requests variations or iterates.
@@ -106,10 +80,6 @@ export function DetectiveWorkspace() {
   const {
     evidence,
     setEvidence,
-    addEvidence,
-    evidenceHistory,
-    activeEvidenceId,
-    setActiveEvidenceId,
     settings,
     updateSettings,
     layout,
@@ -118,7 +88,6 @@ export function DetectiveWorkspace() {
     undo,
     redo,
     addPrompt,
-    addTrainingExample,
   } = useA2UIStore();
 
   const loadProfiles = useCustomProfileStore((state) => state.loadProfiles);
@@ -184,10 +153,6 @@ export function DetectiveWorkspace() {
     [settings.modelConfig]
   );
 
-  const transport = useMemo(() => new DefaultChatTransport(), []);
-
-  // A2UI v0.9 hook
-  const useV09 = settings.useA2UIv09 ?? false;
   // The v0.9 stream delivers the detective's narration mid-stream (before the
   // promise resolves), so stash it here for the send handler to read afterward.
   const v09NarrationRef = useRef<string | null>(null);
@@ -199,27 +164,18 @@ export function DetectiveWorkspace() {
     onNarration: (text) => {
       v09NarrationRef.current = text;
     },
-    onComplete: (surfaceId) => {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("[A2UI v0.9] Surface completed:", surfaceId);
+    onSource: (tree) => {
+      // The resolved legacy A2UI tree (image prompts already swapped for real
+      // URLs) is the high-fidelity shape the eject/export feature consumes.
+      // Mirror it into `evidence` + the JSON editor so Eject Mode exports exactly
+      // what was generated, without reverse-engineering the flat catalog.
+      if (tree && typeof tree === "object") {
+        const data = tree as A2UIInput;
+        setEvidence(data);
+        setJson(JSON.stringify(data, null, 2));
       }
-      // Mirror the rendered surface into the JSON editor so the "CASE FILE //
-      // JSON DATA" pane reflects the v0.9 component tree instead of stale state.
-      const surface = useSurfaceStore.getState().getSurface(surfaceId);
-      if (surface) {
-        const components = Array.from(surface.components.values());
-        setJson(
-          JSON.stringify(
-            {
-              surfaceId,
-              catalogId: surface.config.catalogId,
-              components,
-            },
-            null,
-            2
-          )
-        );
-      }
+    },
+    onComplete: () => {
       setLastFailedPrompt(null);
     },
     onError: (err) => {
@@ -228,210 +184,17 @@ export function DetectiveWorkspace() {
     },
   });
 
-  const buildRequestBody = useCallback(
-    () => ({
-      evidence,
-      modelConfig:
-        modelConfig?.provider && modelConfig.provider !== "auto"
-          ? { provider: modelConfig.provider, model: modelConfig.model }
-          : undefined,
-      aestheticId: activeProfile?.baseAestheticId ?? settings.aestheticId,
-      customSystemPrompt,
-      customImageStylePrompt: activeProfile?.imageStylePrompt,
-      imageModel: settings.imageModel,
-    }),
-    [
-      evidence,
-      modelConfig,
-      settings.aestheticId,
-      settings.imageModel,
-      customSystemPrompt,
-      activeProfile?.baseAestheticId,
-      activeProfile?.imageStylePrompt,
-    ]
-  );
-
-  const chat = useChat({
-    transport,
-    onError: (err) => console.error("useChat error:", err),
-  });
-
-  const { messages, status, sendMessage, setMessages } = chat;
-  const isLegacyLoading = status === "submitted" || status === "streaming";
-  const isLoading = useV09 ? isV09Streaming : isLegacyLoading;
+  const isLoading = isV09Streaming;
 
   const uiMessages = useMemo(
     () =>
-      messages.map((message: UIMessage & { content?: string }) => {
-        const parts = Array.isArray(message.parts) ? message.parts : null;
-        const contentFromParts = parts
-          ? parts
-              .filter((part) => part.type === "text")
-              .map((part) => part.text)
-              .join("")
-          : "";
-        const content = contentFromParts || message.content || "";
-
-        return {
-          id: message.id,
-          role: message.role,
-          content,
-        };
-      }),
+      messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.parts.map((part) => part.text).join(""),
+      })),
     [messages]
   );
-
-  /** Shared logic for committing a new evidence entry to the store */
-  const processNewEvidence = useCallback(
-    (
-      entry: { id: string; createdAt: number; label: string; status?: string; data: A2UIInput },
-      data: A2UIInput
-    ) => {
-      addEvidence(entry);
-      setEvidence(data);
-      setActiveEvidenceId(entry.id);
-      setJson(JSON.stringify(data, null, 2));
-      setError(null);
-    },
-    [addEvidence, setActiveEvidenceId, setEvidence]
-  );
-
-  /** Capture training data if conditions are met */
-  const captureTraining = useCallback(
-    (data: A2UIInput) => {
-      const userPrompt = getLastUserPrompt(messages);
-      if (userPrompt && shouldCapture(userPrompt, data)) {
-        addTrainingExample(createTrainingExample(userPrompt, data));
-      }
-    },
-    [addTrainingExample, messages]
-  );
-
-  useEffect(() => {
-    if (!messages || messages.length === 0) return;
-    const lastMessage = messages[messages.length - 1];
-
-    if (lastMessage.role !== "assistant") return;
-
-    const parts = Array.isArray(lastMessage.parts) ? lastMessage.parts : [];
-
-    for (const part of parts) {
-      // Standard AI SDK Tool Invocation
-      if (part.type === "tool-invocation") {
-        const invocation = (
-          part as {
-            toolInvocation?: {
-              toolName?: string;
-              state?: string;
-              result?: unknown;
-            };
-          }
-        ).toolInvocation;
-        if (invocation?.toolName === "generate_ui" && invocation?.state === "result") {
-          const parsed = a2uiInputSchema.safeParse(invocation.result);
-          if (parsed.success) {
-            if (process.env.NODE_ENV !== "production") {
-              console.log("Tool Result received (standard):", parsed.data);
-            }
-            const entry = {
-              id: crypto.randomUUID(),
-              createdAt: Date.now(),
-              label: deriveEvidenceLabel(parsed.data),
-              status: deriveEvidenceStatus(parsed.data),
-              data: parsed.data,
-            };
-            // This effect synchronizes the app with the external AI message
-            // stream (the documented Client Synchronization pattern), so it
-            // intentionally commits state when a tool result arrives.
-            processNewEvidence(entry, parsed.data);
-            setLastFailedPrompt(null);
-            captureTraining(parsed.data);
-            return;
-          }
-        }
-
-        // Handle set_aesthetic tool result
-        if (invocation?.toolName === "set_aesthetic" && invocation?.state === "result") {
-          const result = invocation.result as {
-            success?: boolean;
-            aestheticId?: string;
-            message?: string;
-          };
-          if (result?.success && result?.aestheticId) {
-            updateSettings({ aestheticId: result.aestheticId as "noir" | "minimal" });
-          }
-        }
-      }
-
-      const toolPart = part as {
-        type: string;
-        state?: string;
-        output?: unknown;
-        errorText?: string;
-      };
-
-      if (toolPart.type !== "tool-generate_ui") {
-        continue;
-      }
-
-      if (toolPart.state === "output-error") {
-        setError(`Tool error: ${toolPart.errorText || "Unknown error"}`);
-        continue;
-      }
-
-      if (toolPart.state !== "output-available") {
-        continue;
-      }
-
-      const parsed = a2uiInputSchema.safeParse(toolPart.output);
-      if (!parsed.success) {
-        setError("Invalid tool output");
-        continue;
-      }
-
-      const entry = {
-        id: crypto.randomUUID(),
-        createdAt: Date.now(),
-        label: deriveEvidenceLabel(parsed.data),
-        status: deriveEvidenceStatus(parsed.data),
-        data: parsed.data,
-      };
-      processNewEvidence(entry, parsed.data);
-      captureTraining(parsed.data);
-      return;
-    }
-
-    const legacyInvocations = (lastMessage as { toolInvocations?: unknown }).toolInvocations;
-    if (!Array.isArray(legacyInvocations)) return;
-
-    for (const tool of legacyInvocations) {
-      if (
-        typeof tool !== "object" ||
-        tool === null ||
-        (tool as { toolName?: string }).toolName !== "generate_ui"
-      ) {
-        continue;
-      }
-
-      const result = (tool as { state?: string; result?: unknown }).result;
-      const parsed = a2uiInputSchema.safeParse(result);
-      if (!parsed.success) {
-        setError("Invalid tool output");
-        continue;
-      }
-
-      const entry = {
-        id: crypto.randomUUID(),
-        createdAt: Date.now(),
-        label: deriveEvidenceLabel(parsed.data),
-        status: deriveEvidenceStatus(parsed.data),
-        data: parsed.data,
-      };
-      processNewEvidence(entry, parsed.data);
-      captureTraining(parsed.data);
-      return;
-    }
-  }, [captureTraining, messages, processNewEvidence, updateSettings]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value;
@@ -445,15 +208,6 @@ export function DetectiveWorkspace() {
     }
   };
 
-  const handleSelectEvidence = (id: string) => {
-    const entry = evidenceHistory.find((item) => item.id === id);
-    if (!entry) return;
-    pushUndoState(); // Save state before changing
-    setActiveEvidenceId(id);
-    setEvidence(entry.data);
-    setJson(JSON.stringify(entry.data, null, 2));
-  };
-
   const handleSelectTemplate = (data: A2UIInput) => {
     pushUndoState(); // Save state before loading template
     setEvidence(data);
@@ -465,24 +219,12 @@ export function DetectiveWorkspace() {
   // Track prompt before sending
   const trackAndSend = useCallback(
     (text: string) => {
-      addPrompt(text, activeEvidenceId ?? undefined);
+      addPrompt(text);
       pushUndoState();
       setLastFailedPrompt(text);
       setError(null);
     },
-    [addPrompt, activeEvidenceId, pushUndoState]
-  );
-
-  const sendMessageWithContext = useCallback(
-    (message?: Parameters<typeof sendMessage>[0], options?: Parameters<typeof sendMessage>[1]) =>
-      sendMessage(message, {
-        ...options,
-        body: {
-          ...(options?.body ?? {}),
-          ...buildRequestBody(),
-        },
-      }),
-    [buildRequestBody, sendMessage]
+    [addPrompt, pushUndoState]
   );
 
   // Read the live surface store's currently-rendered surface. sendV09Prompt
@@ -571,7 +313,6 @@ export function DetectiveWorkspace() {
     },
     [
       sendV09Prompt,
-      setMessages,
       readActiveSurface,
       settings.aestheticId,
       settings.imageModel,
@@ -580,52 +321,33 @@ export function DetectiveWorkspace() {
     ]
   );
 
-  // Wrap sendMessage to track prompt history
-  const handleSendMessage: typeof sendMessage = useCallback(
-    async (message, options) => {
-      // Extract text from message if it has a text property
-      const text =
-        message && typeof message === "object" && "text" in message
-          ? (message as { text: string }).text
-          : "";
-      if (text) {
-        trackAndSend(text);
-      }
+  // Send a chat prompt. The v0.9 stream produces UI components plus a
+  // `narration` message (captured via onNarration into v09NarrationRef); we
+  // mirror the exchange into the chat log ourselves so the Interrogation Log
+  // stays populated and TTS can read the detective's reply.
+  const handleSendMessage = useCallback(
+    async (message?: { text: string }) => {
+      const text = message?.text ?? "";
+      if (!text) return;
+      trackAndSend(text);
 
-      // Use A2UI v0.9 endpoint when enabled. The v0.9 stream produces UI
-      // components plus a `narration` message (captured via onNarration into
-      // v09NarrationRef); mirror the exchange into the chat log ourselves so the
-      // Interrogation Log stays populated and TTS can read the detective's reply.
-      if (useV09 && text) {
-        // Don't start a send while a multi-take run is mid-flight: each send
-        // clear()s the surface store, which would wipe a variant still
-        // streaming. (The single-stream case is already serialized by the hook.)
-        if (isGeneratingVariants) {
-          return;
-        }
-        // A normal send is a single take — clear any stale variant picker.
-        setVariants([]);
-        setActiveVariantIndex(0);
-        // Capture the currently-rendered surface BEFORE sending so the model can
-        // AMEND the live UI (Update Rules) instead of regenerating from scratch.
-        const activeSurface = readActiveSurface();
-        const baselineComponents = activeSurface
-          ? Array.from(activeSurface.components.values())
-          : undefined;
-        await runV09Exchange({ text, baselineComponents, recordAsBase: true });
+      // Don't start a send while a multi-take run is mid-flight: each send
+      // clear()s the surface store, which would wipe a variant still streaming.
+      if (isGeneratingVariants) {
         return;
       }
-
-      return sendMessageWithContext(message, options);
+      // A normal send is a single take — clear any stale variant picker.
+      setVariants([]);
+      setActiveVariantIndex(0);
+      // Capture the currently-rendered surface BEFORE sending so the model can
+      // AMEND the live UI (Update Rules) instead of regenerating from scratch.
+      const activeSurface = readActiveSurface();
+      const baselineComponents = activeSurface
+        ? Array.from(activeSurface.components.values())
+        : undefined;
+      await runV09Exchange({ text, baselineComponents, recordAsBase: true });
     },
-    [
-      sendMessageWithContext,
-      trackAndSend,
-      useV09,
-      readActiveSurface,
-      runV09Exchange,
-      isGeneratingVariants,
-    ]
+    [trackAndSend, readActiveSurface, runV09Exchange, isGeneratingVariants]
   );
 
   // Bet 6 — Take 1/2/3. Fire the SAME prompt N times with offset composition
@@ -728,10 +450,9 @@ export function DetectiveWorkspace() {
   // Retry last failed prompt
   const handleRetry = useCallback(() => {
     if (lastFailedPrompt) {
-      trackAndSend(lastFailedPrompt);
-      sendMessageWithContext({ text: lastFailedPrompt });
+      handleSendMessage({ text: lastFailedPrompt });
     }
-  }, [lastFailedPrompt, sendMessageWithContext, trackAndSend]);
+  }, [lastFailedPrompt, handleSendMessage]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -757,7 +478,6 @@ export function DetectiveWorkspace() {
         showEject={layout.showEject}
         showDictaphone={layout.showDictaphone}
         showTemplates={showTemplates}
-        showTraining={showTraining}
         editorWidth={layout.editorWidth}
         sidebarWidth={layout.sidebarWidth}
         ambient={activeAmbient}
@@ -772,13 +492,11 @@ export function DetectiveWorkspace() {
         onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
         onToggleDictaphone={() => updateLayout({ showDictaphone: !layout.showDictaphone })}
         onToggleTemplates={() => setShowTemplates(!showTemplates)}
-        onToggleTraining={() => setShowTraining(!showTraining)}
         onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
         onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
         templatePanel={
           <TemplatePanel onSelect={handleSelectTemplate} onClose={() => setShowTemplates(false)} />
         }
-        trainingPanel={<TrainingDataPanel onClose={() => setShowTraining(false)} />}
         dictaphonePanel={
           <NoirErrorBoundary>
             <DictaphonePanel
@@ -843,7 +561,7 @@ export function DetectiveWorkspace() {
                   </div>
                 )}
               </div>
-            ) : useV09 ? (
+            ) : (
               <div className="flex flex-col gap-3">
                 <A2UIVariantControls
                   variants={variants.length}
@@ -857,19 +575,14 @@ export function DetectiveWorkspace() {
                   onSelectVariant={handleSelectVariant}
                   onIterate={iterateSurface}
                 />
-                <A2UIv09Preview />
+                {messages.length === 0 ? (
+                  // True first run: show the inviting case-board empty state and
+                  // its prompt picker instead of the bare "awaiting lead" surface.
+                  <CaseBoardEmptyState onSelectPrompt={(text) => handleSendMessage({ text })} />
+                ) : (
+                  <A2UIv09Preview />
+                )}
               </div>
-            ) : evidence ? (
-              <EvidenceBoard
-                entries={evidenceHistory}
-                activeId={activeEvidenceId}
-                onSelect={handleSelectEvidence}
-                fallbackEvidence={evidence}
-              />
-            ) : (
-              // No evidence yet (true first run, after removing the seed): show
-              // the inviting case-board empty state instead of an alarm.
-              <CaseBoardEmptyState onSelectPrompt={(text) => handleSendMessage({ text })} />
             )}
           </NoirErrorBoundary>
         }
@@ -884,7 +597,6 @@ export function DetectiveWorkspace() {
             musicEnabled={settings.musicEnabled}
             ambient={activeAmbient}
             modelConfig={modelConfig}
-            useA2UIv09={useV09}
             onUpdateSettings={updateSettings}
             onModelConfigChange={(config) => updateSettings({ modelConfig: config })}
             onToggleCollapse={() => updateLayout({ showSidebar: false })}

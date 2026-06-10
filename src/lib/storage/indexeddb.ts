@@ -1,10 +1,8 @@
 import type { EvidenceEntry } from "@/lib/store/types";
-import type { TrainingExample } from "@/lib/training";
 
 const DB_NAME = "synthNoirDB";
 const DB_VERSION = 1;
 const EVIDENCE_STORE = "evidence";
-const TRAINING_STORE = "training";
 
 function isIndexedDBAvailable(): boolean {
   return typeof indexedDB !== "undefined";
@@ -26,9 +24,6 @@ function getDB(): Promise<IDBDatabase> {
       const db = request.result;
       if (!db.objectStoreNames.contains(EVIDENCE_STORE)) {
         db.createObjectStore(EVIDENCE_STORE, { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains(TRAINING_STORE)) {
-        db.createObjectStore(TRAINING_STORE, { keyPath: "id" });
       }
     };
 
@@ -95,53 +90,6 @@ export async function clearEvidence(): Promise<void> {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(EVIDENCE_STORE, "readwrite");
       const store = tx.objectStore(EVIDENCE_STORE);
-      const request = store.clear();
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  } catch {
-    // fire-and-forget
-  }
-}
-
-// --- Training CRUD ---
-
-export async function getAllTraining(): Promise<TrainingExample[]> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(TRAINING_STORE, "readonly");
-      const store = tx.objectStore(TRAINING_STORE);
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  } catch {
-    return [];
-  }
-}
-
-export async function putTraining(example: TrainingExample): Promise<void> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(TRAINING_STORE, "readwrite");
-      const store = tx.objectStore(TRAINING_STORE);
-      const request = store.put(example);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  } catch {
-    // fire-and-forget
-  }
-}
-
-export async function clearTraining(): Promise<void> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(TRAINING_STORE, "readwrite");
-      const store = tx.objectStore(TRAINING_STORE);
       const request = store.clear();
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);

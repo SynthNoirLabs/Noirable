@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { EvidenceEntry } from "@/lib/store/types";
-import type { TrainingExample } from "@/lib/training";
 
 // --- Minimal IndexedDB mock ---
 
@@ -137,9 +136,6 @@ const {
   putEvidence,
   deleteEvidence,
   clearEvidence,
-  getAllTraining,
-  putTraining,
-  clearTraining,
   exportEvidenceAsJSON,
   importEvidenceFromJSON,
   _resetDB,
@@ -156,20 +152,6 @@ function makeEvidence(id: string): EvidenceEntry {
   };
 }
 
-function makeTraining(id: string): TrainingExample {
-  return {
-    id,
-    prompt: `prompt-${id}`,
-    output: { type: "text", content: `output-${id}`, priority: "normal" },
-    metadata: {
-      category: "layout" as const,
-      complexity: "simple" as const,
-      componentsUsed: [],
-      createdAt: Date.now(),
-    },
-  };
-}
-
 describe("IndexedDB storage", () => {
   beforeEach(async () => {
     _resetDB();
@@ -181,7 +163,6 @@ describe("IndexedDB storage", () => {
     });
     // Clear stores by getting a fresh DB
     await clearEvidence();
-    await clearTraining();
     // Reset again so each test starts with a fresh connection
     _resetDB();
   });
@@ -223,27 +204,6 @@ describe("IndexedDB storage", () => {
       await putEvidence(makeEvidence("e2"));
       await clearEvidence();
       const all = await getAllEvidence();
-      expect(all).toEqual([]);
-    });
-  });
-
-  describe("training CRUD", () => {
-    it("returns empty array when no training stored", async () => {
-      const result = await getAllTraining();
-      expect(result).toEqual([]);
-    });
-
-    it("puts and retrieves training examples", async () => {
-      await putTraining(makeTraining("t1"));
-      const all = await getAllTraining();
-      expect(all).toHaveLength(1);
-      expect(all[0].id).toBe("t1");
-    });
-
-    it("clears all training", async () => {
-      await putTraining(makeTraining("t1"));
-      await clearTraining();
-      const all = await getAllTraining();
       expect(all).toEqual([]);
     });
   });

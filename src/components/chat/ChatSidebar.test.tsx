@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ChatSidebar } from "./ChatSidebar";
 
 type MockAudioEvent =
@@ -55,6 +55,23 @@ const mockMessages = [
 ];
 
 describe("ChatSidebar", () => {
+  // ChatSidebar fires a `/api/elevenlabs/status` fetch on mount (the TTS-config
+  // probe). Without a stub it hits the real (absent) endpoint and resolves
+  // AFTER the test body, triggering "update not wrapped in act()" warnings.
+  // Stub it to a deterministic "not configured" so the effect settles cleanly.
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({ ok: true, json: async () => ({ configured: false }) } as Response)
+      )
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders messages", async () => {
     render(
       <ChatSidebar

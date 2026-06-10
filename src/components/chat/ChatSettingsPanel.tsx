@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Keyboard,
   CloudLightning,
@@ -29,7 +29,6 @@ interface ChatSettingsPanelProps {
   musicEnabled: boolean;
   ambient: Partial<AmbientSettings>;
   modelConfig?: ModelConfig;
-  useA2UIv09: boolean;
   elevenLabsConfigured: boolean | null;
   sfxControls: {
     playTypewriter: () => void;
@@ -47,7 +46,6 @@ export function ChatSettingsPanel({
   musicEnabled,
   ambient,
   modelConfig,
-  useA2UIv09,
   elevenLabsConfigured,
   sfxControls,
   onUpdateSettings,
@@ -207,24 +205,6 @@ export function ChatSettingsPanel({
 
   return (
     <div className="p-4 space-y-4">
-      <div className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs font-mono">
-        <span className="text-[var(--aesthetic-text)]/70">A2UI v0.9</span>
-        <button
-          onClick={() => onUpdateSettings({ useA2UIv09: !useA2UIv09 })}
-          title="Toggle A2UI v0.9 mode"
-          className={cn(
-            "px-2 py-1 border rounded-sm transition-colors min-w-[84px] text-center focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
-            useA2UIv09
-              ? "border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/10"
-              : "border-[var(--aesthetic-border)]/50 text-[var(--aesthetic-text-muted)] hover:border-[var(--aesthetic-text)]"
-          )}
-          aria-label="Toggle A2UI v0.9 mode"
-          aria-pressed={useA2UIv09}
-        >
-          {useA2UIv09 ? "ON" : "OFF"}
-        </button>
-      </div>
-
       <ToggleRow
         label="TYPEWRITER SPEED"
         active={typewriterSpeed === 0}

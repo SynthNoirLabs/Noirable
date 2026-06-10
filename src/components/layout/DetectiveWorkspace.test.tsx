@@ -2,32 +2,18 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 
-type MockMessage = {
-  id: string;
-  role: string;
-  content?: string;
-  parts?: Array<{
-    type: string;
-    text?: string;
-    // Standard AI SDK structure
-    toolInvocation?: {
-      toolName: string;
-      state: string;
-      result: unknown;
-    };
-    // Legacy support (optional)
-    state?: string;
-    output?: unknown;
-  }>;
-  toolInvocations?: unknown[];
-};
-
-let mockMessages: MockMessage[] = [];
-const useChatMock = vi.fn();
-
-// Mock Vercel AI SDK
-vi.mock("@ai-sdk/react", () => ({
-  useChat: (...args: unknown[]) => useChatMock(...args),
+// The workspace is v0.9-only: it drives generation through useA2UIStream (a
+// one-shot SSE POST), not the legacy useChat SDK. Mock the stream hook so tests
+// don't hit the network and we can assert the send path.
+const sendPromptMock = vi.fn().mockResolvedValue(undefined);
+vi.mock("@/lib/a2ui/hooks/useA2UIStream", () => ({
+  useA2UIStream: () => ({
+    sendPrompt: sendPromptMock,
+    isStreaming: false,
+    error: null,
+    clearError: vi.fn(),
+    abort: vi.fn(),
+  }),
 }));
 
 let lastChatSidebarProps: {
@@ -36,7 +22,10 @@ let lastChatSidebarProps: {
 } | null = null;
 
 vi.mock("@/components/chat/ChatSidebar", () => ({
-  ChatSidebar: (props: { messages: Array<{ content: string }>; sendMessage?: () => void }) => {
+  ChatSidebar: (props: {
+    messages: Array<{ content: string }>;
+    sendMessage?: (message: { text: string }) => Promise<void> | void;
+  }) => {
     lastChatSidebarProps = props as typeof lastChatSidebarProps;
     return (
       <div data-testid="chat-messages">
@@ -68,45 +57,30 @@ describe("DetectiveWorkspace", () => {
         },
       },
     });
-    useChatMock.mockImplementation(() => ({
-      messages: mockMessages,
-      status: "ready",
-      sendMessage: vi.fn(),
-      append: vi.fn(),
-    }));
-    useChatMock.mockClear();
+    sendPromptMock.mockClear();
     lastChatSidebarProps = null;
   });
 
-  it("updates preview when json changes", () => {
-    mockMessages = [];
-    const { container } = render(<DetectiveWorkspace />);
+  it("shows the first-run empty state before any generation", () => {
+    render(<DetectiveWorkspace />);
+    expect(screen.getByText(/CASE FILE \/\/ UNOPENED/i)).toBeInTheDocument();
+  });
 
+  it("mirrors edited JSON into the eject evidence store", () => {
+    const { container } = render(<DetectiveWorkspace />);
     const textarea = container.querySelector("textarea");
     if (!textarea) throw new Error("Textarea not found");
 
-    // With no evidence yet, the first-run case-board empty state is shown.
-    expect(screen.getByText(/CASE FILE \/\/ UNOPENED/i)).toBeInTheDocument();
-
-    const newJson = JSON.stringify(
-      {
-        type: "card",
-        title: "New Suspect",
-        status: "active",
-      },
-      null,
-      2
-    );
-
+    const newJson = JSON.stringify({ type: "card", title: "New Suspect", status: "active" });
     fireEvent.change(textarea, { target: { value: newJson } });
 
-    // TypewriterText renders duplicate text for a11y
-    expect(screen.getAllByText("New Suspect").length).toBeGreaterThan(0);
-    expect(screen.getByText("ACTIVE")).toBeInTheDocument();
+    // The editor feeds `evidence` (consumed by Eject Mode), even though the
+    // preview pane now renders the live v0.9 surface rather than this tree.
+    const state = useA2UIStore.getState() as { evidence?: { title?: string } };
+    expect(state.evidence?.title).toBe("New Suspect");
   });
 
   it("allows the editor to fill available height", () => {
-    mockMessages = [];
     const { container } = render(<DetectiveWorkspace />);
     const textarea = container.querySelector("textarea");
     if (!textarea) throw new Error("Textarea not found");
@@ -115,150 +89,34 @@ describe("DetectiveWorkspace", () => {
   });
 
   it("handles invalid json gracefully", () => {
-    mockMessages = [];
     const { container } = render(<DetectiveWorkspace />);
     const textarea = container.querySelector("textarea");
     if (!textarea) throw new Error("Textarea not found");
 
     fireEvent.change(textarea, { target: { value: "{ bad json " } });
-
-    // Error shows in editor area
     expect(screen.getAllByText(/Invalid JSON/).length).toBeGreaterThan(0);
   });
 
   it("renders chat sidebar", () => {
-    mockMessages = [];
     render(<DetectiveWorkspace />);
     expect(screen.getByTestId("chat-messages")).toBeInTheDocument();
   });
 
-  it("renders assistant content when message parts are missing", () => {
-    mockMessages = [
-      {
-        id: "m1",
-        role: "assistant",
-        content: "Legacy assistant response",
-      },
-    ];
-
+  it("sends a prompt through the v0.9 stream and logs the exchange", async () => {
     render(<DetectiveWorkspace />);
-    expect(screen.getByTestId("chat-messages").textContent).toContain("Legacy assistant response");
-  });
-
-  it("passes evidence through the chat request body", async () => {
-    useA2UIStore.setState({
-      evidence: { type: "text", content: "Evidence #1", priority: "normal" },
-    });
-    mockMessages = [];
-
-    render(<DetectiveWorkspace />);
-    // The component re-renders once on mount (loadProfiles populates the custom
-    // profile store), and the useChat mock returns a fresh sendMessage each
-    // render — so read the LATEST result, which is the one the component holds.
-    // (In production useChat memoizes sendMessage, so this is a test artifact.)
-    const results = useChatMock.mock.results;
-    const sendMessageMock = results[results.length - 1]?.value
-      ?.sendMessage as unknown as ReturnType<typeof vi.fn>;
-    expect(sendMessageMock).toBeTruthy();
     await act(async () => {
-      await lastChatSidebarProps?.sendMessage?.({ text: "Ping" });
+      await lastChatSidebarProps?.sendMessage?.({ text: "Find the suspect" });
     });
-    expect(sendMessageMock).toHaveBeenCalledWith(
-      { text: "Ping" },
-      expect.objectContaining({
-        body: expect.objectContaining({
-          evidence: { type: "text", content: "Evidence #1", priority: "normal" },
-        }),
-      })
-    );
+    // The stream hook received the prompt as its first argument.
+    expect(sendPromptMock).toHaveBeenCalledTimes(1);
+    expect(sendPromptMock.mock.calls[0][0]).toBe("Find the suspect");
+    // ...and the user line was mirrored into the chat log.
+    expect(screen.getByTestId("chat-messages").textContent).toContain("Find the suspect");
   });
 
-  it("updates evidence when tool output arrives", async () => {
-    mockMessages = [
-      {
-        id: "m1",
-        role: "assistant",
-        parts: [
-          {
-            type: "tool-invocation",
-            toolInvocation: {
-              toolName: "generate_ui",
-              state: "result",
-              result: {
-                type: "card",
-                title: "Missing: Jane Doe",
-                description: "Last seen near the docks",
-                status: "missing",
-              },
-            },
-          },
-        ],
-      },
-    ];
-
-    render(<DetectiveWorkspace />);
-    const titles = await screen.findAllByText("Missing: Jane Doe");
-    expect(titles.length).toBeGreaterThan(0);
-    const statuses = await screen.findAllByText("MISSING");
-    expect(statuses.length).toBeGreaterThan(0);
-  });
-
-  it("records evidence history and sets active evidence id", () => {
-    mockMessages = [
-      {
-        id: "m1",
-        role: "assistant",
-        parts: [
-          {
-            type: "tool-invocation",
-            toolInvocation: {
-              toolName: "generate_ui",
-              state: "result",
-              result: {
-                type: "card",
-                title: "Suspect Profile",
-                description: "Classified",
-                status: "active",
-              },
-            },
-          },
-        ],
-      },
-    ];
-
-    render(<DetectiveWorkspace />);
-    const state = useA2UIStore.getState() as {
-      evidenceHistory?: Array<{ id: string }>;
-      activeEvidenceId?: string;
-    };
-
-    expect(state.evidenceHistory?.length).toBe(1);
-    expect(state.activeEvidenceId).toBe(state.evidenceHistory?.[0]?.id);
-  });
-
-  it("renders the Bet 6 variant + iteration controls when A2UI v0.9 is enabled", () => {
-    mockMessages = [];
-    useA2UIStore.setState({
-      evidence: null,
-      settings: {
-        typewriterSpeed: 30,
-        soundEnabled: true,
-        useA2UIv09: true,
-        modelConfig: { provider: "auto", model: "" },
-        ambient: {
-          rainEnabled: true,
-          rainVolume: 1,
-          fogEnabled: true,
-          intensity: "medium",
-          crackleEnabled: false,
-          crackleVolume: 0.35,
-        },
-      },
-    });
-
+  it("renders the Bet 6 variant + iteration controls (always on in v0.9-only mode)", () => {
     render(<DetectiveWorkspace />);
 
-    // Toolbar with the explicit (gated) multi-take action + iteration buttons.
     expect(screen.getByTestId("a2ui-variant-controls")).toBeInTheDocument();
     expect(screen.getByLabelText("Generate three takes")).toBeInTheDocument();
     expect(screen.getByText("Make it fancier")).toBeInTheDocument();
@@ -270,45 +128,5 @@ describe("DetectiveWorkspace", () => {
 
     // No takes captured yet → the Take picker is hidden.
     expect(screen.queryByTestId("a2ui-take-picker")).not.toBeInTheDocument();
-  });
-
-  it("renders nested tool output", async () => {
-    mockMessages = [
-      {
-        id: "m1",
-        role: "assistant",
-        parts: [
-          {
-            type: "tool-invocation",
-            toolInvocation: {
-              toolName: "generate_ui",
-              state: "result",
-              result: {
-                type: "container",
-                style: { padding: "md", gap: "sm" },
-                children: [
-                  { type: "heading", level: 2, text: "Case Intake" },
-                  {
-                    type: "row",
-                    style: { gap: "sm" },
-                    children: [
-                      { type: "input", label: "Name", placeholder: "Jane Doe" },
-                      { type: "button", label: "Submit", variant: "primary" },
-                    ],
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      },
-    ];
-
-    render(<DetectiveWorkspace />);
-    const headers = await screen.findAllByText("Case Intake");
-    expect(headers.length).toBeGreaterThan(0);
-    expect(await screen.findByLabelText("Name")).toBeInTheDocument();
-    const submits = await screen.findAllByText("Submit");
-    expect(submits.length).toBeGreaterThan(0);
   });
 });

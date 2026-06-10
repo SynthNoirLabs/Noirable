@@ -29,8 +29,6 @@ export interface Settings {
   musicEnabled?: boolean;
   modelConfig: ModelConfig;
   ambient: AmbientSettings;
-  /** Use A2UI v0.9 protocol instead of legacy */
-  useA2UIv09?: boolean;
   /** Active aesthetic profile ID */
   aestheticId?: AestheticId;
   /** Active image generation model ID */
@@ -112,6 +110,3 @@ export interface PromptEntry {
   text: string;
   evidenceId?: string;
 }
-
-// Re-export TrainingExample for convenience
-export type { TrainingExample } from "@/lib/training";
