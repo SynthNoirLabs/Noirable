@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { SurfaceConfig, SurfaceComponent, SurfaceState } from "../surfaces/manager";
+import { setAtPath } from "../binding/pointer";
 
 /**
  * A2UI v0.9 Surface Store
@@ -7,8 +8,11 @@ import type { SurfaceConfig, SurfaceComponent, SurfaceState } from "../surfaces/
  * Zustand store for managing surface-scoped state. Each surface maintains
  * its own component tree and data model, isolated from other surfaces.
  *
- * This store wraps the SurfaceManager class to provide reactive state
- * management with Zustand subscriptions for React re-rendering.
+ * This is the standalone source of truth for surface state: it owns the
+ * surface Map directly and exposes reactive Zustand subscriptions for React
+ * re-rendering. (Only the SurfaceConfig/SurfaceComponent/SurfaceState types are
+ * shared with ../surfaces/manager.) Unlike a throw-at-ceiling manager, the
+ * store evicts the oldest surface when MAX_SURFACES is reached.
  */
 
 interface SurfaceStoreState {
@@ -100,84 +104,6 @@ interface SurfaceStoreState {
  * Maximum number of concurrent surfaces allowed per session
  */
 const MAX_SURFACES = 10;
-
-/**
- * Parses a JSON Pointer path and sets a value in an object
- *
- * @param obj - The object to modify
- * @param path - JSON Pointer path (e.g., "/user/name")
- * @param value - Value to set at the path
- */
-/** Keys that must never be written through a JSON Pointer (prototype pollution). */
-const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
-
-/** Decode a JSON Pointer token per RFC 6901 (~1 → "/", ~0 → "~"). */
-function decodeToken(token: string): string {
-  return token.replace(/~1/g, "/").replace(/~0/g, "~");
-}
-
-/**
- * Sets (or deletes) a value in an object at a JSON Pointer path.
- *
- * Implements the A2UI v0.9 upsert semantics:
- * - Root path ("/" or "") replaces the entire data model.
- * - An `undefined` value removes the key at the target path.
- * - Tokens are RFC 6901 decoded; prototype-polluting keys are rejected.
- *
- * @returns The (possibly new) root object to assign back.
- */
-function setAtPath(
-  obj: Record<string, unknown>,
-  path: string,
-  value: unknown
-): Record<string, unknown> {
-  // Handle root path — replace the whole model.
-  if (path === "/" || path === "") {
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      return { ...(value as Record<string, unknown>) };
-    }
-    // A non-object root value is not representable as a data model; ignore.
-    return obj;
-  }
-
-  // Remove leading slash, split, and RFC 6901 decode each token.
-  const parts = path.replace(/^\//, "").split("/").map(decodeToken);
-
-  if (parts.some((part) => UNSAFE_KEYS.has(part))) {
-    return obj;
-  }
-
-  let current: Record<string, unknown> = obj;
-
-  // Navigate to the parent of the target, creating containers as needed.
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    const nextPart = parts[i + 1];
-    const isNextArray = /^\d+$/.test(nextPart);
-
-    const existing = current[part];
-    if (existing === null || typeof existing !== "object") {
-      current[part] = isNextArray ? [] : {};
-    }
-
-    current = current[part] as Record<string, unknown>;
-  }
-
-  const lastPart = parts[parts.length - 1];
-
-  // An omitted value deletes the key (v0.9 delete semantics).
-  if (value === undefined) {
-    if (Array.isArray(current) && /^\d+$/.test(lastPart)) {
-      current.splice(Number(lastPart), 1);
-    } else {
-      delete current[lastPart];
-    }
-    return obj;
-  }
-
-  current[lastPart] = value;
-  return obj;
-}
 
 /**
  * Zustand store for surface-scoped state management

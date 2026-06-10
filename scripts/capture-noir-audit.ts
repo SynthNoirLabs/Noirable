@@ -6,7 +6,7 @@
  *
  * Screenshots are written to docs/screenshots/audit/.
  */
-import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 

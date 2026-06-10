@@ -5,7 +5,6 @@ import {
   PanelRightOpen,
   Code,
   LayoutTemplate,
-  Database,
   Disc,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,14 +20,12 @@ interface DeskLayoutProps {
   sidebar?: React.ReactNode;
   ejectPanel?: React.ReactNode;
   templatePanel?: React.ReactNode;
-  trainingPanel?: React.ReactNode;
   dictaphonePanel?: React.ReactNode;
   showEditor?: boolean;
   showSidebar?: boolean;
   showEject?: boolean;
   showDictaphone?: boolean;
   showTemplates?: boolean;
-  showTraining?: boolean;
   onToggleDictaphone?: () => void;
   editorWidth?: number;
   sidebarWidth?: number;
@@ -36,7 +33,6 @@ interface DeskLayoutProps {
   onToggleSidebar?: () => void;
   onToggleEject?: () => void;
   onToggleTemplates?: () => void;
-  onToggleTraining?: () => void;
   onResizeEditor?: (nextWidth: number) => void;
   onResizeSidebar?: (nextWidth: number) => void;
   ambient?: AmbientSettings;
@@ -57,21 +53,18 @@ export function DeskLayout({
   sidebar,
   ejectPanel,
   templatePanel,
-  trainingPanel,
   dictaphonePanel,
   showEditor = true,
   showSidebar = true,
   showEject = false,
   showDictaphone = false,
   showTemplates = false,
-  showTraining = false,
   editorWidth = 300,
   sidebarWidth = 360,
   onToggleEditor,
   onToggleSidebar,
   onToggleEject,
   onToggleTemplates,
-  onToggleTraining,
   onToggleDictaphone,
   onResizeEditor,
   onResizeSidebar,
@@ -88,7 +81,6 @@ export function DeskLayout({
   const isSidebarVisible = Boolean(sidebar) && showSidebar;
   const isEjectVisible = Boolean(ejectPanel) && showEject;
   const isTemplatesVisible = Boolean(templatePanel) && showTemplates;
-  const isTrainingVisible = Boolean(trainingPanel) && showTraining;
   const isDictaphoneVisible = Boolean(dictaphonePanel) && showDictaphone;
   const ejectShortcut = formatShortcut(["mod", "e"]);
   // `persist` may rehydrate older saved settings that don't include newly added fields.
@@ -124,7 +116,6 @@ export function DeskLayout({
     cols.push("1fr");
     if (isDictaphoneVisible) cols.push("380px");
     if (isEjectVisible) cols.push("400px");
-    if (isTrainingVisible) cols.push("420px");
     // Sidebar is now fixed position, not in grid - but reserve space with margin
     return `grid-cols-[${cols.join("_")}]`;
   };
@@ -295,23 +286,6 @@ export function DeskLayout({
               {copy.workspaceTitle}
             </span>
             <div className="flex items-center gap-2 overflow-x-auto">
-              {onToggleTraining && (
-                <button
-                  type="button"
-                  onClick={onToggleTraining}
-                  aria-label={showTraining ? "Hide training data" : "Show training data"}
-                  title={showTraining ? "Hide training data" : "Training data archive"}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
-                    showTraining
-                      ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
-                      : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
-                  )}
-                >
-                  <Database className="w-3 h-3" />
-                  Training
-                </button>
-              )}
               {onToggleTemplates && (
                 <button
                   type="button"
@@ -387,11 +361,6 @@ export function DeskLayout({
 
       {isEjectVisible && ejectPanel && (
         <div className="h-full overflow-hidden relative z-10">{ejectPanel}</div>
-      )}
-
-      {/* Training Panel */}
-      {isTrainingVisible && trainingPanel && (
-        <div className="h-full overflow-hidden relative z-10">{trainingPanel}</div>
       )}
 
       {/* Sidebar (Right) - Fixed position to follow scroll */}

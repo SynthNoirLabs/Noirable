@@ -2,12 +2,10 @@ import { create } from "zustand";
 import { createJSONStorage, persist, type PersistStorage } from "zustand/middleware";
 import type { A2UIInput } from "@/lib/protocol/schema";
 import { AVAILABLE_MODELS } from "@/lib/ai/model-registry";
-import type { TrainingExample } from "@/lib/training";
 import { encryptValue, decryptValue } from "@/lib/customization/crypto";
 
 import { createEvidenceSlice, type EvidenceSlice } from "./slices/evidenceSlice";
 import { createPromptSlice, type PromptSlice } from "./slices/promptSlice";
-import { createTrainingSlice, type TrainingSlice } from "./slices/trainingSlice";
 import { createSettingsSlice, type SettingsSlice } from "./slices/settingsSlice";
 import type { Settings, EvidenceEntry, PromptEntry, Layout } from "./types";
 
@@ -23,16 +21,14 @@ export type {
   EvidenceEntry,
   PromptEntry,
   Layout,
-  TrainingExample,
 } from "./types";
 export { AVAILABLE_MODELS };
 
-export type A2UIState = EvidenceSlice & PromptSlice & TrainingSlice & SettingsSlice;
+export type A2UIState = EvidenceSlice & PromptSlice & SettingsSlice;
 
 const STORAGE_DEBOUNCE_MS = 300;
 const MAX_EVIDENCE_HISTORY = 200;
 const MAX_PROMPT_HISTORY = 100;
-const MAX_TRAINING_EXAMPLES = 1000;
 
 function createDebouncedStorage<S>(storage: PersistStorage<S>, delayMs: number): PersistStorage<S> {
   const timeouts = new Map<string, ReturnType<typeof setTimeout>>();
@@ -68,7 +64,6 @@ type PersistedState = {
   evidenceHistory: EvidenceEntry[];
   activeEvidenceId: string | null;
   promptHistory: PromptEntry[];
-  trainingExamples: TrainingExample[];
 };
 
 /**
@@ -151,7 +146,6 @@ export const useA2UIStore = create<A2UIState>()(
     (...a) => ({
       ...createEvidenceSlice(...a),
       ...createPromptSlice(...a),
-      ...createTrainingSlice(...a),
       ...createSettingsSlice(...a),
     }),
     {
@@ -164,7 +158,6 @@ export const useA2UIStore = create<A2UIState>()(
         evidenceHistory: state.evidenceHistory.slice(-MAX_EVIDENCE_HISTORY),
         activeEvidenceId: state.activeEvidenceId,
         promptHistory: state.promptHistory.slice(-MAX_PROMPT_HISTORY),
-        trainingExamples: state.trainingExamples.slice(-MAX_TRAINING_EXAMPLES),
         // Note: undoStack/redoStack intentionally not persisted
       }),
     }

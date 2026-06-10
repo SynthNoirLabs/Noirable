@@ -78,7 +78,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { SurfaceState, SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
-import { resolvePointer } from "@/lib/a2ui/binding/pointer";
+import { resolvePointer, setAtPath } from "@/lib/a2ui/binding/pointer";
 import { isFunctionCall, evaluateFunctionCall } from "@/lib/a2ui/binding/functions";
 import { resolveChildList } from "@/lib/a2ui/binding/template-children";
 import { runChecks, type CheckRule } from "@/lib/a2ui/validation";
@@ -192,70 +192,6 @@ function useBaseAestheticId() {
   });
   const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
   return activeProfile?.baseAestheticId ?? fallbackAestheticId;
-}
-
-/** RFC 6901 token decode (~1 → "/", ~0 → "~"). */
-function decodeToken(token: string): string {
-  return token.replace(/~1/g, "/").replace(/~0/g, "~");
-}
-
-const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
-
-/**
- * Immutable set-at-JSON-Pointer for the renderer's working copy of the data
- * model. Mirrors the store's upsert semantics (root replace, delete on
- * `undefined`, array creation) but returns a fresh object graph so React sees
- * a new reference.
- */
-function setAtPathImmutable(
-  root: Record<string, unknown>,
-  path: string,
-  value: unknown
-): Record<string, unknown> {
-  if (path === "/" || path === "") {
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      return { ...(value as Record<string, unknown>) };
-    }
-    return root;
-  }
-
-  const parts = path.replace(/^\//, "").split("/").map(decodeToken);
-
-  if (parts.some((part) => UNSAFE_KEYS.has(part))) {
-    return root;
-  }
-
-  const clone = Array.isArray(root) ? [...root] : { ...root };
-  let cursor: Record<string, unknown> = clone as Record<string, unknown>;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    const nextIsArray = /^\d+$/.test(parts[i + 1]);
-    const existing = cursor[part];
-    const copied =
-      existing === null || typeof existing !== "object"
-        ? nextIsArray
-          ? []
-          : {}
-        : Array.isArray(existing)
-          ? [...existing]
-          : { ...(existing as Record<string, unknown>) };
-    cursor[part] = copied;
-    cursor = copied as Record<string, unknown>;
-  }
-
-  const last = parts[parts.length - 1];
-  if (value === undefined) {
-    if (Array.isArray(cursor) && /^\d+$/.test(last)) {
-      (cursor as unknown[]).splice(Number(last), 1);
-    } else {
-      delete cursor[last];
-    }
-  } else {
-    cursor[last] = value;
-  }
-
-  return clone as Record<string, unknown>;
 }
 
 // ============================================================================
@@ -1438,7 +1374,7 @@ function ButtonRenderer({ component }: ComponentProps) {
         "px-4 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--aesthetic-background)] focus-visible:ring-[var(--aesthetic-accent)]",
         borderless
           ? "text-[var(--aesthetic-accent)] hover:text-[var(--aesthetic-accent)]/80 border border-[var(--aesthetic-accent)]/40 rounded-[var(--aesthetic-radius,2px)] hover:border-[var(--aesthetic-accent)]"
-          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-[var(--aesthetic-radius,2px)] shadow-[0_2px_12px_rgba(255,191,0,0.25)]"
+          : "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-background)] hover:bg-[var(--aesthetic-accent)]/90 rounded-[var(--aesthetic-radius,2px)] shadow-[0_2px_12px_color-mix(in_srgb,var(--aesthetic-accent)_25%,transparent)]"
       )}
     >
       {label}
@@ -2201,7 +2137,7 @@ export function SurfaceRenderer({
 
   const setData = useCallback(
     (path: string, value: unknown) => {
-      setDataModelLocal((prev) => setAtPathImmutable(prev, path, value));
+      setDataModelLocal((prev) => setAtPath(prev, path, value, { immutable: true }));
       if (storeHasSurface(surface.config.surfaceId)) {
         storeSetDataModel(surface.config.surfaceId, path, value);
       }

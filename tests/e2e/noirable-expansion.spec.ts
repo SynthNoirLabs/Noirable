@@ -50,20 +50,11 @@ async function injectE2EStyles(
   );
 }
 
-// Helper: Enable A2UI v0.9 mode in the chat settings
+// Helper: A2UI v0.9 is now the only rendering path (the legacy toggle was
+// removed), so this is a no-op kept for call-site clarity — it just waits for
+// hydration before the test drives the chat.
 async function enableA2UIv09(page: Page) {
   await page.waitForTimeout(1500); // Wait for hydration
-  const settingsBtn = page.getByLabel("Open settings");
-  await settingsBtn.waitFor({ state: "visible" });
-  await settingsBtn.click();
-  const toggleBtn = page.getByLabel("Toggle A2UI v0.9 mode");
-  await toggleBtn.waitFor({ state: "visible" });
-  const pressed = await toggleBtn.getAttribute("aria-pressed");
-  if (pressed !== "true") {
-    await toggleBtn.click();
-  }
-  await settingsBtn.click(); // Close panel
-  await page.waitForTimeout(500); // Wait for panel animation
 }
 
 test.describe("Tier 1: Feature Coverage", () => {

@@ -251,4 +251,4 @@ pnpm e2e tests/e2e/a2ui/
 
 ### Legacy Protocol
 
-The original tool-result protocol (`src/lib/protocol/schema.ts`, 23 component types) is still functional but superseded. New features should use A2UI v0.9.
+The original tool-result protocol (`src/lib/protocol/schema.ts`, 24 component types) is still functional but superseded. New features should use A2UI v0.9.

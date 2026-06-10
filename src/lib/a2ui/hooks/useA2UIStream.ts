@@ -24,6 +24,12 @@ export interface UseA2UIStreamOptions {
   onError?: (error: Error) => void;
   /** Callback with the detective's in-character narration for the chat log. */
   onNarration?: (text: string) => void;
+  /**
+   * Callback with the resolved legacy A2UI tree (image prompts already swapped
+   * for real URLs, pre-flatten) for the surface root. This is the high-fidelity
+   * shape the eject/export feature consumes.
+   */
+  onSource?: (tree: unknown) => void;
 }
 
 export interface UseA2UIStreamResult {
@@ -100,7 +106,7 @@ function isA2UIMessage(data: unknown): data is A2UIMessage {
 // ============================================================================
 
 export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStreamResult {
-  const { endpoint = "/api/a2ui/stream", onComplete, onError, onNarration } = options;
+  const { endpoint = "/api/a2ui/stream", onComplete, onError, onNarration, onSource } = options;
 
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -119,6 +125,13 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
         typeof (data as { text?: unknown }).text === "string"
       ) {
         onNarration?.((data as { text: string }).text);
+        return;
+      }
+
+      // `source` is a non-surface message carrying the resolved legacy A2UI tree
+      // for the export (eject) feature.
+      if (data && typeof data === "object" && (data as { type?: string }).type === "source") {
+        onSource?.((data as { tree?: unknown }).tree);
         return;
       }
 
@@ -156,7 +169,7 @@ export function useA2UIStream(options: UseA2UIStreamOptions = {}): UseA2UIStream
           break;
       }
     },
-    [createSurface, updateComponents, setDataModel, deleteSurface, onNarration]
+    [createSurface, updateComponents, setDataModel, deleteSurface, onNarration, onSource]
   );
 
   const sendPrompt = useCallback(

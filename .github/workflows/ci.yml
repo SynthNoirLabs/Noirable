@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel a PR's superseded in-flight runs when a new commit is pushed; main runs
+# are keyed by ref and never auto-cancelled.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -28,9 +34,9 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Run checks (prettier, eslint, vitest, build)
+      - name: Run checks (prettier, eslint, stylelint, typecheck, vitest, build)
         run: pnpm check
 
   # End-to-end Playwright specs. Non-blocking (continue-on-error) and the visual
@@ -42,9 +48,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: check
     continue-on-error: true
-    # Hard backstop: e2e serves a production build (see playwright.config.ts) and
-    # runs ~100 specs; this caps a hung run rather than letting it idle for the
-    # default 6h. Comfortably above the expected build + suite time.
+    # Hard backstop: e2e runs the suite against a `next dev` server (see
+    # playwright.config.ts), which cold-compiles each route on first hit; this
+    # caps a hung run rather than letting it idle for the default 6h.
     timeout-minutes: 20
 
     strategy:
@@ -64,7 +70,7 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium

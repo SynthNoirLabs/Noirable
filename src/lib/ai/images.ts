@@ -253,6 +253,150 @@ const GOOGLE_IMAGE_CONFIG_ASPECTS = new Set([
  */
 const IMAGEN_ASPECTS = new Set(["1:1", "3:4", "4:3", "9:16", "16:9"]);
 
+/**
+ * Detect a transient "the backend is out of capacity" failure (HTTP 429 /
+ * RESOURCE_EXHAUSTED) as opposed to a quota/permission/validation error. Google's
+ * Imagen endpoint frequently returns this when ITS servers are saturated — it is
+ * not the caller's quota. The AI SDK wraps the original error as an AI_RetryError
+ * with the real APICallError under `lastError`/`errors`, so probe both.
+ */
+function isCapacityError(error: unknown): boolean {
+  const probe = (e: unknown): boolean => {
+    if (!e || typeof e !== "object") return false;
+    const obj = e as { statusCode?: number; message?: unknown };
+    if (obj.statusCode === 429) return true;
+    const msg = typeof obj.message === "string" ? obj.message : "";
+    return /resource[_\s]?exhausted|out of capacity|too many requests|\b429\b/i.test(msg);
+  };
+  const err = error as { lastError?: unknown; errors?: unknown };
+  if (probe(error) || probe(err?.lastError)) return true;
+  return Array.isArray(err?.errors) && err.errors.some(probe);
+}
+
+/**
+ * Pick an alternate Google image model to fall back to when the selected one is
+ * out of capacity. Prefers a model on a DIFFERENT backend (imageGenMethod) — an
+ * Imagen (`generateImage`) capacity outage is independent of the Gemini-native
+ * (`generateText`) image path and vice-versa, so switching backends is the most
+ * likely way to recover. Returns null if there is no other Google image model.
+ */
+function selectGoogleFallbackModel(currentModelId: string): ModelInfo | null {
+  const current = getModelInfo(currentModelId);
+  const others = getImageGenerationModels().filter(
+    (m) => m.provider === "google" && m.id !== currentModelId
+  );
+  if (others.length === 0) return null;
+  const differentBackend = current
+    ? others.find((m) => m.capabilities.imageGenMethod !== current.capabilities.imageGenMethod)
+    : undefined;
+  return differentBackend ?? others[0];
+}
+
+/**
+ * Run a single image-generation request against one resolved model. Throws on
+ * failure (the caller decides whether to fall back). `maxRetries` is kept low so
+ * a saturated endpoint fails fast enough to fail over to another backend instead
+ * of burning minutes of exponential backoff on the dead one.
+ */
+async function runImageModel(
+  model: ModelInfo,
+  provider: "google" | "openai",
+  direction: ImageDirection
+): Promise<string | null> {
+  const styledPrompt = direction.prompt;
+  const method = model.capabilities.imageGenMethod;
+  // One retry per endpoint: a 429 "out of capacity" rarely clears within a few
+  // quick retries (it's a sustained backend condition), so we'd rather fail over
+  // to a different model than wait out long backoff on the saturated one.
+  const maxRetries = 1;
+
+  let result;
+
+  if (provider === "google" && method === "generateText") {
+    const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    const google = createGoogleGenerativeAI({ apiKey: googleKey! });
+    // Gemini's generateText image path takes responseModalities + an optional
+    // imageConfig.aspectRatio. It exposes NO structured negativePrompt/seed
+    // field (see GoogleGenerativeAIProviderOptions in @ai-sdk/google), so the
+    // negatives are folded into the prompt as a prose directive and the seed
+    // is left to the provider default. Guarded so the existing call is intact.
+    const googleOptions: {
+      responseModalities: ["IMAGE"];
+      imageConfig?: { aspectRatio: string };
+    } = { responseModalities: ["IMAGE"] };
+    if (direction.aspectRatio && GOOGLE_IMAGE_CONFIG_ASPECTS.has(direction.aspectRatio)) {
+      googleOptions.imageConfig = { aspectRatio: direction.aspectRatio };
+    }
+    const geminiPrompt = direction.negativePrompt
+      ? `${styledPrompt}. Avoid: ${direction.negativePrompt}.`
+      : styledPrompt;
+    result = await generateText({
+      model: google(model.id),
+      prompt: geminiPrompt,
+      maxRetries,
+      providerOptions: {
+        google: googleOptions,
+      },
+    });
+  } else if (provider === "google" && method === "generateImage") {
+    // Google Imagen (e.g. imagen-4.0-generate-001). It MUST go through the
+    // Google provider's image() factory — passing a bare model-id string to
+    // generateImage only resolves via the AI Gateway, so without a gateway key
+    // it throws and the image 404s. Imagen takes its aspect ratio through
+    // providerOptions.google.aspectRatio (a restricted set), NOT the top-level
+    // aspectRatio/seed params (which it ignores), and exposes no seed /
+    // negativePrompt in the current ai-sdk surface — negatives stay in-prompt.
+    const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    const google = createGoogleGenerativeAI({ apiKey: googleKey! });
+    const imagenPrompt = direction.negativePrompt
+      ? `${styledPrompt}. Avoid: ${direction.negativePrompt}.`
+      : styledPrompt;
+    const imagenProviderOptions =
+      direction.aspectRatio && IMAGEN_ASPECTS.has(direction.aspectRatio)
+        ? { google: { aspectRatio: direction.aspectRatio } }
+        : undefined;
+    result = await generateImage({
+      model: google.image(model.id),
+      prompt: imagenPrompt,
+      maxRetries,
+      ...(imagenProviderOptions ? { providerOptions: imagenProviderOptions } : {}),
+    });
+  } else if (provider === "openai" && method === "generateImage") {
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const openai = createOpenAI({ apiKey: openaiKey });
+    // OpenAI image models support top-level aspectRatio + seed but have no
+    // negativePrompt; only thread what's supported, each guarded optionally.
+    result = await generateImage({
+      model: openai.image(model.id),
+      prompt: styledPrompt,
+      maxRetries,
+      ...(direction.aspectRatio
+        ? { aspectRatio: direction.aspectRatio as `${number}:${number}` }
+        : {}),
+      ...(typeof direction.seed === "number" ? { seed: direction.seed } : {}),
+    });
+  } else if (method === "generateImage") {
+    // Generic image path for any other provider reachable via the AI Gateway
+    // (string model id). generateImage forwards top-level aspectRatio/seed when
+    // the provider supports them; otherwise they fall back to defaults.
+    result = await generateImage({
+      model: model.id,
+      prompt: styledPrompt,
+      maxRetries,
+      ...(direction.aspectRatio
+        ? { aspectRatio: direction.aspectRatio as `${number}:${number}` }
+        : {}),
+      ...(typeof direction.seed === "number" ? { seed: direction.seed } : {}),
+    });
+  } else {
+    return null;
+  }
+
+  const file = "image" in result ? result.image : result.files?.[0];
+  if (!file) return null;
+  return `data:${file.mediaType};base64,${file.base64}`;
+}
+
 export async function generateImageDataUrl(
   prompt: string,
   aestheticId?: string,
@@ -262,117 +406,52 @@ export async function generateImageDataUrl(
   sessionSeed?: number,
   imageIndex?: number
 ) {
+  const selection = selectImageModel(imageModel, aestheticId);
+  if (!selection) {
+    console.warn("[AI Image Gen] No image generation model selected or available.");
+    return null;
+  }
+
+  const { model, provider } = selection;
+  const direction = buildImageDirection({
+    prompt,
+    aestheticId,
+    customImageStylePrompt,
+    aspectRatio,
+    sessionSeed,
+    imageIndex,
+  });
+
+  console.log(
+    `[AI Image Gen] Requesting image generation:\n` +
+      `  - Model: ${model.id} (${model.name})\n` +
+      `  - Provider: ${provider}\n` +
+      `  - Method: ${model.capabilities.imageGenMethod}\n` +
+      `  - Aspect: ${direction.aspectRatio ?? "default"}, Seed: ${direction.seed ?? "default"}\n` +
+      `  - Prompt: "${direction.prompt}"\n` +
+      `  - Negative: "${direction.negativePrompt}"`
+  );
+
   try {
-    const selection = selectImageModel(imageModel, aestheticId);
-    if (!selection) {
-      console.warn("[AI Image Gen] No image generation model selected or available.");
-      return null;
-    }
-
-    const { model, provider } = selection;
-    const direction = buildImageDirection({
-      prompt,
-      aestheticId,
-      customImageStylePrompt,
-      aspectRatio,
-      sessionSeed,
-      imageIndex,
-    });
-    const styledPrompt = direction.prompt;
-
-    console.log(
-      `[AI Image Gen] Requesting image generation:\n` +
-        `  - Model: ${model.id} (${model.name})\n` +
-        `  - Provider: ${provider}\n` +
-        `  - Method: ${model.capabilities.imageGenMethod}\n` +
-        `  - Aspect: ${direction.aspectRatio ?? "default"}, Seed: ${direction.seed ?? "default"}\n` +
-        `  - Prompt: "${styledPrompt}"\n` +
-        `  - Negative: "${direction.negativePrompt}"`
-    );
-    const method = model.capabilities.imageGenMethod;
-
-    let result;
-
-    if (provider === "google" && method === "generateText") {
-      const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
-      const google = createGoogleGenerativeAI({ apiKey: googleKey! });
-      // Gemini's generateText image path takes responseModalities + an optional
-      // imageConfig.aspectRatio. It exposes NO structured negativePrompt/seed
-      // field (see GoogleGenerativeAIProviderOptions in @ai-sdk/google), so the
-      // negatives are folded into the prompt as a prose directive and the seed
-      // is left to the provider default. Guarded so the existing call is intact.
-      const googleOptions: {
-        responseModalities: ["IMAGE"];
-        imageConfig?: { aspectRatio: string };
-      } = { responseModalities: ["IMAGE"] };
-      if (direction.aspectRatio && GOOGLE_IMAGE_CONFIG_ASPECTS.has(direction.aspectRatio)) {
-        googleOptions.imageConfig = { aspectRatio: direction.aspectRatio };
-      }
-      const geminiPrompt = direction.negativePrompt
-        ? `${styledPrompt}. Avoid: ${direction.negativePrompt}.`
-        : styledPrompt;
-      result = await generateText({
-        model: google(model.id),
-        prompt: geminiPrompt,
-        providerOptions: {
-          google: googleOptions,
-        },
-      });
-    } else if (provider === "google" && method === "generateImage") {
-      // Google Imagen (e.g. imagen-4.0-generate-001). It MUST go through the
-      // Google provider's image() factory — passing a bare model-id string to
-      // generateImage only resolves via the AI Gateway, so without a gateway key
-      // it throws and the image 404s. Imagen takes its aspect ratio through
-      // providerOptions.google.aspectRatio (a restricted set), NOT the top-level
-      // aspectRatio/seed params (which it ignores), and exposes no seed /
-      // negativePrompt in the current ai-sdk surface — negatives stay in-prompt.
-      const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
-      const google = createGoogleGenerativeAI({ apiKey: googleKey! });
-      const imagenPrompt = direction.negativePrompt
-        ? `${styledPrompt}. Avoid: ${direction.negativePrompt}.`
-        : styledPrompt;
-      const imagenProviderOptions =
-        direction.aspectRatio && IMAGEN_ASPECTS.has(direction.aspectRatio)
-          ? { google: { aspectRatio: direction.aspectRatio } }
-          : undefined;
-      result = await generateImage({
-        model: google.image(model.id),
-        prompt: imagenPrompt,
-        ...(imagenProviderOptions ? { providerOptions: imagenProviderOptions } : {}),
-      });
-    } else if (provider === "openai" && method === "generateImage") {
-      const openaiKey = process.env.OPENAI_API_KEY;
-      const openai = createOpenAI({ apiKey: openaiKey });
-      // OpenAI image models support top-level aspectRatio + seed but have no
-      // negativePrompt; only thread what's supported, each guarded optionally.
-      result = await generateImage({
-        model: openai.image(model.id),
-        prompt: styledPrompt,
-        ...(direction.aspectRatio
-          ? { aspectRatio: direction.aspectRatio as `${number}:${number}` }
-          : {}),
-        ...(typeof direction.seed === "number" ? { seed: direction.seed } : {}),
-      });
-    } else if (method === "generateImage") {
-      // Generic image path for any other provider reachable via the AI Gateway
-      // (string model id). generateImage forwards top-level aspectRatio/seed when
-      // the provider supports them; otherwise they fall back to defaults.
-      result = await generateImage({
-        model: model.id,
-        prompt: styledPrompt,
-        ...(direction.aspectRatio
-          ? { aspectRatio: direction.aspectRatio as `${number}:${number}` }
-          : {}),
-        ...(typeof direction.seed === "number" ? { seed: direction.seed } : {}),
-      });
-    } else {
-      return null;
-    }
-
-    const file = "image" in result ? result.image : result.files?.[0];
-    if (!file) return null;
-    return `data:${file.mediaType};base64,${file.base64}`;
+    return await runImageModel(model, provider, direction);
   } catch (error) {
+    // A Google image backend can be "temporarily out of capacity" (429) while a
+    // sibling Google image model on a different backend is fine. Rather than
+    // dead-ending the image, fail over once to the alternate Google model.
+    if (provider === "google" && isCapacityError(error)) {
+      const fallback = selectGoogleFallbackModel(model.id);
+      if (fallback) {
+        console.warn(
+          `[AI Image Gen] ${model.id} is out of capacity (429); falling back to ${fallback.id}.`
+        );
+        try {
+          return await runImageModel(fallback, "google", direction);
+        } catch (fallbackError) {
+          console.error("Image generation fallback also failed:", fallbackError);
+          return null;
+        }
+      }
+    }
     console.error("Image generation failed:", error);
     return null;
   }

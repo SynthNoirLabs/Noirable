@@ -15,8 +15,6 @@ import {
   Loader2,
   Palette,
 } from "lucide-react";
-import type { UseChatHelpers } from "@ai-sdk/react";
-import type { UIMessage } from "ai";
 import { cn } from "@/lib/utils";
 import { NoirSoundEffects } from "@/components/noir/NoirSoundEffects";
 import { TypewriterText } from "@/components/noir/TypewriterText";
@@ -53,7 +51,9 @@ const STARTER_COMMANDS = [
 interface ChatSidebarProps {
   className?: string;
   messages: Message[];
-  sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+  /** Send a chat prompt. The v0.9 workspace drives the stream from a plain text
+   *  message; returns void or a promise. */
+  sendMessage: (message: { text: string }) => void | Promise<void>;
   isLoading: boolean;
   typewriterSpeed?: number;
   soundEnabled?: boolean;
@@ -61,7 +61,6 @@ interface ChatSidebarProps {
   musicEnabled?: boolean;
   ambient?: AmbientSettings;
   modelConfig?: ModelConfig;
-  useA2UIv09?: boolean;
   onUpdateSettings?: (settings: SettingsUpdate) => void;
   onModelConfigChange?: (config: ModelConfig) => void;
   onToggleCollapse?: () => void;
@@ -86,7 +85,6 @@ export function ChatSidebar({
   musicEnabled = false,
   ambient,
   modelConfig,
-  useA2UIv09 = false,
   onUpdateSettings,
   onModelConfigChange,
   onToggleCollapse,
@@ -525,7 +523,7 @@ export function ChatSidebar({
             alt="Detective avatar"
             width={32}
             height={32}
-            className="w-8 h-8 rounded-full object-cover border border-[var(--aesthetic-accent)]/40 shadow-[0_0_10px_rgba(255,191,0,0.18)]"
+            className="w-8 h-8 rounded-full object-cover border border-[var(--aesthetic-accent)]/40 shadow-[0_0_10px_color-mix(in_srgb,var(--aesthetic-accent)_18%,transparent)]"
           />
           <Bot className="w-4 h-4 text-[var(--aesthetic-accent)]/70" />
           INTERROGATION LOG
@@ -583,7 +581,6 @@ export function ChatSidebar({
               musicEnabled={musicSetting}
               ambient={ambient ?? {}}
               modelConfig={modelConfig}
-              useA2UIv09={useA2UIv09}
               elevenLabsConfigured={elevenLabsConfigured}
               sfxControls={sfxControls}
               onUpdateSettings={onUpdateSettings}

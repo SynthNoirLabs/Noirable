@@ -18,6 +18,10 @@ test.describe("Layout Visual Regression", () => {
     await page.waitForTimeout(500);
   });
 
+  // NOTE: CI runs with `--grep-invert "matches snapshot"`, so this visual test
+  // is a LOCAL/manual check only (`pnpm e2e`). Only the macOS baseline is kept
+  // (homepage-layout-darwin.png); a Linux runner would need to regenerate its
+  // own baseline with `pnpm e2e:update-snapshots`.
   test("homepage layout matches snapshot", async ({ page }) => {
     // Disable animations for consistent screenshots
     await page.emulateMedia({ reducedMotion: "reduce" });

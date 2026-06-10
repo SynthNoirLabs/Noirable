@@ -46,7 +46,25 @@ interface RenderContext {
   modal: number;
 }
 
+/**
+ * Defensive wrapper around the codegen switch. The JSON editor feeds RAW,
+ * unvalidated trees into eject, so a partial node (e.g. a `list` missing
+ * `items`, a `table` missing `rows`) can make the switch throw mid-render —
+ * which would crash the whole Eject panel to the error boundary. Catch per-node
+ * so a single bad node degrades to a comment and the rest of the tree still
+ * exports. AI-generated (schema-validated) trees never hit the catch.
+ */
 function renderNode(node: A2UIInput, depth: number = 0, ctx: RenderContext): string {
+  try {
+    return renderNodeUnsafe(node, depth, ctx);
+  } catch {
+    const ind = "  ".repeat(depth);
+    const type = (node as { type?: string })?.type ?? "unknown";
+    return `${ind}{/* Skipped malformed "${type}" node */}`;
+  }
+}
+
+function renderNodeUnsafe(node: A2UIInput, depth: number = 0, ctx: RenderContext): string {
   const ind = "  ".repeat(depth);
   const indChild = "  ".repeat(depth + 1);
 
@@ -101,7 +119,11 @@ ${ind}</div>`;
     }
 
     case "heading": {
-      const level = node.level ?? 2;
+      // Clamp to a valid HTML heading (h1–h4). The schema already restricts the
+      // range, but the JSON editor can feed an out-of-range level (e.g. 7/0)
+      // that would otherwise emit invalid <h7>/<h0> and break the TS compile.
+      const rawLevel = node.level ?? 2;
+      const level = Math.min(4, Math.max(1, Math.round(rawLevel))) as 1 | 2 | 3 | 4;
       const sizeClass =
         level === 1 ? "text-3xl" : level === 2 ? "text-2xl" : level === 3 ? "text-xl" : "text-lg";
       const classes = buildClassList(["font-bold text-zinc-100", sizeClass, node.style?.className]);
@@ -309,6 +331,31 @@ ${ind}</div>`;
       )}} />`;
     }
 
+    case "video": {
+      const classes = buildClassList([
+        "rounded-sm w-full",
+        node.style?.width ? widthClasses[node.style.width] : null,
+        node.style?.className,
+      ]);
+      // `src` may be a real URL or, for on-demand footage, the prompt text. Export
+      // a real player; a prompt-only node has no playable source, so guard it.
+      const src = node.src || "";
+      const label = node.alt || "Video";
+      if (!src || !/^(https?:|\/|data:)/.test(src)) {
+        // No real source (prompt placeholder) — emit a labelled stub so the
+        // exported code is valid and self-explanatory rather than a dead <video>.
+        return `${ind}<div className={${jsxString(
+          buildClassList([
+            "rounded-sm border border-zinc-700/40 bg-zinc-900/50 p-4 text-center text-xs text-zinc-500",
+            node.style?.className,
+          ])
+        )}}>{${jsxString(`▶ ${label} (generate footage)`)}}</div>`;
+      }
+      return `${ind}<video src={${jsxString(src)}} controls aria-label={${jsxString(
+        label
+      )}} className={${jsxString(classes)}} />`;
+    }
+
     case "input": {
       const variantClass = node.variant ? variantClasses[node.variant] : "";
       const inputClasses = buildClassList([
@@ -433,14 +480,17 @@ function countStatefulNodes(node: A2UIInput): { tabs: number; modals: number } {
   let modals = 0;
 
   function traverse(n: A2UIInput) {
+    if (!n || typeof n !== "object") return;
     if (n.type === "tabs") {
       tabs++;
-      n.tabs.forEach((tab) => traverse(tab.content));
+      if (Array.isArray(n.tabs)) {
+        n.tabs.forEach((tab) => tab?.content && traverse(tab.content));
+      }
     }
     if (n.type === "modal") {
       modals++;
-      traverse(n.trigger);
-      traverse(n.content);
+      if (n.trigger) traverse(n.trigger);
+      if (n.content) traverse(n.content);
     }
     if ("children" in n && Array.isArray(n.children)) {
       n.children.forEach(traverse);

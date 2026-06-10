@@ -2,19 +2,27 @@
 
 ## Overview
 
-Multi-provider AI SDK integration with tool-driven UI generation. Handles provider selection, system prompts, image generation, and the `generate_ui` and `set_aesthetic` tools.
+Multi-provider AI SDK integration with tool-driven UI generation. Handles provider selection, system prompts, narration, and image / video / music / voice generation, plus the `generate_ui` and `set_aesthetic` tools.
 
 ## Files
 
-| File                | Purpose                                                                     |
-| ------------------- | --------------------------------------------------------------------------- |
-| `factory.ts`        | Provider selection: env vars → auth.json → mock fallback                    |
-| `tools.ts`          | Tool definitions: `generate_ui` and `set_aesthetic`                         |
-| `prompts.ts`        | System prompt (noir persona, A2UI constraints)                              |
-| `images.ts`         | `resolveA2UIImagePrompts()` — converts image `prompt` to generated images   |
-| `image-style.ts`    | Module-level custom image style prompt override (get/set, ephemeral)        |
-| `imageStore.ts`     | Persistence layer for generated images (base64 → file + `/api/images/{id}`) |
-| `model-registry.ts` | `MODEL_REGISTRY` of chat + image models across OpenAI, Anthropic, Google    |
+| File                   | Purpose                                                                     |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `factory.ts`           | Provider selection: env vars → auth.json → mock fallback                    |
+| `tools.ts`             | Tool definitions: `generate_ui` and `set_aesthetic`                         |
+| `prompts.ts`           | System prompt (noir persona, A2UI constraints)                              |
+| `narration.ts`         | Tool-less detective narration call (parallel to UI generation)              |
+| `images.ts`            | `resolveA2UIImagePrompts()` — converts image `prompt` to generated images   |
+| `image-style.ts`       | Module-level custom image style prompt override (get/set, ephemeral)        |
+| `imageStore.ts`        | Persistence layer for generated images (base64 → file + `/api/images/{id}`) |
+| `resolveImageBytes.ts` | Shared lazy-generate-then-read helper for the image + video routes          |
+| `video.ts`             | Veo REST integration (start / poll / download; reference images)            |
+| `videoStore.ts`        | Persistence + job records for generated video (`/api/video/file/{id}`)      |
+| `musicStore.ts`        | Persistence for generated music beds (`/api/music/file/{id}`)               |
+| `recordingStore.ts`    | Persistence for TTS recordings (`/api/tts/file/{id}`)                       |
+| `composition.ts`       | Composition-seed helpers for the "Take 1/2/3" variant arrangements          |
+| `theme-generator.ts`   | Builds a full CustomProfile from a plain-text vibe (`/api/theme`)           |
+| `model-registry.ts`    | `MODEL_REGISTRY` of chat + image + video models across providers            |
 
 ## Provider Priority
 
@@ -33,7 +41,8 @@ tools.generate_ui({
 }) → A2UIComponent      // Resolved, images have real URLs
 
 tools.set_aesthetic({
-  aestheticId: "noir" | "minimal",
+  // BuiltInAestheticId — see src/lib/aesthetic/types.ts
+  aestheticId: "noir" | "minimal" | "cyber-fixer" | "nostromo-console" | "gothic-manor",
   reason?: string,
 }) → SetAestheticResult // { success, aestheticId, appliedAt, message }
 ```

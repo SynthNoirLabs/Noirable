@@ -1,10 +1,8 @@
 /**
  * A2UI v0.9 Surfaces - Public API
  *
- * Exports the SurfaceManager class and associated types for managing
- * A2UI surface lifecycle.
+ * Re-exports the shared surface types. The reactive surface lifecycle lives in
+ * the Zustand store (../store/useSurfaceStore.ts).
  */
-
-export { SurfaceManager } from "./manager";
 
 export type { SurfaceConfig, SurfaceComponent, SurfaceState } from "./manager";

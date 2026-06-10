@@ -9,20 +9,12 @@
      the OS monospace. */
   --font-mono: var(--font-typewriter);
 
-  --color-noir-black: #0f0f0f;
-  --color-noir-dark: #1a1a1a;
-  --color-noir-gray: #2a2a2a;
+  /* Only paper/ink are live (the `.bg-paper` darkroom texture + the print
+     overrides). The rest of the noir palette is expressed through the
+     --aesthetic-* vars below and hardcoded hex where needed, so no other
+     `noir-*` utility tokens are declared here. */
   --color-noir-paper: #e0e0e0;
   --color-noir-ink: #111111;
-  --color-noir-amber: #ffbf00;
-  --color-noir-red: #8a0000;
-
-  /* Extended Palette */
-  --color-noir-sepia: #704214;
-  --color-noir-smoke: #1c1c1e;
-  --color-noir-shadow: #0a0a0a;
-  --color-noir-brass: #b5a642;
-  --color-noir-whiskey: #d4915d;
 }
 
 /* --- AESTHETIC SYSTEM VARIABLES --- */
@@ -125,8 +117,10 @@
   --aesthetic-accent-muted: #ff007f;
   --aesthetic-border: #3a1f66;
   --aesthetic-error: #ff3333;
-  --aesthetic-font-body: var(--font-typewriter);
-  --aesthetic-font-heading: var(--font-sans);
+
+  /* Monospace futuristic stack — the world's signature typeface. */
+  --aesthetic-font-body: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
+  --aesthetic-font-heading: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
   --aesthetic-glow-strength: 1.4;
   --aesthetic-particle-color: #ff007f;
   --aesthetic-lightning-color: #00ffcc;
@@ -150,8 +144,10 @@
   --aesthetic-accent-muted: #ff9900;
   --aesthetic-border: #0d3b1f;
   --aesthetic-error: #ff3300;
-  --aesthetic-font-body: var(--font-typewriter);
-  --aesthetic-font-heading: var(--font-typewriter);
+
+  /* Retro terminal monospace stack — the world's signature typeface. */
+  --aesthetic-font-body: "Courier New", courier, monospace;
+  --aesthetic-font-heading: "Courier New", courier, monospace;
   --aesthetic-glow-strength: 1.1;
   --aesthetic-particle-color: #33ff66;
   --aesthetic-lightning-color: #33ff66;
@@ -175,8 +171,10 @@
   --aesthetic-accent-muted: #4a0008;
   --aesthetic-border: #2a2a35;
   --aesthetic-error: #ff0011;
-  --aesthetic-font-body: var(--font-typewriter);
-  --aesthetic-font-heading: var(--font-typewriter);
+
+  /* Classic elegant serif stack — the world's signature typeface. */
+  --aesthetic-font-body: georgia, garamond, "Times New Roman", serif;
+  --aesthetic-font-heading: georgia, garamond, "Times New Roman", serif;
   --aesthetic-glow-strength: 0.8;
   --aesthetic-particle-color: #990011;
   --aesthetic-lightning-color: #cc3344;
@@ -223,7 +221,12 @@ body {
   mix-blend-mode: overlay;
 }
 
-/* Dramatic Vignette */
+/* Dramatic Vignette — theme-driven. The tint comes from
+   --aesthetic-vignette-color and the darkness is scaled by
+   --aesthetic-vignette-intensity (0 = none, so minimal stays perfectly flat;
+   gothic at 0.85 reads heavy). The two stops keep the previous 0.25/0.72 feel
+   for noir (intensity 0.72): the inner stop is intensity-relative, the outer is
+   the intensity itself. Both fall back to noir black when no var is set. */
 .vignette::before {
   content: "";
   position: fixed;
@@ -232,8 +235,18 @@ body {
     ellipse at center,
     transparent 0%,
     transparent 55%,
-    rgba(0, 0, 0, 0.25) 82%,
-    rgba(0, 0, 0, 0.72) 100%
+    color-mix(
+        in srgb,
+        var(--aesthetic-vignette-color, #000) calc(35% * var(--aesthetic-vignette-intensity, 0.72)),
+        transparent
+      )
+      82%,
+    color-mix(
+        in srgb,
+        var(--aesthetic-vignette-color, #000) calc(100% * var(--aesthetic-vignette-intensity, 0.72)),
+        transparent
+      )
+      100%
   );
   pointer-events: none;
   z-index: 9999;
@@ -314,6 +327,21 @@ body {
   }
   100% {
     transform: translateY(calc(100vh + 100px));
+  }
+}
+
+/* Ember Drift — gothic motes rise from the bottom, drift sideways, and fade. */
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(var(--ember-drift, 0)) scale(0.4);
+    opacity: 0;
   }
 }
 
@@ -624,28 +652,6 @@ html {
   .animate-candle-glow {
     animation: candle-glow 1.8s ease-in-out forwards;
   }
-}
-
-/* stylelint-disable */
-
-/* --- THEME-SPECIFIC TYPOGRAPHY --- */
-
-/* Cyber-Fixer: Monospace Futuristic Stack */
-[data-aesthetic="cyber-fixer"] {
-  --aesthetic-font-body: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
-  --aesthetic-font-heading: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
-}
-
-/* Nostromo Console: Retro Terminal Monospace Stack */
-[data-aesthetic="nostromo-console"] {
-  --aesthetic-font-body: "Courier New", courier, monospace;
-  --aesthetic-font-heading: "Courier New", courier, monospace;
-}
-
-/* Gothic Manor: Classic Elegant Serif Stack */
-[data-aesthetic="gothic-manor"] {
-  --aesthetic-font-body: georgia, garamond, "Times New Roman", serif;
-  --aesthetic-font-heading: georgia, garamond, "Times New Roman", serif;
 }
 
 /* --- ATMOSPHERIC EFFECTS OVERRIDES --- */
@@ -960,6 +966,7 @@ html {
   background-image: none;
   color: var(--aesthetic-text);
   border: 1px solid var(--aesthetic-border);
+
   /* Faint anchor: a thin accent top hairline + a layered (not flat) soft shadow
      so even the restrained preset reads as a deliberately composed surface
      rather than a bare div. No glow/gradient — minimal's glow-strength is 0, so
@@ -1360,7 +1367,6 @@ html {
    --slider-pct var the renderer keeps in sync. accent fill on a muted groove,
    theme radius on the track. */
 .a2ui-slider {
-  -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 6px;
@@ -1375,7 +1381,6 @@ html {
 /* Thumb — a tactile knob in the accent color with a thin ring; square on the
    sharp-cornered presets (noir/nostromo) via the per-aesthetic radius var. */
 .a2ui-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
   appearance: none;
   width: 16px;
   height: 16px;
@@ -1394,6 +1399,7 @@ html {
   box-shadow: 0 0 calc(6px * var(--aesthetic-glow-strength, 1)) var(--aesthetic-accent);
   cursor: pointer;
 }
+
 /* Firefox paints its own track; keep it transparent so the gradient shows. */
 .a2ui-slider::-moz-range-track {
   background: transparent;
@@ -1429,6 +1435,13 @@ html {
 }
 
 /* --- FORM CONTROLS POLISH --- */
+
+/* Each preset's base control rule and its :focus variant are grouped together
+   for readability; that intentionally puts a later preset's base selector after
+   an earlier preset's higher-specificity :focus selector, which trips
+   no-descending-specificity. The grouping is deliberate and the !important
+   declarations make cascade order moot here, so scope-disable just this block. */
+/* stylelint-disable no-descending-specificity */
 
 /* 1. Cyber-Fixer Form Controls */
 [data-aesthetic="cyber-fixer"] input:not([type="checkbox"], [type="range"]),
@@ -1475,6 +1488,7 @@ html {
   border-color: var(--aesthetic-accent) !important;
   box-shadow: 0 0 0 1px var(--aesthetic-accent) !important;
 }
+/* stylelint-enable no-descending-specificity */
 
 /* --- GLOBAL REDUCED-MOTION RESET --- */
 

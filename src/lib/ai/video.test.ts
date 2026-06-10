@@ -229,4 +229,18 @@ describe("video generation REST integration", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(mockFetch.mock.calls[0][1].headers["x-goog-api-key"]).toBe("k");
   });
+
+  it("downloadVideo returns null when the fetch response is not ok", async () => {
+    process.env.GEMINI_API_KEY = "k";
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 403 });
+    const result = await downloadVideo("https://storage.googleapis.com/v/clip.mp4");
+    expect(result).toBeNull();
+  });
+
+  it("downloadVideo returns null when fetch rejects", async () => {
+    process.env.GEMINI_API_KEY = "k";
+    mockFetch.mockRejectedValueOnce(new Error("network down"));
+    const result = await downloadVideo("https://storage.googleapis.com/v/clip.mp4");
+    expect(result).toBeNull();
+  });
 });

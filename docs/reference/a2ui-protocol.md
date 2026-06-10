@@ -6,7 +6,7 @@
 
 A2UI (AI-to-UI) is a schema-validated JSON protocol that allows AI models to generate UI components without executing arbitrary code. All components are validated against Zod schemas before rendering.
 
-> **Note:** This page documents the legacy protocol in `src/lib/protocol/schema.ts` (23 component types), retained for backward compatibility. New work targets the A2UI v0.9 standard catalog — see [`a2ui-v09-spec.md`](./a2ui-v09-spec.md).
+> **Note:** This page documents the legacy protocol in `src/lib/protocol/schema.ts` (24 component types), retained for backward compatibility. New work targets the A2UI v0.9 standard catalog — see [`a2ui-v09-spec.md`](./a2ui-v09-spec.md).
 
 ## Component Types
 
@@ -36,6 +36,7 @@ A2UI (AI-to-UI) is a schema-validated JSON protocol that allows AI models to gen
 | `stat` | Statistic display | `label`, `value`, `helper` |
 | `card` | Evidence card | `title`, `description`, `status` |
 | `image` | Image (src or prompt) | `src`/`prompt`, `alt` |
+| `video` | Video footage (src or prompt) | `src`/`prompt`, `alt` |
 
 ### Form Components
 
@@ -270,6 +271,30 @@ Card status values: `active`, `archived`, `missing`, `redacted`
   "alt": "Detective's desk"
 }
 ```
+
+### Video
+
+```json
+// With URL
+{
+  "type": "video",
+  "src": "/api/video/file/abc123.mp4",
+  "alt": "Surveillance footage"
+}
+
+// With generation prompt
+{
+  "type": "video",
+  "prompt": "grainy security-cam footage of a figure crossing the alley",
+  "alt": "Surveillance footage"
+}
+```
+
+> Unlike `image`, a video's `prompt` is **not** pre-resolved into a real `src`.
+> Normalization keeps the prompt text in `src`, and the renderer treats it as
+> the seed for a click-to-generate "Generate footage" placeholder (on-demand Veo
+> generation, see `src/lib/ai/video.ts`). Use `video` sparingly — only for
+> genuine motion.
 
 ### Input
 

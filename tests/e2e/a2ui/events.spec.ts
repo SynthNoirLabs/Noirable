@@ -176,8 +176,11 @@ test.describe("A2UI Events - Browser Integration", () => {
     await page.goto("/");
     await page.waitForSelector('[data-testid="desk-layout"]');
 
-    // Set up request interception to verify API is called
-    const apiCallPromise = page.waitForRequest("**/api/chat", { timeout: 5000 }).catch(() => null);
+    // Set up request interception to verify API is called. The app is v0.9-only,
+    // so generation goes through the streaming endpoint.
+    const apiCallPromise = page
+      .waitForRequest("**/api/a2ui/stream", { timeout: 5000 })
+      .catch(() => null);
 
     // Submit a command
     const input = page.getByPlaceholder("Type your command...");

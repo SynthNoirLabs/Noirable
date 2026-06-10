@@ -378,7 +378,8 @@ export async function POST(req: NextRequest): Promise<Response> {
               imageModel
             )) as Record<string, unknown>;
           }
-          const components = toCatalogComponents(component, callIndex === 0, callIndex);
+          const isFirstTree = callIndex === 0;
+          const components = toCatalogComponents(component, isFirstTree, callIndex);
           callIndex++;
           const updateMsg: UpdateComponentsMessage = {
             type: "updateComponents",
@@ -386,6 +387,15 @@ export async function POST(req: NextRequest): Promise<Response> {
             components: components as UpdateComponentsMessage["components"],
           };
           controller.enqueue(encoder.encode(formatSSE(updateMsg)));
+
+          // Emit the resolved legacy A2UI tree (image prompts already swapped for
+          // real URLs, pre-flatten) as a `source` message. This is the
+          // high-fidelity shape the eject/export feature consumes — exporting it
+          // directly avoids reverse-engineering the lossy flat catalog. Only the
+          // first tool call owns the surface root, so that's the export source.
+          if (isFirstTree) {
+            controller.enqueue(encoder.encode(formatSSE({ type: "source", tree: component })));
+          }
         };
 
         const componentOf = (chunk: unknown): unknown => {

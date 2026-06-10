@@ -261,6 +261,93 @@ describe("exportA2UI", () => {
     expect(output).toContain("border-t");
     expect(output).toContain("SECTION BREAK");
   });
+
+  it("exports a video with a real source as a player", () => {
+    const data: A2UIInput = {
+      type: "video",
+      src: "/api/video/file/clip-001.mp4",
+      alt: "Surveillance footage",
+    };
+
+    const output = exportA2UI(data);
+    expect(output).toContain("<video");
+    expect(output).toContain('src={"/api/video/file/clip-001.mp4"}');
+    expect(output).toContain("controls");
+    expect(output).toContain('aria-label={"Surveillance footage"}');
+  });
+
+  it("exports a prompt-only video (no real src) as a labelled stub, not a dead <video>", () => {
+    const data: A2UIInput = {
+      type: "video",
+      src: "grainy security-cam footage of a figure in the alley",
+      alt: "Footage",
+    };
+
+    const output = exportA2UI(data);
+    expect(output).not.toContain("<video");
+    expect(output).toContain("generate footage");
+  });
+
+  it("exports a slider", () => {
+    const data: A2UIInput = {
+      type: "slider",
+      label: "Threat Level",
+      min: 0,
+      max: 10,
+      value: 7,
+    };
+
+    const output = exportA2UI(data);
+    expect(output).toContain('type="range"');
+    expect(output).toContain("min={0}");
+    expect(output).toContain("max={10}");
+    expect(output).toContain("defaultValue={7}");
+    expect(output).toContain("Threat Level");
+  });
+});
+
+describe("exportA2UI — defensive against malformed / out-of-range input", () => {
+  // The JSON editor feeds RAW, unvalidated trees into eject. A partial node must
+  // degrade to a comment instead of throwing and crashing the whole panel.
+  it("skips a malformed node instead of throwing", () => {
+    // `list` without `items` would throw on .map() inside the switch.
+    const data = { type: "list" } as unknown as A2UIInput;
+    expect(() => exportA2UI(data)).not.toThrow();
+    const output = exportA2UI(data);
+    expect(output).toContain("Skipped malformed");
+  });
+
+  it("keeps exporting valid siblings when one child is malformed", () => {
+    const data = {
+      type: "container",
+      children: [
+        { type: "heading", level: 2, text: "Valid Heading" },
+        { type: "table" }, // missing columns/rows → would throw
+        { type: "text", content: "Valid text", priority: "normal" },
+      ],
+    } as unknown as A2UIInput;
+
+    const output = exportA2UI(data);
+    expect(output).toContain("Valid Heading");
+    expect(output).toContain("Valid text");
+    expect(output).toContain("Skipped malformed");
+  });
+
+  it("tolerates a malformed tabs node in the stateful-node counter", () => {
+    // `tabs` without a `tabs` array used to throw in countStatefulNodes.
+    const data = { type: "tabs" } as unknown as A2UIInput;
+    expect(() => exportA2UI(data)).not.toThrow();
+  });
+
+  it("clamps an out-of-range heading level to a valid h1–h4", () => {
+    const tooHigh = exportA2UI({ type: "heading", level: 7, text: "Big" } as A2UIInput);
+    expect(tooHigh).toContain("<h4");
+    expect(tooHigh).not.toContain("<h7");
+
+    const tooLow = exportA2UI({ type: "heading", level: 0, text: "Small" } as A2UIInput);
+    expect(tooLow).toContain("<h1");
+    expect(tooLow).not.toContain("<h0");
+  });
 });
 
 describe("exportA2UIAsJSON", () => {
