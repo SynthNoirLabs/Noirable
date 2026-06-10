@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { Sandpack } from "@codesandbox/sandpack-react";
 import type { A2UIInput } from "@/lib/protocol/schema";
 import { exportA2UI } from "@/lib/eject/exportA2UI";
