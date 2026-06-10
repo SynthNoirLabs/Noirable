@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-test("chat triggers generate_ui and renders evidence", async ({ page }) => {
+test("chat command streams a v0.9 surface into the preview", async ({ page }) => {
   await page.goto("/");
+  await page.waitForSelector('[data-testid="desk-layout"]');
 
   const input = page.getByPlaceholder("Type your command...");
   await input.fill(
@@ -9,6 +10,8 @@ test("chat triggers generate_ui and renders evidence", async ({ page }) => {
   );
   await input.press("Enter");
 
-  const jsonEditor = page.locator("textarea").first();
-  await expect(jsonEditor).toHaveValue(/"title": "Missing: Jane Doe"/);
+  // The app is v0.9-only now: a command opens a surface in the preview pane
+  // (the mock stream renders it without an AI provider).
+  await page.waitForSelector('[data-testid="a2ui-surface"]', { timeout: 15_000 });
+  await expect(page.locator('[data-testid="a2ui-surface"]')).toBeVisible();
 });
