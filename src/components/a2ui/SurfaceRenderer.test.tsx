@@ -640,7 +640,8 @@ describe("A2UI Templates Aesthetic Styles", () => {
     expect(container1.querySelector(".crt-scanlines")).not.toBeInTheDocument();
     expect(container1.querySelector('[class*="--aesthetic-"]')).toBeInTheDocument();
 
-    // 3. Cyber-Fixer — keeps its neon glow box-shadow decoration.
+    // 3. Cyber-Fixer — keeps its neon glow box-shadow decoration, now an
+    // accent color-mix instead of a hardcoded Tailwind cyan.
     act(() => {
       useA2UIStore.setState({
         settings: {
@@ -650,9 +651,7 @@ describe("A2UI Templates Aesthetic Styles", () => {
       });
     });
     rerender(<SurfaceRenderer surface={surface} theme="noir" />);
-    expect(
-      container1.querySelector(".shadow-\\[0_0_10px_\\#06b6d4\\,inset_0_0_5px_\\#06b6d4\\]")
-    ).toBeInTheDocument();
+    expect(container1.querySelector('[class*="shadow-[0_0_10px_color-mix"]')).toBeInTheDocument();
 
     // Reset store state
     act(() => {
