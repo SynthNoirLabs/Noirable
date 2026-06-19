@@ -5,8 +5,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
-  User,
-  Bot,
   Settings as SettingsIcon,
   PanelRightClose,
   Volume2,
@@ -19,18 +17,22 @@ import { cn } from "@/lib/utils";
 import { NoirSoundEffects } from "@/components/noir/NoirSoundEffects";
 import { TypewriterText } from "@/components/noir/TypewriterText";
 import { ChatSettingsPanel } from "./ChatSettingsPanel";
-import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
+import { useShortcut } from "@/lib/hooks/useKeyboardShortcuts";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import type { AmbientSettings, ModelConfig, SettingsUpdate } from "@/lib/store/useA2UIStore";
 import { getAudioPack } from "@/lib/aesthetic/audio-packs";
-import { getAudioEvents } from "@/lib/aesthetic/identity";
+import { getAestheticCopy, getAudioEvents, getSamplePrompts } from "@/lib/aesthetic/identity";
+
+/** The active world's detective avatar, reused by the header and assistant rows. */
+const DETECTIVE_AVATAR_SRC = "/assets/noir/detective-avatar.jpg";
 import {
   duckMusic,
   eventTriggersLightning,
   restoreMusic,
   scanTextForAudioEvents,
   scanTextForAudioEventTimings,
+  subscribeSemanticAudioEvents,
   type AudioEventName,
 } from "@/lib/audio/audioEvents";
 
@@ -40,13 +42,6 @@ export interface Message {
   content: string;
   toolInvocations?: unknown[];
 }
-
-/** Suggested first commands shown in the empty chat state. */
-const STARTER_COMMANDS = [
-  "Build a suspect profile card",
-  "Lay out a case dashboard",
-  "Draft a witness contact form",
-];
 
 interface ChatSidebarProps {
   className?: string;
@@ -98,6 +93,12 @@ export function ChatSidebar({
   });
   const fallbackAestheticId = useA2UIStore((state) => state.settings.aestheticId || "noir");
   const aestheticId = activeProfile?.baseAestheticId ?? fallbackAestheticId;
+  const copy = getAestheticCopy(aestheticId);
+  const samplePrompts = getSamplePrompts(aestheticId);
+  // Previous prompts for shell-style ↑/↓ recall in the chat input (read-only).
+  const promptHistory = useA2UIStore((state) => state.promptHistory);
+  const [completedMessage, setCompletedMessage] = useState<string>("");
+  const lastMessageIdRef = useRef<string | null>(null);
   // Prefer the active custom profile's SFX volumes over the global session
   // setting so a profile's audio tuning actually drives the live session (not
   // just export). The profile override is partial, so layer it on top of the
@@ -119,6 +120,10 @@ export function ChatSidebar({
   const audioPack = getAudioPack(aestheticId);
   const audioEvents = getAudioEvents(aestheticId);
   const [localInput, setLocalInput] = useState("");
+  // Shell-style prompt recall: -1 = live draft, 0..n-1 index into the (reversed)
+  // history. We stash the in-progress draft so ↓ past the newest restores it.
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const draftRef = useRef("");
   const [showSettings, setShowSettings] = useState(false);
   const [ttsLoadingId, setTtsLoadingId] = useState<string | null>(null);
   const [ttsPlayingId, setTtsPlayingId] = useState<string | null>(null);
@@ -131,6 +136,13 @@ export function ChatSidebar({
     playByEvent: (event: AudioEventName) => void;
   } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // Generation counter, bumped each time a stream begins, so the in-character
+  // thinking line rotates between requests rather than locking on the first.
+  const [generationCount, setGenerationCount] = useState(0);
+  const thinkingLine =
+    copy.thinkingLines.length > 0
+      ? copy.thinkingLines[generationCount % copy.thinkingLines.length]
+      : "";
 
   const handleCopy = async (content: string, id: string) => {
     try {
@@ -171,6 +183,15 @@ export function ChatSidebar({
       return true;
     },
     [soundSetting]
+  );
+
+  // The reactive desk: rendered content (e.g. a `danger` badge landing on the
+  // board) emits semantic events on the module channel; route them through the
+  // same fireAudioEvent path so the SFX and the lightning flash follow the
+  // active preset's AudioEventMap.
+  useEffect(
+    () => subscribeSemanticAudioEvents((event) => void fireAudioEvent(event)),
+    [fireAudioEvent]
   );
 
   // Hard throttle for per-token typewriter clicks so streaming never spams the
@@ -301,11 +322,23 @@ export function ChatSidebar({
   useEffect(() => {
     if (isLoading && !wasLoadingRef.current) {
       fireAudioEvent("message.start");
+      // Rotate the in-character thinking line for the next request.
+      setGenerationCount((c) => c + 1);
     } else if (!isLoading && wasLoadingRef.current) {
       fireAudioEvent("message.complete");
     }
     wasLoadingRef.current = isLoading;
   }, [isLoading, fireAudioEvent]);
+
+  // Announce completed assistant messages to screen readers once (not while streaming)
+  useEffect(() => {
+    if (isLoading) return;
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    if (lastAssistant && lastAssistant.id !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastAssistant.id;
+      setCompletedMessage(lastAssistant.content);
+    }
+  }, [messages, isLoading]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,6 +347,9 @@ export function ChatSidebar({
 
     const content = localInput;
     setLocalInput("");
+    // Reset shell-style recall after a send.
+    setHistoryIndex(-1);
+    draftRef.current = "";
 
     try {
       await sendMessage({ text: content });
@@ -324,6 +360,31 @@ export function ChatSidebar({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) {
+      return;
+    }
+
+    // Shell-style prompt recall: ↑ steps to older prompts, ↓ back toward the
+    // live draft. Newest-first, restoring the in-progress draft at the bottom.
+    if (e.key === "ArrowUp" && promptHistory.length > 0) {
+      e.preventDefault();
+      if (historyIndex === -1) {
+        draftRef.current = localInput;
+      }
+      const nextIndex = Math.min(historyIndex + 1, promptHistory.length - 1);
+      setHistoryIndex(nextIndex);
+      setLocalInput(promptHistory[promptHistory.length - 1 - nextIndex].text);
+      return;
+    }
+
+    if (e.key === "ArrowDown" && historyIndex !== -1) {
+      e.preventDefault();
+      const nextIndex = historyIndex - 1;
+      setHistoryIndex(nextIndex);
+      setLocalInput(
+        nextIndex === -1
+          ? draftRef.current
+          : promptHistory[promptHistory.length - 1 - nextIndex].text
+      );
       return;
     }
 
@@ -338,7 +399,7 @@ export function ChatSidebar({
     }
   };
 
-  const sendShortcut = formatShortcut(["mod", "enter"]);
+  const sendShortcut = useShortcut(["mod", "enter"]);
 
   const stopTts = useCallback(() => {
     // Clear any scheduled atmospheric timeouts
@@ -410,6 +471,9 @@ export function ChatSidebar({
             text,
             aestheticId,
             voiceSettings: activeProfile?.voice ?? useA2UIStore.getState().settings.voiceSettings,
+            // Character-level alignment so SFX cues land on the exact spoken
+            // word instead of a chars-per-second estimate.
+            withTimestamps: true,
           }),
         });
 
@@ -422,7 +486,28 @@ export function ChatSidebar({
           throw new Error(errorText || "TTS request failed");
         }
 
-        const buffer = await response.arrayBuffer();
+        // withTimestamps responses are JSON (base64 audio + alignment); keep
+        // handling raw audio bytes too so an older cached route still works.
+        let buffer: ArrayBuffer;
+        let alignment: { characterStartTimesSeconds?: number[] } | null = null;
+        let timestampHash: string | null = null;
+        const contentType = response.headers.get("Content-Type") ?? "";
+        if (contentType.includes("application/json")) {
+          const payload = (await response.json()) as {
+            audioBase64?: string;
+            hash?: string;
+            alignment?: { characterStartTimesSeconds?: number[] } | null;
+          };
+          if (!payload.audioBase64) throw new Error("TTS returned no audio");
+          const binary = atob(payload.audioBase64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          buffer = bytes.buffer;
+          alignment = payload.alignment ?? null;
+          timestampHash = payload.hash ?? null;
+        } else {
+          buffer = await response.arrayBuffer();
+        }
         const blob = new Blob([buffer], { type: "audio/mpeg" });
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
@@ -448,7 +533,7 @@ export function ChatSidebar({
         duckMusic();
         await audio.play();
 
-        const recordingHash = response.headers.get("x-recording-hash");
+        const recordingHash = timestampHash ?? response.headers.get("x-recording-hash");
         if (recordingHash) {
           const alreadyExists = (generatedTapes || []).some((t) => t.hash === recordingHash);
           if (!alreadyExists) {
@@ -479,8 +564,13 @@ export function ChatSidebar({
           Number.isFinite(duration) && duration > 0 && text.length > 0
             ? (duration * 1000) / text.length
             : FALLBACK_MS_PER_CHAR;
+        const startTimes = alignment?.characterStartTimesSeconds;
         for (const { event, index } of scanTextForAudioEventTimings(text)) {
-          const timer = setTimeout(() => fireAudioEvent(event), index * msPerChar);
+          // Frame-accurate when the alignment covers this character; the
+          // duration-derived estimate otherwise.
+          const exactMs = startTimes && index < startTimes.length ? startTimes[index] * 1000 : null;
+          const cueMs = exactMs ?? index * msPerChar;
+          const timer = setTimeout(() => fireAudioEvent(event), cueMs);
           ttsTimeoutsRef.current.push(timer);
         }
       } catch (error) {
@@ -519,14 +609,13 @@ export function ChatSidebar({
       <div className="p-4 border-b border-[var(--aesthetic-border)]/20 bg-[var(--aesthetic-surface)]/95 sticky top-0 z-10 backdrop-blur-sm flex justify-between items-center">
         <h2 className="font-typewriter text-sm text-[var(--aesthetic-text)]/70 tracking-widest flex items-center gap-2">
           <Image
-            src="/assets/noir/detective-avatar.jpg"
+            src={DETECTIVE_AVATAR_SRC}
             alt="Detective avatar"
             width={32}
             height={32}
             className="w-8 h-8 rounded-full object-cover border border-[var(--aesthetic-accent)]/40 shadow-[0_0_10px_color-mix(in_srgb,var(--aesthetic-accent)_18%,transparent)]"
           />
-          <Bot className="w-4 h-4 text-[var(--aesthetic-accent)]/70" />
-          INTERROGATION LOG
+          {copy.logTitle}
         </h2>
         <div className="flex items-center gap-2">
           {onToggleCollapse && (
@@ -598,11 +687,12 @@ export function ChatSidebar({
         audioEvents={audioEvents}
       />
 
-      <div
-        className="flex-1 overflow-y-auto p-4 space-y-6"
-        aria-live="polite"
-        aria-label="Chat messages"
-      >
+      {/* Dedicated live region for completed assistant messages */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {completedMessage && `Assistant: ${completedMessage}`}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6" aria-label="Chat messages">
         {messages.length === 0 && (
           <div className="text-center py-12 text-[var(--aesthetic-text)]/45 font-typewriter text-xs uppercase tracking-[0.2em] relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
             <Image
@@ -612,9 +702,9 @@ export function ChatSidebar({
               height={80}
               className="absolute left-1/2 top-1/2 w-20 h-20 -translate-x-1/2 -translate-y-1/2 opacity-25 pointer-events-none mix-blend-screen"
             />
-            <span className="relative z-10">No record found. Begin interrogation.</span>
+            <span className="relative z-10">{copy.chatEmptyLine}</span>
             <div className="relative z-10 mt-5 flex flex-col gap-2 max-w-xs mx-auto">
-              {STARTER_COMMANDS.map((text) => (
+              {samplePrompts.map((text) => (
                 <button
                   key={text}
                   type="button"
@@ -631,137 +721,162 @@ export function ChatSidebar({
           </div>
         )}
         <AnimatePresence initial={false}>
-          {messages.map((m: Message) => (
-            <motion.div
-              key={m.id}
-              initial={{ opacity: 0, x: -10, filter: "blur(2px)" }}
-              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className={cn(
-                "flex gap-3 text-sm p-3 rounded-sm border relative group",
-                m.role === "user"
-                  ? "bg-[var(--aesthetic-accent)]/5 border-[var(--aesthetic-accent)]/20 ml-8 text-[var(--aesthetic-text)] shadow-sm"
-                  : "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 mr-8 text-[var(--aesthetic-text)] shadow-md"
-              )}
-            >
-              {/* Decorative corner accents for 'Noir' feel */}
-              <div
+          {messages.map((m: Message, idx: number) => {
+            const isStreaming =
+              isLoading && m === messages[messages.length - 1] && m.role === "assistant";
+            // Diegetic case clock + entry number, derived deterministically from
+            // the message position so it's stable across renders and tests (no
+            // Math.random / live Date). Entry counts from 1; time ticks 73s/entry
+            // from a 02:14 baseline, wrapping at 24h.
+            const entryNumber = idx + 1;
+            const totalSeconds = (134 + idx * 73) % 86400;
+            const clockHours = Math.floor(totalSeconds / 3600);
+            const clockMinutes = Math.floor((totalSeconds % 3600) / 60);
+            const caseTime = `${String(clockHours).padStart(2, "0")}:${String(clockMinutes).padStart(2, "0")}`;
+            const entryMeta = `[ ${caseTime} // ENTRY ${String(entryNumber).padStart(3, "0")} ]`;
+            return (
+              <motion.div
+                key={m.id}
+                initial={{ opacity: 0, x: -10, filter: "blur(2px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
                 className={cn(
-                  "absolute w-1 h-1 top-[-1px] left-[-1px] border-t border-l",
+                  "flex gap-3 text-sm p-3 rounded-sm border relative group",
                   m.role === "user"
-                    ? "border-[var(--aesthetic-accent)]/30"
-                    : "border-[var(--aesthetic-text)]/30"
+                    ? "bg-[var(--aesthetic-accent)]/5 border-[var(--aesthetic-accent)]/20 ml-8 text-[var(--aesthetic-text)] shadow-sm"
+                    : "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 mr-8 text-[var(--aesthetic-text)] shadow-md"
                 )}
-              />
-              <div
-                className={cn(
-                  "absolute w-1 h-1 bottom-[-1px] right-[-1px] border-b border-r",
-                  m.role === "user"
-                    ? "border-[var(--aesthetic-accent)]/30"
-                    : "border-[var(--aesthetic-text)]/30"
-                )}
-              />
-
-              <div
-                className={cn(
-                  "w-6 h-6 flex items-center justify-center rounded-full shrink-0 border shadow-inner",
-                  m.role === "user"
-                    ? "border-[var(--aesthetic-accent)]/50 text-[var(--aesthetic-accent)] bg-[var(--aesthetic-accent)]/5"
-                    : "border-[var(--aesthetic-text)]/50 text-[var(--aesthetic-text)] bg-[var(--aesthetic-text)]/5"
-                )}
+                aria-hidden={isStreaming || undefined}
               >
-                {m.role === "user" ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
-              </div>
-              <div className="flex-1 whitespace-pre-wrap leading-relaxed opacity-90">
-                {m.role === "user" ? (
-                  m.content
-                ) : (
-                  <TypewriterText
-                    content={m.content}
-                    speed={effectiveTypewriterSpeed}
-                    glow={false}
-                    showCursor={false}
-                    className="text-xs leading-relaxed font-mono"
-                  />
-                )}
-              </div>
-              {m.role === "assistant" && (
+                {/* Decorative corner accents for 'Noir' feel */}
                 <div
                   className={cn(
-                    "absolute right-2 top-2 flex items-center gap-1 transition-opacity",
-                    ttsPlayingId === m.id || ttsLoadingId === m.id || copiedId === m.id
-                      ? "opacity-100"
-                      : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+                    "absolute w-1 h-1 top-[-1px] left-[-1px] border-t border-l",
+                    m.role === "user"
+                      ? "border-[var(--aesthetic-accent)]/30"
+                      : "border-[var(--aesthetic-text)]/30"
                   )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(m.content, m.id)}
-                    aria-label={copiedId === m.id ? "Copied" : "Copy message"}
-                    title={copiedId === m.id ? "Copied" : "Copy message"}
-                    className={cn(
-                      "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
-                      "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
-                      "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
-                      "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
-                      copiedId === m.id &&
-                        "text-[var(--aesthetic-accent)] border-[var(--aesthetic-accent)]/40"
-                    )}
-                  >
-                    {copiedId === m.id ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
+                />
+                <div
+                  className={cn(
+                    "absolute w-1 h-1 bottom-[-1px] right-[-1px] border-b border-r",
+                    m.role === "user"
+                      ? "border-[var(--aesthetic-accent)]/30"
+                      : "border-[var(--aesthetic-text)]/30"
+                  )}
+                />
 
-                  <button
-                    type="button"
-                    onClick={() => void playTts(m)}
-                    disabled={
-                      !ttsSetting || elevenLabsConfigured === false || ttsLoadingId === m.id
-                    }
-                    title={
-                      ttsDisabledReason ??
-                      (ttsPlayingId === m.id
-                        ? "Stop voice playback"
-                        : ttsLoadingId === m.id
-                          ? "Loading voice playback"
-                          : "Play voice")
-                    }
-                    aria-label={
-                      ttsPlayingId === m.id
-                        ? "Stop voice playback"
-                        : ttsLoadingId === m.id
-                          ? "Loading voice playback"
-                          : "Play voice"
-                    }
+                {m.role === "user" ? (
+                  <div className="w-6 h-6 flex items-center justify-center rounded-full shrink-0 border border-[var(--aesthetic-accent)]/50 bg-[var(--aesthetic-accent)]/5 shadow-inner">
+                    <span className="font-typewriter text-[8px] font-bold tracking-tight text-[var(--aesthetic-accent)]">
+                      DET.
+                    </span>
+                  </div>
+                ) : (
+                  <Image
+                    src={DETECTIVE_AVATAR_SRC}
+                    alt="Assistant avatar"
+                    width={24}
+                    height={24}
+                    className="w-6 h-6 rounded-full object-cover shrink-0 border border-[var(--aesthetic-text)]/50 shadow-inner"
+                  />
+                )}
+                <div className="flex-1 whitespace-pre-wrap leading-relaxed opacity-90">
+                  {m.role === "user" ? (
+                    m.content
+                  ) : (
+                    <>
+                      <span className="block font-typewriter text-[9px] uppercase tracking-[0.18em] text-[var(--aesthetic-text)]/40 mb-1">
+                        {entryMeta}
+                      </span>
+                      <TypewriterText
+                        content={m.content}
+                        speed={effectiveTypewriterSpeed}
+                        glow={false}
+                        showCursor={false}
+                        className="text-xs leading-relaxed font-mono"
+                      />
+                    </>
+                  )}
+                </div>
+                {m.role === "assistant" && (
+                  <div
                     className={cn(
-                      "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
-                      "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
-                      "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
-                      "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
-                      (!ttsSetting || elevenLabsConfigured === false) &&
-                        "opacity-40 cursor-not-allowed"
+                      "absolute right-2 top-2 flex items-center gap-1 transition-opacity",
+                      ttsPlayingId === m.id || ttsLoadingId === m.id || copiedId === m.id
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
                     )}
                   >
-                    {ttsLoadingId === m.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--aesthetic-accent)]" />
-                    ) : ttsPlayingId === m.id ? (
-                      // Wire-tap equalizer: the transmission is live.
-                      <span className="flex items-end gap-[2px] h-3.5" aria-hidden="true">
-                        <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:0ms]" />
-                        <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:150ms]" />
-                        <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:300ms]" />
-                      </span>
-                    ) : (
-                      <Volume2 className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          ))}
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(m.content, m.id)}
+                      aria-label={copiedId === m.id ? "Copied" : "Copy message"}
+                      title={copiedId === m.id ? "Copied" : "Copy message"}
+                      className={cn(
+                        "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
+                        "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
+                        "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
+                        "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                        copiedId === m.id &&
+                          "text-[var(--aesthetic-accent)] border-[var(--aesthetic-accent)]/40"
+                      )}
+                    >
+                      {copiedId === m.id ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => void playTts(m)}
+                      disabled={
+                        !ttsSetting || elevenLabsConfigured === false || ttsLoadingId === m.id
+                      }
+                      title={
+                        ttsDisabledReason ??
+                        (ttsPlayingId === m.id
+                          ? "Stop voice playback"
+                          : ttsLoadingId === m.id
+                            ? "Loading voice playback"
+                            : "Play voice")
+                      }
+                      aria-label={
+                        ttsPlayingId === m.id
+                          ? "Stop voice playback"
+                          : ttsLoadingId === m.id
+                            ? "Loading voice playback"
+                            : "Play voice"
+                      }
+                      className={cn(
+                        "w-7 h-7 flex items-center justify-center rounded-sm border transition-colors",
+                        "bg-[var(--aesthetic-background)]/40 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60",
+                        "hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40",
+                        "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                        (!ttsSetting || elevenLabsConfigured === false) &&
+                          "opacity-40 cursor-not-allowed"
+                      )}
+                    >
+                      {ttsLoadingId === m.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--aesthetic-accent)]" />
+                      ) : ttsPlayingId === m.id ? (
+                        // Wire-tap equalizer: the transmission is live.
+                        <span className="flex items-end gap-[2px] h-3.5" aria-hidden="true">
+                          <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:0ms]" />
+                          <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:150ms]" />
+                          <span className="eq-bar w-[2px] h-full bg-[var(--aesthetic-accent)] [animation-delay:300ms]" />
+                        </span>
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {isLoading && (
@@ -775,9 +890,7 @@ export function ChatSidebar({
             <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse" />
             <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse delay-75" />
             <span className="w-2 h-2 bg-[var(--aesthetic-accent)]/50 rounded-full animate-pulse delay-150" />
-            <span className="ml-2 uppercase tracking-wider text-[10px]">
-              Processing Evidence...
-            </span>
+            <span className="ml-2 uppercase tracking-wider text-[10px]">{thinkingLine}</span>
           </motion.div>
         )}
         <div ref={messagesEndRef} />
@@ -791,7 +904,7 @@ export function ChatSidebar({
               aria-hidden="true"
             />
             {elevenLabsConfigured === false || ttsUnavailable
-              ? "Wire dead — set ELEVENLABS_API_KEY"
+              ? copy.ttsUnavailableLine
               : "Voice off — enable in settings"}
           </div>
         )}
@@ -803,7 +916,11 @@ export function ChatSidebar({
             autoFocus
             className="w-full bg-transparent border-b border-[var(--aesthetic-border)]/30 rounded-none py-3 pl-2 pr-10 text-sm text-[var(--aesthetic-text)] focus:outline-none focus:border-[var(--aesthetic-accent)]/50 font-mono placeholder:text-[var(--aesthetic-text)]/45 transition-colors"
             value={localInput}
-            onChange={(e) => setLocalInput(e.target.value)}
+            onChange={(e) => {
+              setLocalInput(e.target.value);
+              // Manual editing drops out of recall back into a live draft.
+              if (historyIndex !== -1) setHistoryIndex(-1);
+            }}
             onKeyDown={handleKeyDown}
             placeholder={`Type your command... (${sendShortcut} to send)`}
           />

@@ -1,4 +1,4 @@
-import { isBuiltInAestheticId } from "./types";
+import { BUILT_IN_AESTHETIC_IDS, isBuiltInAestheticId } from "./types";
 import type { AestheticId, AudioPack, BuiltInAestheticId } from "./types";
 import { AESTHETIC_DEFINITIONS } from "./definitions";
 
@@ -13,13 +13,9 @@ import { AESTHETIC_DEFINITIONS } from "./definitions";
 /**
  * Registry of audio packs by aesthetic ID, derived from AESTHETIC_DEFINITIONS.
  */
-export const AUDIO_PACKS: Record<BuiltInAestheticId, AudioPack> = {
-  noir: AESTHETIC_DEFINITIONS.noir.audio,
-  minimal: AESTHETIC_DEFINITIONS.minimal.audio,
-  "cyber-fixer": AESTHETIC_DEFINITIONS["cyber-fixer"].audio,
-  "nostromo-console": AESTHETIC_DEFINITIONS["nostromo-console"].audio,
-  "gothic-manor": AESTHETIC_DEFINITIONS["gothic-manor"].audio,
-};
+export const AUDIO_PACKS: Record<BuiltInAestheticId, AudioPack> = Object.fromEntries(
+  BUILT_IN_AESTHETIC_IDS.map((id) => [id, AESTHETIC_DEFINITIONS[id].audio])
+) as Record<BuiltInAestheticId, AudioPack>;
 
 /**
  * Get the audio pack for a given aesthetic ID.

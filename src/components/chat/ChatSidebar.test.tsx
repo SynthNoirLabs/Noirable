@@ -106,9 +106,15 @@ describe("ChatSidebar", () => {
     );
   });
 
-  it("shows typing indicator when loading", () => {
+  it("shows an in-character thinking line when loading", () => {
     render(<ChatSidebar messages={[]} sendMessage={mockSendMessage} isLoading={true} />);
-    expect(screen.getByText(/Processing Evidence/i)).toBeInTheDocument();
+    // The noir loader rotates through in-character thinking lines (no longer the
+    // hardcoded "Processing Evidence"); assert any of noir's lines is shown.
+    expect(
+      screen.getByText(
+        /Working the angles|Following the wire|Shaking down the leads|Reading between the lines/i
+      )
+    ).toBeInTheDocument();
   });
 
   it("renders detective avatar badge", () => {

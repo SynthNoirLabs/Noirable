@@ -1,5 +1,6 @@
 import "server-only";
 
+import { BUILT_IN_AESTHETIC_IDS } from "./types";
 import type { AestheticId, AestheticProfile, AestheticRegistry } from "./types";
 import { AESTHETIC_DEFINITIONS } from "./definitions";
 import { getPersonaPrompt } from "./personas";
@@ -36,13 +37,9 @@ function buildProfile(id: keyof typeof AESTHETIC_DEFINITIONS): AestheticProfile 
 /**
  * Registry of all available aesthetic profiles.
  */
-export const AESTHETIC_REGISTRY: AestheticRegistry = {
-  noir: buildProfile("noir"),
-  minimal: buildProfile("minimal"),
-  "cyber-fixer": buildProfile("cyber-fixer"),
-  "nostromo-console": buildProfile("nostromo-console"),
-  "gothic-manor": buildProfile("gothic-manor"),
-};
+export const AESTHETIC_REGISTRY: AestheticRegistry = Object.fromEntries(
+  BUILT_IN_AESTHETIC_IDS.map((id) => [id, buildProfile(id)])
+) as AestheticRegistry;
 
 /**
  * Default aesthetic ID used when none is specified.

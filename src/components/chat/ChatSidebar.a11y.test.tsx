@@ -1,7 +1,6 @@
 import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from "vitest";
 import { ChatSidebar } from "./ChatSidebar";
-import React from "react";
 
 describe("ChatSidebar Accessibility", () => {
   beforeEach(() => {
@@ -36,7 +35,10 @@ describe("ChatSidebar Accessibility", () => {
     });
 
     const status = screen.getByRole("status");
-    expect(status).toHaveTextContent(/Processing Evidence/i);
+    // The loader now shows an in-character thinking line from the active world.
+    expect(status).toHaveTextContent(
+      /Working the angles|Following the wire|Shaking down the leads|Reading between the lines/i
+    );
     expect(status).toHaveAttribute("aria-live", "polite");
   });
 });

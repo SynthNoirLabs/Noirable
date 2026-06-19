@@ -105,3 +105,14 @@ export function getAudioEvents(aestheticId: AestheticId | undefined): AudioEvent
 export function getCompositionSeed(aestheticId: AestheticId | undefined): number {
   return getAestheticDefinition(aestheticId).identity.compositionSeed;
 }
+
+/**
+ * The world's personality as sampling parameters (MU-TH-UR generates at 0.2,
+ * the gothic narrator at 1.0). Applied to UI generation and narration alike.
+ */
+export function getSamplingPersonality(aestheticId: AestheticId | undefined): {
+  temperature: number;
+  topP?: number;
+} {
+  return getAestheticDefinition(aestheticId).identity.sampling;
+}

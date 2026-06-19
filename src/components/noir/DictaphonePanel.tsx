@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   Play,
   Pause,
@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useResolvedAesthetic } from "@/lib/aesthetic/useResolvedAesthetic";
 import { getAestheticCopy } from "@/lib/aesthetic/identity";
+import type { AestheticCopy } from "@/lib/aesthetic/types";
 
 interface Tape {
   id: string;
@@ -37,6 +38,13 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
   const [vuValue, setVuValue] = useState(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // WebAudio graph for the VU meter — built once per playing element and torn
+  // down on stop/unmount. `sourceMapRef` tracks which element a MediaElementSource
+  // was created for, since createMediaElementSource may only run once per element.
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceElRef = useRef<HTMLAudioElement | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const { baseId } = useResolvedAesthetic();
   const copy = getAestheticCopy(baseId);
@@ -71,17 +79,85 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
 
   const currentVuValue = isPlaying && !isPaused ? vuValue : 0;
 
-  // Sync VU meter needle movement when playing
-  useEffect(() => {
-    if (!isPlaying || isPaused) {
+  // Tear down the VU animation loop. The AudioContext itself is kept alive (a
+  // MediaElementSource can only be created once per element and the context is
+  // expensive to recreate); only the rAF sampler stops. The needle is reset via
+  // `currentVuValue` (which reads 0 whenever playback isn't active), so this does
+  // not touch state — keeping it safe to call synchronously inside an effect.
+  const stopVuLoop = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
+
+  // Build (or reuse) the WebAudio analyser graph off the playing <audio> element
+  // and drive the needle from the live RMS each frame. Falls back gracefully —
+  // a gentle idle level — when WebAudio is unavailable or wiring fails.
+  const startVuLoop = useCallback((audio: HTMLAudioElement) => {
+    const AudioContextCtor =
+      typeof window !== "undefined"
+        ? (window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
+        : undefined;
+
+    if (!AudioContextCtor) {
+      // No WebAudio — sit the needle at a calm idle level so the deck still reads
+      // as "playing" rather than dead.
+      setVuValue(0.2);
       return;
     }
-    const interval = setInterval(() => {
-      // Fluctuates between 0.15 and 0.90 simulating speech audio
-      setVuValue(0.15 + Math.random() * 0.75);
-    }, 100);
-    return () => clearInterval(interval);
-  }, [isPlaying, isPaused]);
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextCtor();
+      }
+      const context = audioContextRef.current;
+      void context.resume();
+
+      // A MediaElementSource may only be created once per element; rebuild the
+      // graph only when a fresh element is mounted.
+      if (sourceElRef.current !== audio || !analyserRef.current) {
+        const source = context.createMediaElementSource(audio);
+        const analyser = context.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyser.connect(context.destination);
+        analyserRef.current = analyser;
+        sourceElRef.current = audio;
+      }
+
+      const analyser = analyserRef.current;
+      const data = new Uint8Array(analyser.fftSize);
+
+      const sample = () => {
+        analyser.getByteTimeDomainData(data);
+        let sumSquares = 0;
+        for (let i = 0; i < data.length; i++) {
+          const centered = (data[i] - 128) / 128;
+          sumSquares += centered * centered;
+        }
+        const rms = Math.sqrt(sumSquares / data.length);
+        // Map RMS into the existing 0.15–0.90 visual range with a little gain so
+        // speech reads on the meter without pinning the needle.
+        const level = Math.min(0.9, 0.15 + rms * 2.4);
+        setVuValue(level);
+        rafRef.current = requestAnimationFrame(sample);
+      };
+
+      rafRef.current = requestAnimationFrame(sample);
+    } catch {
+      // Autoplay policy / cross-origin / unsupported — idle the needle gently.
+      setVuValue(0.2);
+    }
+  }, []);
+
+  // Run the meter only while actively playing; stop it on pause/stop.
+  useEffect(() => {
+    if (!isPlaying || isPaused) {
+      stopVuLoop();
+    }
+  }, [isPlaying, isPaused, stopVuLoop]);
 
   // Clean up audio when active tape changes
   useEffect(() => {
@@ -89,7 +165,24 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
       audioRef.current.pause();
       audioRef.current = null;
     }
-  }, [activeTape]);
+    stopVuLoop();
+  }, [activeTape, stopVuLoop]);
+
+  // Tear down the WebAudio graph on unmount.
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      analyserRef.current = null;
+      sourceElRef.current = null;
+      if (audioContextRef.current) {
+        void audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
 
   const handlePlayPause = () => {
     if (!activeTape) return;
@@ -100,10 +193,14 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
       setIsPaused(true);
     } else if (isPaused && audioRef.current) {
       // Resume
-      audioRef.current.play().catch(() => {
-        setIsPlaying(false);
-        setIsPaused(false);
-      });
+      const resumed = audioRef.current;
+      resumed
+        .play()
+        .then(() => startVuLoop(resumed))
+        .catch(() => {
+          setIsPlaying(false);
+          setIsPaused(false);
+        });
       setIsPaused(false);
     } else {
       // Start fresh — pause any prior instance so it doesn't keep playing.
@@ -121,6 +218,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
         setIsPlaying(false);
         setIsPaused(false);
         setCurrentTime(0);
+        stopVuLoop();
       };
 
       // If the recording is missing/expired (404) or autoplay is blocked, the
@@ -130,15 +228,19 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
         setIsPlaying(false);
         setIsPaused(false);
         setCurrentTime(0);
+        stopVuLoop();
       };
 
       setIsPlaying(true);
       setIsPaused(false);
-      audio.play().catch(() => {
-        setIsPlaying(false);
-        setIsPaused(false);
-        setCurrentTime(0);
-      });
+      audio
+        .play()
+        .then(() => startVuLoop(audio))
+        .catch(() => {
+          setIsPlaying(false);
+          setIsPaused(false);
+          setCurrentTime(0);
+        });
     }
   };
 
@@ -151,6 +253,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
     setIsPlaying(false);
     setIsPaused(false);
     setCurrentTime(0);
+    stopVuLoop();
   };
 
   const handlePrev = () => {
@@ -316,7 +419,7 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
             <span className="text-[10px] text-[var(--aesthetic-text)]/50 tracking-wider block uppercase">
               {activeTape
                 ? `${copy.dictaphoneItemLabel} #${selectedTapeIndex + 1}`
-                : "NO TAPE MOUNTED"}
+                : copy.dictaphoneEmpty}
             </span>
             <span className="text-[11px] text-[var(--aesthetic-text)]/85 truncate block mt-0.5 px-2">
               {activeTape ? activeTape.text.slice(0, 48) : copy.dictaphoneEmptyHint}
@@ -400,17 +503,20 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
         </div>
       </div>
 
+      {/* Two-voice interrogation recorder (Gemini multi-speaker TTS). */}
+      <InterrogationRecorder aestheticId={baseId} copy={copy} />
+
       {/* Cassette Rack Cabinet (Tape List) */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
         <span className="text-[10px] text-[var(--aesthetic-text)]/40 tracking-[0.2em] font-semibold uppercase block mb-1">
-          Archived Tape Cassettes ({tapes.length})
+          {copy.dictaphoneArchiveTitle} ({tapes.length})
         </span>
 
         {tapes.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-[var(--aesthetic-border)]/35 rounded-sm p-4 text-xs text-[var(--aesthetic-text)]/45 leading-relaxed uppercase">
-            No cassettes recorded.
+            {copy.dictaphoneArchiveHint}
             <span className="block text-[10px] mt-2 text-[var(--aesthetic-accent)]/60 normal-case tracking-normal">
-              Click play on a chat message to voice-record a tape.
+              {copy.dictaphoneArchiveSubhint}
             </span>
           </div>
         ) : (
@@ -473,6 +579,95 @@ export function DictaphonePanel({ tapes = [], onDeleteTape, onClose }: Dictaphon
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The interrogation recorder — names a suspect, and the wire comes back with a
+ * generated two-voice scene: the model writes a terse detective↔suspect
+ * exchange and Gemini's multi-speaker TTS reads it with two distinct voices in
+ * one clip. Best-effort: needs a Google API key; errors stay inline.
+ */
+function InterrogationRecorder({
+  aestheticId,
+  copy,
+}: {
+  aestheticId?: string;
+  copy: AestheticCopy;
+}) {
+  const [suspect, setSuspect] = useState("");
+  const [status, setStatus] = useState<"idle" | "recording" | "failed">("idle");
+  const [result, setResult] = useState<{ url: string; script: string; suspect: string } | null>(
+    null
+  );
+
+  const record = async () => {
+    const name = suspect.trim();
+    if (!name || status === "recording") return;
+    setStatus("recording");
+    setResult(null);
+    try {
+      const response = await fetch("/api/interrogation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ suspect: name, aestheticId }),
+      });
+      const data = (await response.json()) as { url?: string; script?: string; suspect?: string };
+      if (!response.ok || !data.url) {
+        setStatus("failed");
+        return;
+      }
+      setResult({ url: data.url, script: data.script ?? "", suspect: data.suspect ?? name });
+      setStatus("idle");
+    } catch {
+      setStatus("failed");
+    }
+  };
+
+  return (
+    <div className="border-b border-[var(--aesthetic-border)]/15 p-4 space-y-2">
+      <span className="text-[10px] text-[var(--aesthetic-text)]/40 tracking-[0.2em] font-semibold uppercase block">
+        {copy.interrogationTitle}
+      </span>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={suspect}
+          onChange={(e) => setSuspect(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void record();
+          }}
+          placeholder={copy.interrogationPlaceholder}
+          aria-label="Suspect to interrogate"
+          className="min-w-0 flex-1 rounded-sm border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/60 px-2 py-1.5 font-mono text-xs text-[var(--aesthetic-text)] placeholder:text-[var(--aesthetic-text)]/30 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--aesthetic-accent)]"
+        />
+        <button
+          type="button"
+          onClick={() => void record()}
+          disabled={status === "recording" || suspect.trim().length === 0}
+          className="shrink-0 rounded-sm border border-[var(--aesthetic-accent)]/50 bg-[var(--aesthetic-accent)]/10 px-3 py-1.5 font-typewriter text-[10px] uppercase tracking-wider text-[var(--aesthetic-accent)] transition-colors hover:bg-[var(--aesthetic-accent)]/25 disabled:opacity-40"
+        >
+          {status === "recording"
+            ? copy.interrogationRecordingLine
+            : status === "failed"
+              ? "Retry"
+              : copy.interrogationActionLine}
+        </button>
+      </div>
+      {result && (
+        <div className="space-y-1.5 rounded-sm border border-[var(--aesthetic-border)]/30 bg-[var(--aesthetic-surface)]/40 p-2">
+          <span className="block text-[9px] uppercase tracking-[0.2em] text-[var(--aesthetic-accent)]/70">
+            Interrogation — {result.suspect}
+          </span>
+          <audio src={result.url} controls className="w-full" />
+          {result.script && (
+            <pre className="max-h-24 overflow-y-auto whitespace-pre-wrap font-mono text-[10px] leading-relaxed text-[var(--aesthetic-text)]/55">
+              {result.script}
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 }

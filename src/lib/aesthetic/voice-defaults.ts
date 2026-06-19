@@ -1,4 +1,4 @@
-import { isBuiltInAestheticId } from "./types";
+import { BUILT_IN_AESTHETIC_IDS, isBuiltInAestheticId } from "./types";
 import type { AestheticId, BuiltInAestheticId, VoiceDirection } from "./types";
 import { AESTHETIC_DEFINITIONS } from "./definitions";
 
@@ -10,13 +10,9 @@ import { AESTHETIC_DEFINITIONS } from "./definitions";
  * resolve and preview a preset's default voice. (Previously a hand-copied
  * mirror of the registry; now there's nothing to keep in sync.)
  */
-export const AESTHETIC_DEFAULT_VOICE_IDS: Record<BuiltInAestheticId, string> = {
-  noir: AESTHETIC_DEFINITIONS.noir.voiceId,
-  minimal: AESTHETIC_DEFINITIONS.minimal.voiceId,
-  "cyber-fixer": AESTHETIC_DEFINITIONS["cyber-fixer"].voiceId,
-  "nostromo-console": AESTHETIC_DEFINITIONS["nostromo-console"].voiceId,
-  "gothic-manor": AESTHETIC_DEFINITIONS["gothic-manor"].voiceId,
-};
+export const AESTHETIC_DEFAULT_VOICE_IDS: Record<BuiltInAestheticId, string> = Object.fromEntries(
+  BUILT_IN_AESTHETIC_IDS.map((id) => [id, AESTHETIC_DEFINITIONS[id].voiceId])
+) as Record<BuiltInAestheticId, string>;
 
 /**
  * Resolve the default voice ID for an aesthetic, falling back to noir for
