@@ -144,7 +144,11 @@ export function DeskLayout({
     const cols: string[] = [];
     if (isEditorVisible) cols.push("var(--editor-w)");
     if (isTemplatesVisible) cols.push("280px");
-    cols.push("1fr");
+    // `minmax(0, 1fr)` (not a bare `1fr`, which is `minmax(auto, 1fr)`): the
+    // auto minimum refuses to shrink below the column's min-content width, so a
+    // wide toolbar (world switcher + archive buttons) would push the board past
+    // the reserved sidebar margin and overlap it. minmax(0,…) lets it shrink.
+    cols.push("minmax(0, 1fr)");
     if (isDictaphoneVisible) cols.push("380px");
     if (isEjectVisible) cols.push("400px");
     // Sidebar is fixed position, not in grid — space is reserved via margin.
