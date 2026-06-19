@@ -12,6 +12,7 @@ import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/s
 import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
 import { enrichA2UI } from "@/lib/a2ui/enrich";
 import { apiSecurityCheck } from "@/lib/api/security";
+import { getSamplingPersonality } from "@/lib/aesthetic/identity";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
 /**
@@ -188,33 +189,38 @@ function createMockComponents(prompt: string): Record<string, unknown>[] {
 
 /**
  * Normalize a component emitted by the `generate_ui` tool into a flat catalog
- * component list for the surface renderer.
+ * component list for the surface renderer, returning the id of the SECTION
+ * ROOT for this call.
  *
  * - Already-catalog-shaped components (carry a `component` discriminator) are
  *   passed through, with an id ensured.
  * - Legacy-shaped components (carry a lowercase `type`) are flattened into the
- *   catalog adjacency list via the adapter. The first such tree owns the
- *   `root` id.
+ *   catalog adjacency list via the adapter.
+ *
+ * Progressive assembly: every call is one SECTION; the route stitches the
+ * section roots into a synthetic "root" Column, so the model can emit a board
+ * piece by piece (one generate_ui call per section) and each section renders
+ * the moment it arrives instead of waiting for one monolithic tree.
  */
-function toCatalogComponents(
+function toCatalogSection(
   component: Record<string, unknown>,
-  isFirstTree: boolean,
   callIndex: number
-): Record<string, unknown>[] {
+): { components: Record<string, unknown>[]; sectionRootId: string } {
   if (typeof component.component === "string") {
     // Clone so we never mutate the upstream SDK tool-call object in place.
     const normalized = { ...component };
     if (!normalized.id) {
       normalized.id = generateComponentId();
     }
-    return [normalized];
+    return { components: [normalized], sectionRootId: normalized.id as string };
   }
 
+  const sectionRootId = `gen-${callIndex}-root`;
   const { components } = flattenLegacyToCatalog(component, {
     idPrefix: `gen-${callIndex}`,
-    rootId: isFirstTree ? "root" : `gen-${callIndex}-root`,
+    rootId: sectionRootId,
   });
-  return components;
+  return { components, sectionRootId };
 }
 
 /**
@@ -328,9 +334,15 @@ export async function POST(req: NextRequest): Promise<Response> {
         // Only expose generate_ui (the v0.9 surface is about producing UI;
         // set_aesthetic is irrelevant) and force it by name — without a named
         // choice, Gemini often picks the wrong tool and the surface ends up empty.
+        // The world's personality reaches the SAMPLER too: nostromo generates
+        // rigidly (temp 0.2), gothic florid (1.0). Custom worlds inherit their
+        // base preset's sampling via the definition fallback.
+        const sampling = getSamplingPersonality(aestheticId);
         const result = streamText({
           model: auth.provider!(auth.model),
           messages: [{ role: "user", content: prompt }],
+          temperature: sampling.temperature,
+          ...(typeof sampling.topP === "number" ? { topP: sampling.topP } : {}),
           system: buildSystemPrompt(
             baselineComponents,
             aestheticId,
@@ -346,10 +358,13 @@ export async function POST(req: NextRequest): Promise<Response> {
           toolChoice: { type: "tool", toolName: "generate_ui" },
         });
 
-        // Process the stream — emit updateComponents incrementally.
-        // The first tool call owns the surface "root"; subsequent calls are
-        // namespaced so their ids never collide.
+        // Process the stream — emit updateComponents incrementally. Every tool
+        // call is one SECTION of the board; the synthetic "root" Column is
+        // re-emitted with each update so sections render the moment they
+        // arrive (progressive assembly) instead of all-at-once.
         let callIndex = 0;
+        const sectionRootIds: string[] = [];
+        const sourceTrees: unknown[] = [];
 
         // Emit a generate_ui tool call's component as an updateComponents message.
         const emitComponent = async (rawComponent: unknown): Promise<void> => {
@@ -378,24 +393,21 @@ export async function POST(req: NextRequest): Promise<Response> {
               imageModel
             )) as Record<string, unknown>;
           }
-          const isFirstTree = callIndex === 0;
-          const components = toCatalogComponents(component, isFirstTree, callIndex);
+          const { components, sectionRootId } = toCatalogSection(component, callIndex);
           callIndex++;
+          sectionRootIds.push(sectionRootId);
+          sourceTrees.push(component);
           const updateMsg: UpdateComponentsMessage = {
             type: "updateComponents",
             surfaceId,
-            components: components as UpdateComponentsMessage["components"],
+            components: [
+              ...components,
+              // The accumulated board: one Column of section roots, in arrival
+              // order. Re-emitted (same id) so the store overwrites in place.
+              { id: "root", component: "Column", children: [...sectionRootIds] },
+            ] as UpdateComponentsMessage["components"],
           };
           controller.enqueue(encoder.encode(formatSSE(updateMsg)));
-
-          // Emit the resolved legacy A2UI tree (image prompts already swapped for
-          // real URLs, pre-flatten) as a `source` message. This is the
-          // high-fidelity shape the eject/export feature consumes — exporting it
-          // directly avoids reverse-engineering the lossy flat catalog. Only the
-          // first tool call owns the surface root, so that's the export source.
-          if (isFirstTree) {
-            controller.enqueue(encoder.encode(formatSSE({ type: "source", tree: component })));
-          }
         };
 
         const componentOf = (chunk: unknown): unknown => {
@@ -429,6 +441,21 @@ export async function POST(req: NextRequest): Promise<Response> {
           } catch {
             // ignore — nothing to recover
           }
+        }
+
+        // Emit the resolved legacy A2UI tree(s) (image prompts already swapped
+        // for real URLs, pre-flatten) as a `source` message — the high-fidelity
+        // shape the eject/export feature consumes. With progressive assembly
+        // the sections are wrapped in one container so the export stays a
+        // single complete tree.
+        if (sourceTrees.length === 1) {
+          controller.enqueue(encoder.encode(formatSSE({ type: "source", tree: sourceTrees[0] })));
+        } else if (sourceTrees.length > 1) {
+          controller.enqueue(
+            encoder.encode(
+              formatSSE({ type: "source", tree: { type: "container", children: sourceTrees } })
+            )
+          );
         }
 
         // 4. Send the detective's narration (from the parallel call) for the

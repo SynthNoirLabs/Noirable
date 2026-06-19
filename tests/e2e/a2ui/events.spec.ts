@@ -178,21 +178,17 @@ test.describe("A2UI Events - Browser Integration", () => {
 
     // Set up request interception to verify API is called. The app is v0.9-only,
     // so generation goes through the streaming endpoint.
-    const apiCallPromise = page
-      .waitForRequest("**/api/a2ui/stream", { timeout: 5000 })
-      .catch(() => null);
+    const apiCallPromise = page.waitForRequest("**/api/a2ui/stream", { timeout: 5000 });
 
     // Submit a command
     const input = page.getByPlaceholder("Type your command...");
     await input.fill("Test command");
     await input.press("Enter");
 
-    // Wait for API call (or timeout)
-    await apiCallPromise;
-
-    // In E2E mode with mock provider, we verify the input submission worked
-    // The API call may or may not happen depending on E2E configuration
-    expect(true).toBeTruthy(); // Test passed - submission executed without error
+    // Verify the API call actually fired
+    const apiRequest = await apiCallPromise;
+    expect(apiRequest).not.toBeNull();
+    expect(apiRequest.method()).toBe("POST");
   });
 
   test("editor pane is visible for JSON editing", async ({ page }) => {

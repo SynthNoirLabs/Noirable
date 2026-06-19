@@ -5,9 +5,10 @@ export default defineConfig({
   // `next dev` compiles each route on first request, so the first spec to hit a
   // route pays the compile cost; give CI extra per-test headroom for that.
   timeout: process.env.CI ? 120_000 : 60_000,
-  // Retry in CI to absorb cold-compile timing flakes (the first hit to a route
-  // can be slow on a fresh dev server); a real failure still fails all attempts.
-  retries: process.env.CI ? 2 : 0,
+  // Retries disabled: all waitForTimeout sleeps have been replaced with
+  // deterministic waits (expect.poll, waitFor, web-first assertions), so flakes
+  // should surface as real failures instead of being masked by retries.
+  retries: 0,
   expect: {
     timeout: 10_000,
   },

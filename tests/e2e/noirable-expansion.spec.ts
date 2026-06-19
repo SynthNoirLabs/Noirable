@@ -54,7 +54,12 @@ async function injectE2EStyles(
 // removed), so this is a no-op kept for call-site clarity — it just waits for
 // hydration before the test drives the chat.
 async function enableA2UIv09(page: Page) {
-  await page.waitForTimeout(1500); // Wait for hydration
+  // Wait for React hydration by checking that interactive elements are ready
+  const input = page.getByPlaceholder("Type your command...");
+  await input.waitFor({ state: "attached" });
+  await page.waitForFunction(() => {
+    return document.readyState === "complete";
+  });
 }
 
 test.describe("Tier 1: Feature Coverage", () => {
@@ -119,12 +124,12 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.getByLabel("Select active profile").click();
     await page.getByRole("option", { name: "Cyber Fixer" }).click();
 
-    // Wait for the debounced store persist to finish before reloading
-    await page.waitForTimeout(500);
+    // Wait for the aesthetic to actually be applied (confirms persist triggered)
+    const rootElement = page.locator("[data-aesthetic]");
+    await expect(rootElement).toHaveAttribute("data-aesthetic", "cyber-fixer");
 
     await page.reload();
     await page.waitForSelector('[data-testid="desk-layout"]');
-    const rootElement = page.locator("[data-aesthetic]");
     await expect(rootElement).toHaveAttribute("data-aesthetic", "cyber-fixer");
   });
 
@@ -832,8 +837,7 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
     });
     await expect(page.getByTestId("bg-image-error")).toBeVisible();
 
-    // Reload page, ensure Gothic Manor base still loads
-    await page.waitForTimeout(500);
+    // Reload page, ensure custom profile persisted and still loads
     await page.reload();
     await page.waitForSelector('[data-testid="desk-layout"]');
     await expect(page.locator("[data-custom-profile]")).toHaveAttribute(
