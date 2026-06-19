@@ -422,14 +422,19 @@ const cyberFixer: AestheticDefinition = {
     generate: "inject grid load",
     error: "connection dropped",
   },
-  voiceId: "pNInz6obpgDQGcFmaJgB",
+  // Matt — natural, hyper-conversational American male. Replaces the stock
+  // "Adam" voice, which read as a generic/robotic TTS for the streetwise fixer.
+  voiceId: "pwMBn0SsmN1220Aorv15",
   imageStylePrompt:
     "cyberpunk aesthetic, futuristic cyberpunk command center, neon lights, high-tech overlays, glowing digital HUD, cybernetic implants, wireframe graphics, cyan and magenta accents, rainy futuristic cityscape window, synthwave style, no text or watermark",
   // Dense neon/HUD detail — the higher-fidelity Gemini Pro image model.
   imageModel: "gemini-3-pro-image",
   identity: {
     glowStrength: 1.4,
-    voiceDirection: { stability: 0.2, similarityBoost: 0.6, style: 0.8, speed: 1.1 },
+    // Tuned for Matt (a natural conversational voice): moderate stability so he
+    // stays steady, modest style so the delivery reads as a real person with
+    // edge rather than an exaggerated AI, and a slight speed lift for fixer energy.
+    voiceDirection: { stability: 0.45, similarityBoost: 0.75, style: 0.35, speed: 1.08 },
     musicStylePrompt:
       "dark synthwave — driving arpeggiated bass, neon pads, gated reverb drums, 110bpm, retro-futuristic and propulsive, Blade Runner street energy",
     musicPresets: [
@@ -962,15 +967,17 @@ const grandHotel: AestheticDefinition = {
   // The hotel's foley is GENERATED: each src hits /api/sfx/grand-hotel/<kind>,
   // which renders the identity.sfxPrompts recipe through ElevenLabs text-to-SFX
   // on first request, caches it to disk, and falls back to the noir assets when
-  // no ELEVENLABS_API_KEY is configured. Music still reuses the jazz loop (the
-  // Composer Lab generates real scores on demand).
+  // no ELEVENLABS_API_KEY is configured. Music is likewise GENERATED: its src
+  // hits /api/music/grand-hotel/atmosphere, which renders the
+  // identity.musicStylePrompt through the ElevenLabs Music API on first request
+  // and falls back to the noir jazz loop when no key is configured.
   audio: {
     sfx: {
       typewriter: { src: "/api/sfx/grand-hotel/typewriter.mp3", volume: 0.55 },
       thunder: { src: "/api/sfx/grand-hotel/thunder.mp3", volume: 0.6 },
       phone: { src: "/api/sfx/grand-hotel/phone.mp3", volume: 0.65 },
     },
-    music: { src: "/assets/noir/noir-jazz-loop.mp3", volume: 0.2 },
+    music: { src: "/api/music/grand-hotel/atmosphere", volume: 0.2 },
     ambient: {
       rain: {
         src: "/api/sfx/grand-hotel/ambient.mp3",
