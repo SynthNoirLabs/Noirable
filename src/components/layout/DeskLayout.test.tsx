@@ -14,7 +14,7 @@ describe("DeskLayout", () => {
     // Check for grid or flex
     const layout = container.firstChild;
     expect(layout).toHaveClass("grid");
-    expect(layout).toHaveClass("grid-cols-[var(--editor-w)_1fr]");
+    expect(layout).toHaveStyle({ gridTemplateColumns: "var(--editor-w) 1fr" });
   });
 
   it("uses fixed sidebar with margin when present", () => {
@@ -23,7 +23,7 @@ describe("DeskLayout", () => {
     );
     const layout = container.firstChild as HTMLElement;
     // Sidebar is now fixed position, grid stays 2-column but reserves space with margin
-    expect(layout).toHaveClass("grid-cols-[var(--editor-w)_1fr]");
+    expect(layout).toHaveStyle({ gridTemplateColumns: "var(--editor-w) 1fr" });
     expect(layout).toHaveStyle("margin-right: 360px");
   });
 

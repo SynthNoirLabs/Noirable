@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 
 export interface KeyboardShortcutHandlers {
   onUndo?: () => void;
@@ -100,20 +100,39 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
   }, [handleKeyDown]);
 }
 
-/**
- * Format keyboard shortcut for display
- */
-export function formatShortcut(keys: string[]): string {
-  const isMac =
-    typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+function isMacPlatform(): boolean {
+  return typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+}
 
+function buildShortcut(keys: string[], mac: boolean): string {
   return keys
     .map((key) => {
-      if (key === "mod") return isMac ? "⌘" : "Ctrl";
-      if (key === "shift") return isMac ? "⇧" : "Shift";
+      if (key === "mod") return mac ? "⌘" : "Ctrl";
+      if (key === "shift") return mac ? "⇧" : "Shift";
       if (key === "enter") return "↵";
       if (key === "escape") return "Esc";
       return key.toUpperCase();
     })
-    .join(isMac ? "" : "+");
+    .join(mac ? "" : "+");
+}
+
+/**
+ * Format keyboard shortcut for display (non-reactive, safe only in event handlers or
+ * places where hydration mismatch doesn't matter).
+ */
+export function formatShortcut(keys: string[]): string {
+  return buildShortcut(keys, isMacPlatform());
+}
+
+/**
+ * Returns a shortcut label that is stable on the server and updates after hydration,
+ * preventing SSR/client mismatches in rendered output.
+ */
+export function useShortcut(keys: string[]): string {
+  const [label, setLabel] = useState(() => buildShortcut(keys, false));
+  useEffect(() => {
+    setLabel(buildShortcut(keys, isMacPlatform()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return label;
 }

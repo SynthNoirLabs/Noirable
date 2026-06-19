@@ -2,12 +2,14 @@ import RootLayout from "@/app/layout";
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 
-// Mock fonts
+// Mock fonts — the first two loads are the historical sans/typewriter pair;
+// the per-world display faces (cyber/terminal/gothic/deco) share a generic mock.
 vi.mock("next/font/local", () => ({
   default: vi
     .fn()
     .mockReturnValueOnce({ variable: "font-sans-mock" })
-    .mockReturnValueOnce({ variable: "font-typewriter-mock" }),
+    .mockReturnValueOnce({ variable: "font-typewriter-mock" })
+    .mockReturnValue({ variable: "font-display-mock" }),
 }));
 
 // Mock Sandpack styles component (uses stitches which fails in test env)

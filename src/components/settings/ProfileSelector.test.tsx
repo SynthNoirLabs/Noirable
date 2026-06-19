@@ -38,14 +38,13 @@ vi.mock("@/lib/store/useA2UIStore", () => ({
   }),
 }));
 
-vi.mock("@/lib/aesthetic/types", () => ({
-  isBuiltInAestheticId: (id: string) =>
-    id === "noir" ||
-    id === "minimal" ||
-    id === "cyber-fixer" ||
-    id === "nostromo-console" ||
-    id === "gothic-manor",
-}));
+vi.mock("@/lib/aesthetic/types", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/aesthetic/types")>();
+  return {
+    ...actual,
+    isBuiltInAestheticId: actual.isBuiltInAestheticId,
+  };
+});
 
 describe("ProfileSelector", () => {
   beforeEach(() => {
@@ -53,46 +52,45 @@ describe("ProfileSelector", () => {
     mockCustomProfiles.length = 0;
   });
 
-  it("renders current profile name", () => {
+  it("renders the world gallery with built-in worlds", () => {
     render(<ProfileSelector />);
-    expect(screen.getByText("Noir Detective")).toBeInTheDocument();
-  });
-
-  it("opens dropdown on click", () => {
-    render(<ProfileSelector />);
-    fireEvent.click(screen.getByText("Noir Detective"));
+    // The gallery is always-on (no dropdown to open): tiles are visible up front.
     expect(screen.getByText("Built-in")).toBeInTheDocument();
+    expect(screen.getByText("Noir Detective")).toBeInTheDocument();
   });
 
   it("shows built-in profiles", () => {
     render(<ProfileSelector />);
-    fireEvent.click(screen.getByText("Noir Detective"));
     expect(screen.getByText("Minimal")).toBeInTheDocument();
+  });
+
+  it("marks the active world as selected", () => {
+    render(<ProfileSelector />);
+    expect(screen.getByRole("option", { name: /Noir Detective/i })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
   });
 
   it("selects a different profile", () => {
     render(<ProfileSelector />);
-    fireEvent.click(screen.getByText("Noir Detective"));
-    fireEvent.click(screen.getByText("Minimal"));
+    fireEvent.click(screen.getByRole("button", { name: /Switch to Minimal/i }));
     expect(mockUpdateSettings).toHaveBeenCalledWith({ aestheticId: "minimal" });
   });
 
   it("shows create new profile button", () => {
     render(<ProfileSelector />);
-    fireEvent.click(screen.getByText("Noir Detective"));
     expect(screen.getByText("Create New Profile")).toBeInTheDocument();
   });
 
   it("opens new profile dialog", () => {
     render(<ProfileSelector />);
-    fireEvent.click(screen.getByText("Noir Detective"));
     fireEvent.click(screen.getByText("Create New Profile"));
     expect(screen.getByPlaceholderText("Profile name...")).toBeInTheDocument();
   });
 
   it("creates new profile", () => {
     render(<ProfileSelector />);
-    fireEvent.click(screen.getByText("Noir Detective"));
     fireEvent.click(screen.getByText("Create New Profile"));
 
     const input = screen.getByPlaceholderText("Profile name...");
@@ -105,7 +103,6 @@ describe("ProfileSelector", () => {
   it("shows custom profiles when available", () => {
     mockCustomProfiles.push({ id: "custom-1", name: "Custom Theme", baseAestheticId: "noir" });
     render(<ProfileSelector />);
-    fireEvent.click(screen.getByText("Noir Detective"));
     expect(screen.getByText("Custom Theme")).toBeInTheDocument();
     expect(screen.getByText("Custom")).toBeInTheDocument();
   });

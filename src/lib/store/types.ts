@@ -27,6 +27,12 @@ export interface Settings {
   soundEnabled: boolean;
   ttsEnabled?: boolean;
   musicEnabled?: boolean;
+  /**
+   * Living score (experimental): stream a continuously-generated, steerable
+   * Lyria RealTime soundtrack instead of the looped track. Falls back to the
+   * loop when the websocket/key is unavailable.
+   */
+  liveScoreEnabled?: boolean;
   modelConfig: ModelConfig;
   ambient: AmbientSettings;
   /** Active aesthetic profile ID */

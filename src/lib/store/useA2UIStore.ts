@@ -7,6 +7,7 @@ import { encryptValue, decryptValue } from "@/lib/customization/crypto";
 import { createEvidenceSlice, type EvidenceSlice } from "./slices/evidenceSlice";
 import { createPromptSlice, type PromptSlice } from "./slices/promptSlice";
 import { createSettingsSlice, type SettingsSlice } from "./slices/settingsSlice";
+import { createArchiveSlice, type ArchiveSlice, type ArchivedCase } from "./slices/archiveSlice";
 import type { Settings, EvidenceEntry, PromptEntry, Layout } from "./types";
 
 // Re-export all public types for backward compatibility
@@ -22,13 +23,15 @@ export type {
   PromptEntry,
   Layout,
 } from "./types";
+export type { ArchivedCase } from "./slices/archiveSlice";
 export { AVAILABLE_MODELS };
 
-export type A2UIState = EvidenceSlice & PromptSlice & SettingsSlice;
+export type A2UIState = EvidenceSlice & PromptSlice & SettingsSlice & ArchiveSlice;
 
 const STORAGE_DEBOUNCE_MS = 300;
 const MAX_EVIDENCE_HISTORY = 200;
 const MAX_PROMPT_HISTORY = 100;
+const MAX_ARCHIVE = 24;
 
 function createDebouncedStorage<S>(storage: PersistStorage<S>, delayMs: number): PersistStorage<S> {
   const timeouts = new Map<string, ReturnType<typeof setTimeout>>();
@@ -64,6 +67,7 @@ type PersistedState = {
   evidenceHistory: EvidenceEntry[];
   activeEvidenceId: string | null;
   promptHistory: PromptEntry[];
+  archive: ArchivedCase[];
 };
 
 /**
@@ -147,6 +151,7 @@ export const useA2UIStore = create<A2UIState>()(
       ...createEvidenceSlice(...a),
       ...createPromptSlice(...a),
       ...createSettingsSlice(...a),
+      ...createArchiveSlice(...a),
     }),
     {
       name: "a2ui-storage",
@@ -158,6 +163,8 @@ export const useA2UIStore = create<A2UIState>()(
         evidenceHistory: state.evidenceHistory.slice(-MAX_EVIDENCE_HISTORY),
         activeEvidenceId: state.activeEvidenceId,
         promptHistory: state.promptHistory.slice(-MAX_PROMPT_HISTORY),
+        // Case Archive is newest-first, so cap from the FRONT (keep most recent).
+        archive: state.archive.slice(0, MAX_ARCHIVE),
         // Note: undoStack/redoStack intentionally not persisted
       }),
     }
