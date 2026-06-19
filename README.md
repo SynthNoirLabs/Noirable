@@ -5,7 +5,7 @@
 An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interface: generated UI arrives with a matching palette, typography, voice, and soundtrack. The chat → generate → eject-to-code loop draws on tools like [Lovable](https://lovable.dev) and v0, but the rest of the app is its own thing.
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-1200%2B%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1100%2B%20passing-brightgreen)]()
 
 ![Detective workspace with evidence board and chat](docs/screenshots/noirable_screen.jpg)
 
@@ -17,12 +17,7 @@ An [A2UI Protocol](https://a2ui.org/) showcase built as a noir-themed AI interfa
 
 synthNoirUI is a full-stack reference implementation of the **A2UI (Agent to UI) Protocol**. The protocol defines a typed, declarative JSON schema for AI agents to generate rich UI components -- cards, tables, forms, timelines, images -- streamed and rendered in real time. The noir detective persona and evidence board aren't just theming; they're the proving ground for the protocol.
 
-The project implements two protocol versions:
-
-- **A2UI v0.9** -- 18 components in the standard catalog, streamed via SSE as JSONL messages (`createSurface`, `updateComponents`)
-- **Legacy protocol** -- 24 component types delivered through Vercel AI SDK tool calls, validated with Zod schemas
-
-Both protocols produce the same visual output. The v0.9 path is the active development target.
+There is a single live rendering path — the **A2UI v0.9** SSE pipeline (`createSurface` / `updateComponents` JSONL messages) — fed by a **legacy-shaped model contract**: the LLM emits nested JSON trees (lowercase `type` discriminator) through the `generate_ui` tool, which are Zod-validated, normalized, enriched, and flattened into the v0.9 catalog by the legacy→catalog adapter before rendering.
 
 But the protocol is only half of it. synthNoirUI doesn't just render generated UI -- it renders it with a matching, AI-authored look and feel: a coherent palette and typography, an in-character persona, a spoken voice, AI-generated evidence photos, and an original score composed on demand. The atmosphere even reacts to the narration as it's spoken -- a mention of thunder or a ringing phone fires the matching sound and lighting, timed to land on the word. You can describe a whole aesthetic in plain text and have the AI build it, or tune every dimension by hand.
 
@@ -97,18 +92,25 @@ AI_IMAGE_MODEL=                       # Default image model
 ```
 src/
 ├── app/
-│   ├── api/a2ui/stream/  # A2UI v0.9 SSE streaming endpoint
-│   ├── api/chat/         # Legacy chat endpoint (Vercel AI SDK tool calls)
-│   ├── api/elevenlabs/   # ElevenLabs voice proxy
-│   ├── api/images/[id]/  # Serve generated images
-│   ├── api/settings/     # Settings persistence
-│   ├── api/tts/          # Text-to-speech proxy
-│   └── print/            # Print-friendly evidence view
-├── components/           # a2ui, board, chat, eject, layout, noir, renderer,
-│                         #   settings, shared, templates, training
-└── lib/                  # a2ui, aesthetic, ai, api, customization, eject,
-                          #   elevenlabs, evidence, hooks, protocol, sanity,
-                          #   storage, store, templates, training
+│   ├── api/a2ui/stream/      # A2UI v0.9 SSE streaming endpoint (the one render path)
+│   ├── api/elevenlabs/       # ElevenLabs voice proxy
+│   ├── api/images/[id]/      # Serve (and re-develop) generated images
+│   ├── api/interrogation/    # Image interrogation
+│   ├── api/live-music/       # Live music generation key
+│   ├── api/music/            # Music generation
+│   ├── api/settings/         # Settings persistence
+│   ├── api/sfx/              # Sound effects
+│   ├── api/theme/            # AI theme ("describe a vibe") generation
+│   ├── api/tts/              # Text-to-speech proxy
+│   ├── api/uploads/          # File uploads
+│   ├── api/video/            # Video generation
+│   ├── api/voice-design/     # Voice design
+│   └── print/                # Print-friendly evidence view
+├── components/               # a2ui, board, chat, eject, layout, noir,
+│                             #   settings, shared, templates
+└── lib/                      # a2ui, aesthetic, ai, api, audio, customization,
+                              #   eject, elevenlabs, evidence, hooks, protocol,
+                              #   sanity, storage, store, templates
 ```
 
 ## Tech Stack

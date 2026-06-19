@@ -37,19 +37,26 @@ pnpm dev
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── api/a2ui/stream/    # A2UI v0.9 streaming endpoint
-│   ├── api/chat/           # AI streaming + tool execution
-│   ├── api/images/[id]/    # Serves generated images
-│   ├── api/elevenlabs/     # ElevenLabs proxy
-│   ├── api/settings/       # Settings persistence
-│   ├── api/tts/            # Text-to-speech
-│   └── print/              # Print view page
-├── components/             # a2ui, board, chat, eject, layout, noir,
-│                           # renderer, settings, shared, templates, training
-└── lib/                    # a2ui, aesthetic, ai, api, customization, eject,
-                            # elevenlabs, evidence, hooks, protocol, sanity,
-                            # storage, store, templates, training
+├── app/                      # Next.js App Router
+│   ├── api/a2ui/stream/      # A2UI v0.9 streaming endpoint
+│   ├── api/elevenlabs/       # ElevenLabs proxy
+│   ├── api/images/[id]/      # Serves generated images
+│   ├── api/interrogation/    # Image interrogation
+│   ├── api/live-music/       # Live music generation key
+│   ├── api/music/            # Music generation
+│   ├── api/settings/         # Settings persistence
+│   ├── api/sfx/              # Sound effects
+│   ├── api/theme/            # Theme generation
+│   ├── api/tts/              # Text-to-speech
+│   ├── api/uploads/          # File uploads
+│   ├── api/video/            # Video generation
+│   ├── api/voice-design/     # Voice design
+│   └── print/                # Print view page
+├── components/               # a2ui, board, chat, eject, layout, noir,
+│                             # settings, shared, templates
+└── lib/                      # a2ui, aesthetic, ai, api, audio, customization,
+                              # eject, elevenlabs, evidence, hooks, protocol,
+                              # sanity, storage, store, templates
 ```
 
 ### Key Files
@@ -188,7 +195,7 @@ The Vitest thresholds in `vitest.config.ts` are the gate:
 - Functions: **65%**
 - Statements: **70%**
 
-Run `pnpm test:coverage` to check. The suite currently has 1,200+ tests across 100+ test files.
+Run `pnpm test:coverage` to check. The suite currently has 1,100+ tests across 100+ test files.
 
 ---
 
@@ -311,4 +318,4 @@ pnpm build 2>&1 | head -50
 
 ---
 
-*Last updated: 2026-06-03*
+*Last updated: 2026-06-18*
