@@ -75,10 +75,12 @@ export function CustomizationPanel({ isOpen, onClose }: CustomizationPanelProps)
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Picking a WORLD is a commitment: auto-close the drawer (and its desk-
-  // blurring scrim) so the arrival cinematic plays on a clean, visible desk
-  // instead of behind a blurred backdrop. Editing the active profile's colors/
-  // fonts/etc. doesn't change this key, so the Lab stays open while tuning.
+  // Committing to a BUILT-IN world is a clean swap: auto-close the drawer (and
+  // its desk-blurring scrim) so the arrival cinematic plays on a clean, visible
+  // desk instead of behind a blurred backdrop. But selecting OR creating a
+  // custom profile keeps the Lab open — you pick a custom world precisely to
+  // tune it (colors/fonts/audio), so closing on it would trap you in a
+  // create→reopen loop. Editing the active profile doesn't change this key.
   const aestheticId = useA2UIStore((state) => state.settings.aestheticId);
   const activeCustomProfileId = useCustomProfileStore((state) => state.activeCustomProfileId);
   const resolvedWorldKey = `${aestheticId}/${activeCustomProfileId ?? ""}`;
@@ -90,10 +92,13 @@ export function CustomizationPanel({ isOpen, onClose }: CustomizationPanelProps)
   useEffect(() => {
     const previous = lastWorldKeyRef.current;
     lastWorldKeyRef.current = resolvedWorldKey;
-    if (previous !== resolvedWorldKey) {
+    // Only close when the world actually changed AND we landed on a built-in
+    // world (no active custom profile) — i.e. a cinematic world swap, not a
+    // custom-profile create/select that the user will immediately customize.
+    if (previous !== resolvedWorldKey && !activeCustomProfileId) {
       onCloseRef.current();
     }
-  }, [resolvedWorldKey]);
+  }, [resolvedWorldKey, activeCustomProfileId]);
 
   // Focus trap and Escape-to-close
   useFocusTrap(isOpen, panelRef);
