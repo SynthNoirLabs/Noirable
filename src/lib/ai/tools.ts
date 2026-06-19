@@ -1,8 +1,9 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { a2uiInputSchema, a2uiSchema } from "@/lib/protocol/schema";
+import { a2uiInputSchema, a2uiSchema, SUPPORTED_LEGACY_TYPE_LIST } from "@/lib/protocol/schema";
 import { resolveA2UIImagePrompts } from "@/lib/ai/images";
 import { isValidAestheticId } from "@/lib/aesthetic/registry";
+import { BUILT_IN_AESTHETIC_IDS } from "@/lib/aesthetic/types";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
 /**
@@ -11,9 +12,9 @@ import type { AestheticId } from "@/lib/aesthetic/types";
  * noir/minimal.
  */
 const aestheticIdSchema = z
-  .enum(["noir", "minimal", "cyber-fixer", "nostromo-console", "gothic-manor"])
+  .enum(BUILT_IN_AESTHETIC_IDS)
   .describe(
-    "The aesthetic profile to switch to. 'noir' is a dark detective theme, 'minimal' is a clean light theme, 'cyber-fixer' is a neon cyberpunk theme, 'nostromo-console' is a retro green-phosphor terminal, 'gothic-manor' is a dark Victorian gothic theme."
+    "The aesthetic profile to switch to. 'noir' is a dark detective theme, 'minimal' is a clean light theme, 'cyber-fixer' is a neon cyberpunk theme, 'nostromo-console' is a retro green-phosphor terminal, 'gothic-manor' is a dark Victorian gothic theme, 'grand-hotel' is a 1920s art-deco grand hotel."
   );
 
 /**
@@ -73,7 +74,10 @@ export function createTools(
       // JSON string sidesteps that entirely — models reliably emit one string field
       // — and we parse + validate server-side via `a2uiInputSchema`.
       description:
-        'Submit a generated A2UI component tree for rendering. Pass `component` as a JSON string encoding a nested A2UI object: a root node with a `type` (one of: container, row, column, grid, card, tabs, heading, paragraph, text, callout, badge, divider, list, table, stat, image, video, input, textarea, select, checkbox, button) plus type-specific fields, and for layout types a `children` array of further nodes. For `image` and `video`, set their field to a short scene/shot DESCRIPTION (e.g. {"type":"image","prompt":"a rain-slicked alley mugshot"} or {"type":"video","prompt":"grainy security-cam footage of a figure crossing the alley"}); image is generated automatically, video renders as an on-demand "Generate footage" placeholder the user clicks (use video sparingly, only for genuine motion). Example: \'{"type":"card","title":"Suspect","description":"Wanted"}\'.',
+        `Submit a generated A2UI component tree for rendering. Pass \`component\` as a JSON string encoding a nested A2UI object: a root node with a \`type\` (one of: ${SUPPORTED_LEGACY_TYPE_LIST}) plus type-specific fields, and for layout types a \`children\` array of further nodes. ` +
+        'For `image` and `video`, set their field to a short scene/shot DESCRIPTION (e.g. {"type":"image","prompt":"a rain-slicked alley mugshot"} or {"type":"video","prompt":"grainy security-cam footage of a figure crossing the alley"}); image is generated automatically, video renders as an on-demand "Generate footage" placeholder the user clicks (use video sparingly, only for genuine motion). ' +
+        'For `kanbanBoard`, use {"type":"kanbanBoard","title":…,"columns":[{"title":"To Do","cards":[{"title":…,"description":…,"assignee":…,"tags":[…]}]}]}. For `dataDashboard`, use {"type":"dataDashboard","title":…,"widgets":[{"title":…,"type":"metric"|"progress"|"chart","value":…,"unit":…,"progress":0-100,"data":[{"label":…,"value":…}],"trend":{"value":…,"direction":"up"|"down"|"neutral"}}]}. ' +
+        'Example: \'{"type":"card","title":"Suspect","description":"Wanted"}\'.',
       inputSchema: z.object({
         component: z.string().describe("The A2UI component tree, encoded as a JSON string."),
       }),

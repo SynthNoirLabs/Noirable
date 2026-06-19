@@ -519,6 +519,32 @@ export const dataDashboardSchema = componentCommonSchema.extend({
 });
 export type DataDashboard = z.infer<typeof dataDashboardSchema>;
 
+export const graphNodeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  kind: z.enum(["suspect", "victim", "location", "clue", "witness"]).optional(),
+  detail: z.string().optional(),
+});
+
+export const graphEdgeSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  label: z.string().optional(),
+  kind: z.enum(["alibi", "motive", "connection", "witnessed"]).optional(),
+});
+
+/**
+ * RelationshipGraph - the "suspect web" / conspiracy board: nodes (people,
+ * places, clues) wired by typed red-string edges.
+ */
+export const relationshipGraphSchema = componentCommonSchema.extend({
+  component: z.literal("RelationshipGraph"),
+  title: dynamicStringSchema.optional(),
+  nodes: z.array(graphNodeSchema),
+  edges: z.array(graphEdgeSchema),
+});
+export type RelationshipGraph = z.infer<typeof relationshipGraphSchema>;
+
 // =============================================================================
 // Discriminated Union
 // =============================================================================
@@ -549,9 +575,10 @@ export const componentSchema = z.discriminatedUnion("component", [
   dateTimeInputSchema,
   choicePickerSchema,
   sliderSchema,
-  // Templates (2)
+  // Templates (3)
   kanbanBoardSchema,
   dataDashboardSchema,
+  relationshipGraphSchema,
 ]);
 
 /**

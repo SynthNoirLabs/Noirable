@@ -145,3 +145,56 @@ describe("A2UI Schema", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("A2UI Schema — relationshipGraph (suspect web)", () => {
+  it("accepts a valid relationship graph with nodes and edges", () => {
+    const data = {
+      type: "relationshipGraph",
+      title: "The Web",
+      nodes: [
+        { id: "n1", label: "Victor Kessler", kind: "suspect" },
+        { id: "n2", label: "The Docks", kind: "location" },
+      ],
+      edges: [{ from: "n1", to: "n2", label: "LAST SEEN AT", kind: "connection" }],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "relationshipGraph") {
+      expect(result.data.nodes).toHaveLength(2);
+      expect(result.data.edges).toHaveLength(1);
+    }
+  });
+
+  it("canonicalizes the `suspectWeb` synonym to relationshipGraph", () => {
+    const data = {
+      type: "suspectWeb",
+      nodes: [{ id: "a", label: "A" }],
+      edges: [],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe("relationshipGraph");
+    }
+  });
+
+  it("coerces edge source/target aliases and drops endpoint-less edges", () => {
+    const data = {
+      type: "relationshipGraph",
+      nodes: [
+        { id: "x", label: "X" },
+        { id: "y", label: "Y" },
+      ],
+      links: [
+        { source: "x", target: "y", kind: "motive" },
+        { source: "x" }, // missing target → dropped
+      ],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "relationshipGraph") {
+      expect(result.data.edges).toHaveLength(1);
+      expect(result.data.edges[0]).toMatchObject({ from: "x", to: "y", kind: "motive" });
+    }
+  });
+});

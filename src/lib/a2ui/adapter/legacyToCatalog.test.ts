@@ -363,3 +363,23 @@ describe("flattenLegacyToCatalog", () => {
     expect(root?.url).toBe("/footage/clip.mp4");
   });
 });
+
+describe("flattenLegacyToCatalog — relationshipGraph", () => {
+  it("emits a RelationshipGraph catalog component with resolved nodes/edges", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "relationshipGraph",
+      title: "Suspect Web",
+      nodes: [
+        { id: "n1", label: "Kessler", kind: "suspect" },
+        { id: "n2", label: "Docks", kind: "location" },
+      ],
+      edges: [{ from: "n1", to: "n2", label: "LAST SEEN", kind: "connection" }],
+    });
+
+    const root = byId(components).get(rootId);
+    expect(root?.component).toBe("RelationshipGraph");
+    expect(root?.title).toBe("Suspect Web");
+    expect(root?.nodes).toHaveLength(2);
+    expect(root?.edges).toMatchObject([{ from: "n1", to: "n2", kind: "connection" }]);
+  });
+});
