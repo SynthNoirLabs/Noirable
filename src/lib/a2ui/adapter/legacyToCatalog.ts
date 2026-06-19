@@ -254,15 +254,22 @@ const handlers: { [K in A2UIInput["type"]]: WalkHandler<NodeOf<K>> } = {
       value: node.value ? [node.value] : [],
     }),
 
-  slider: (builder, node, id) =>
-    emit(builder, {
+  slider: (builder, node, id) => {
+    // The v0.9 catalog requires min/max/value; emit the same defaults the
+    // renderer falls back to (0..100, value seeded to min) so the flat output
+    // satisfies sliderSchema rather than relying on the renderer's guards.
+    const min = typeof node.min === "number" ? node.min : 0;
+    const max = typeof node.max === "number" ? node.max : 100;
+    const value = node.value !== undefined ? node.value : min;
+    return emit(builder, {
       id,
       component: "Slider",
       ...(node.label ? { label: node.label } : {}),
-      ...(typeof node.min === "number" ? { min: node.min } : {}),
-      ...(typeof node.max === "number" ? { max: node.max } : {}),
-      ...(node.value !== undefined ? { value: node.value } : {}),
-    }),
+      min,
+      max,
+      value,
+    });
+  },
 
   checkbox: (builder, node, id) =>
     emit(builder, {
