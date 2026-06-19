@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getImageSpec } from "@/lib/aesthetic/identity";
+import { getAtmosphere, getImageSpec } from "@/lib/aesthetic/identity";
 import { getModelInfo } from "@/lib/ai/model-registry";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
@@ -99,17 +99,37 @@ export function resolveVideoModel(videoModel?: string): string {
  * medium/lighting/palette/lens, minus the still-photo framing). Falls back to
  * the bare prompt when no spec resolves.
  */
+/**
+ * Per-world diegetic AUDIO direction for Veo 3's native audio generation —
+ * derived from the world's atmosphere so the footage SOUNDS like the world
+ * (rain hammering in noir, the reactor hum on the Nostromo).
+ */
+function buildVideoAudioCue(aestheticId?: string): string {
+  const atmosphere = getAtmosphere(aestheticId as AestheticId | undefined);
+  switch (atmosphere.particle) {
+    case "rain":
+      return "Diegetic audio: rain on pavement, distant thunder, a muffled city hum.";
+    case "ember":
+      return "Diegetic audio: a crackling hearth, low wind, creaking timber.";
+    case "grain":
+      return "Diegetic audio: a low machine-room hum, relay clicks, hissing vents.";
+    default:
+      return "Diegetic audio: quiet room tone, subtle ambience.";
+  }
+}
+
 export function buildVideoPrompt(prompt: string, aestheticId?: string): string {
   const base = prompt.trim();
+  const audioCue = buildVideoAudioCue(aestheticId);
   const spec = getImageSpec(aestheticId as AestheticId | undefined);
-  if (!spec) return base || "A short cinematic clip.";
+  if (!spec) return `${base || "A short cinematic clip."} ${audioCue}`;
 
   const styleParts = [spec.medium, spec.lighting, spec.palette, spec.lens].filter(
     (part) => part && part.trim().length > 0
   );
-  if (styleParts.length === 0) return base;
+  if (styleParts.length === 0) return `${base} ${audioCue}`;
   const style = styleParts.join(", ");
-  return base ? `${base}. Cinematic style: ${style}.` : style;
+  return base ? `${base}. Cinematic style: ${style}. ${audioCue}` : `${style}. ${audioCue}`;
 }
 
 export interface StartVideoResult {
@@ -168,6 +188,12 @@ export async function startVideoGeneration(opts: {
   const parameters: Record<string, unknown> = {};
   if (opts.aspectRatio && VEO_ASPECTS.has(opts.aspectRatio)) {
     parameters.aspectRatio = opts.aspectRatio;
+  }
+  // Veo 3.x generates native diegetic audio; ask for it explicitly so the
+  // surveillance footage carries rain/hum/footsteps. Veo 2 models reject the
+  // parameter, so it's gated on the model family.
+  if (model.includes("veo-3")) {
+    parameters.generateAudio = true;
   }
   if (hasReferences) {
     // Reference images require an 8s clip and adult-only person generation per

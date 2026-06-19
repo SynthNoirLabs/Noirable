@@ -67,12 +67,13 @@ describe("/api/images/[id]", () => {
     const data = Buffer.from(await res.arrayBuffer());
     expect(data.equals(Buffer.from([10, 20, 30]))).toBe(true);
 
-    // Metadata file should be deleted after successful generation
+    // The metadata (the image's "recipe") is deliberately KEPT after
+    // generation so the per-image re-develop route can re-roll it.
     const metaExists = await fs
       .access(path.join(tempDir, `${uuid}.json`))
       .then(() => true)
       .catch(() => false);
-    expect(metaExists).toBe(false);
+    expect(metaExists).toBe(true);
   });
 
   it("serves a PNG generation even when the requested url ends in .jpg", async () => {

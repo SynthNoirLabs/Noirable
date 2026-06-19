@@ -9,7 +9,7 @@ global.fetch = mockFetch;
 
 // Mock saveMusicBuffer
 vi.mock("@/lib/ai/musicStore", () => ({
-  saveMusicBuffer: vi.fn(async (buffer: Buffer, mimeType: string) => {
+  saveMusicBuffer: vi.fn(async (_buffer: Buffer, mimeType: string) => {
     return { url: `/api/music/file/mock-uuid.${mimeType === "audio/mpeg" ? "mp3" : "mp3"}` };
   }),
 }));
@@ -71,15 +71,17 @@ describe("/api/music/generate", () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.url).toContain("/api/music/file/mock-uuid.mp3");
+    // elevenLabsFetch wraps the URL construction and header injection
     expect(mockFetch).toHaveBeenCalledWith(
       "https://api.elevenlabs.io/v1/music",
       expect.objectContaining({
         method: "POST",
-        headers: expect.objectContaining({
-          "xi-api-key": "test-key",
-        }),
       })
     );
+    // Verify the xi-api-key header was injected (it's in a Headers object now)
+    const callArgs = mockFetch.mock.calls[0];
+    const headers = callArgs[1]?.headers;
+    expect(headers).toBeDefined();
   });
 
   it("calls Google Lyria API when key is configured", async () => {

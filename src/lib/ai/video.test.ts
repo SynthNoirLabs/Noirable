@@ -105,7 +105,8 @@ describe("video generation REST integration", () => {
     await startVideoGeneration({ prompt: "a clip", aspectRatio: "21:9" });
 
     const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(sent.parameters).toBeUndefined();
+    // veo-3 models always request native audio; the bad aspect is dropped.
+    expect(sent.parameters).toEqual({ generateAudio: true });
   });
 
   it("includes asset reference images inside the instance and forces 8s/allow_adult", async () => {
@@ -158,7 +159,8 @@ describe("video generation REST integration", () => {
 
     const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(sent.instances[0].referenceImages).toBeUndefined();
-    expect(sent.parameters).toBeUndefined();
+    // veo-3 models always request native audio.
+    expect(sent.parameters).toEqual({ generateAudio: true });
   });
 
   it("pollVideoOperation returns not-done while the op is running", async () => {

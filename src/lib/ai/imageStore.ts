@@ -112,6 +112,10 @@ export interface PendingImageMetadata {
   sessionSeed?: number;
   /** Index of this image within its board; rotates the spec motif. (Bet 7.) */
   imageIndex?: number;
+  /** Recurring-character name from a `[character: …]` prompt tag (cast file). */
+  characterName?: string;
+  /** Image uuid of the character's canonical face, passed as a reference. */
+  referenceImageId?: string;
 }
 
 export async function savePendingImageMetadata(

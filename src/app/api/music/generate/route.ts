@@ -1,6 +1,8 @@
 import "server-only";
 
+import { elevenLabsFetch } from "@/lib/elevenlabs/client";
 import { apiSecurityCheck } from "@/lib/api/security";
+import { apiError, parseJsonBody } from "@/lib/api/responses";
 import { saveMusicBuffer } from "@/lib/ai/musicStore";
 
 interface MusicGenerateRequest {
@@ -14,12 +16,7 @@ export async function POST(request: Request) {
   const securityError = apiSecurityCheck(request);
   if (securityError) return securityError;
 
-  let body: MusicGenerateRequest | null = null;
-  try {
-    body = (await request.json()) as MusicGenerateRequest;
-  } catch {
-    body = null;
-  }
+  const body = await parseJsonBody<MusicGenerateRequest>(request);
 
   const provider = body?.provider ?? "elevenlabs";
   const prompt = body?.prompt?.trim() ?? "";
@@ -27,25 +24,20 @@ export async function POST(request: Request) {
   const usePro = body?.usePro ?? false;
 
   if (!prompt) {
-    return Response.json({ error: "Missing prompt" }, { status: 400 });
+    return apiError("Missing prompt", 400);
   }
 
   try {
     if (provider === "elevenlabs") {
-      const apiKey = process.env.ELEVENLABS_API_KEY;
-      if (!apiKey) {
-        return Response.json(
-          { error: "Missing ELEVENLABS_API_KEY" },
-          { status: 503, statusText: "ElevenLabs not configured" }
-        );
+      // Check API key before calling elevenLabsFetch
+      if (!process.env.ELEVENLABS_API_KEY) {
+        return apiError("Missing ELEVENLABS_API_KEY", 503);
       }
-
       // Call ElevenLabs Music Generation API
-      const response = await fetch("https://api.elevenlabs.io/v1/music", {
+      const response = await elevenLabsFetch("/music", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "xi-api-key": apiKey,
         },
         body: JSON.stringify({
           prompt,
@@ -57,16 +49,15 @@ export async function POST(request: Request) {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("ElevenLabs music generation failed:", errorText);
-        return Response.json(
-          { error: "ElevenLabs music generation failed", details: errorText },
-          { status: response.status }
-        );
+        return apiError("ElevenLabs music generation failed", response.status, {
+          details: errorText,
+        });
       }
 
       const audioBuffer = Buffer.from(await response.arrayBuffer());
       const saved = await saveMusicBuffer(audioBuffer, "audio/mpeg");
       if (!saved) {
-        return Response.json({ error: "Failed to save generated audio" }, { status: 500 });
+        return apiError("Failed to save generated audio", 500);
       }
 
       return Response.json({
@@ -78,10 +69,7 @@ export async function POST(request: Request) {
     } else if (provider === "lyria") {
       const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return Response.json(
-          { error: "Missing GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY" },
-          { status: 503, statusText: "Gemini API key not configured" }
-        );
+        return apiError("Missing GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY", 503);
       }
 
       const modelId = usePro ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
@@ -108,10 +96,9 @@ export async function POST(request: Request) {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Google Lyria generation failed:", errorText);
-        return Response.json(
-          { error: "Google Lyria music generation failed", details: errorText },
-          { status: response.status }
-        );
+        return apiError("Google Lyria music generation failed", response.status, {
+          details: errorText,
+        });
       }
 
       const data = await response.json();
@@ -132,16 +119,13 @@ export async function POST(request: Request) {
 
       if (!base64Data) {
         console.error("Lyria response did not contain inline audio data:", JSON.stringify(data));
-        return Response.json(
-          { error: "Lyria response did not contain inline audio data", details: data },
-          { status: 500 }
-        );
+        return apiError("Lyria response did not contain inline audio data", 500, { details: data });
       }
 
       const audioBuffer = Buffer.from(base64Data, "base64");
       const saved = await saveMusicBuffer(audioBuffer, mimeType);
       if (!saved) {
-        return Response.json({ error: "Failed to save generated audio" }, { status: 500 });
+        return apiError("Failed to save generated audio", 500);
       }
 
       return Response.json({
@@ -151,13 +135,10 @@ export async function POST(request: Request) {
         createdAt: Date.now(),
       });
     } else {
-      return Response.json({ error: "Unsupported provider" }, { status: 400 });
+      return apiError("Unsupported provider", 400);
     }
   } catch (error) {
     console.error("Music generation exception:", error);
-    return Response.json(
-      { error: "Music generation failed", details: String(error) },
-      { status: 500 }
-    );
+    return apiError("Music generation failed", 500, { details: String(error) });
   }
 }

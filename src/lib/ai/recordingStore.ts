@@ -28,3 +28,37 @@ export async function readRecordingFile(hash: string): Promise<Buffer | null> {
   const filePath = path.join(dir, `${hash}.mp3`);
   return fs.readFile(filePath).catch(() => null);
 }
+
+/**
+ * Character-level alignment for a recording (ElevenLabs /with-timestamps) —
+ * cached as a JSON sidecar so replays keep frame-accurate cue timing.
+ */
+export interface RecordingAlignment {
+  characters: string[];
+  characterStartTimesSeconds: number[];
+  characterEndTimesSeconds: number[];
+}
+
+export async function saveRecordingAlignment(
+  hash: string,
+  alignment: RecordingAlignment
+): Promise<void> {
+  if (!isValidRecordingHash(hash)) return;
+  const dir = getRecordingStoreDir();
+  await fs.mkdir(dir, { recursive: true });
+  const filePath = path.join(dir, `${hash}.alignment.json`);
+  await fs.writeFile(filePath, JSON.stringify(alignment), "utf8");
+}
+
+export async function readRecordingAlignment(hash: string): Promise<RecordingAlignment | null> {
+  if (!isValidRecordingHash(hash)) return null;
+  const dir = getRecordingStoreDir();
+  const filePath = path.join(dir, `${hash}.alignment.json`);
+  const data = await fs.readFile(filePath, "utf8").catch(() => null);
+  if (!data) return null;
+  try {
+    return JSON.parse(data) as RecordingAlignment;
+  } catch {
+    return null;
+  }
+}

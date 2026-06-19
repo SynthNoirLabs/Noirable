@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { getCustomImageStylePrompt } from "@/lib/ai/image-style";
 import { saveImageBase64, savePendingImageMetadata } from "@/lib/ai/imageStore";
+import { extractCharacterTag, getCastEntry } from "@/lib/ai/castStore";
 import { getImageGenerationModels, getModelInfo, type ModelInfo } from "@/lib/ai/model-registry";
 import { getAestheticProfile } from "@/lib/aesthetic/registry";
 import { getAestheticDefinition } from "@/lib/aesthetic/definitions";
@@ -31,7 +32,8 @@ export interface ImageDirection {
 
 function selectImageModel(
   imageModel?: string,
-  aestheticId?: string
+  aestheticId?: string,
+  needsImageInput = false
 ): {
   model: ModelInfo;
   provider: "google" | "openai";
@@ -40,6 +42,19 @@ function selectImageModel(
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const gatewayKey = process.env.AI_GATEWAY_API_KEY;
+
+  // Cast continuity needs a model that accepts an IMAGE INPUT (the character's
+  // canonical face) — only the Gemini-native generateText path does. When a
+  // reference rides along, it outranks the preset's pinned model (noir pins
+  // Imagen, which cannot take one).
+  if (needsImageInput && googleKey) {
+    const editing = getImageGenerationModels().find(
+      (m) => m.provider === "google" && m.capabilities.imageGenMethod === "generateText"
+    );
+    if (editing) {
+      return { model: editing, provider: "google" };
+    }
+  }
 
   if (explicitModel) {
     const modelInfo = getModelInfo(explicitModel);
@@ -201,30 +216,44 @@ export function buildImageDirection(opts: {
       ? sessionSeed + (typeof imageIndex === "number" ? imageIndex : 0)
       : undefined;
 
-  return { prompt: positivePrompt, negativePrompt, aspectRatio, seed };
+  // No explicit aspect (e.g. from a header/avatar variant) → the world's
+  // declared default, so the doctrines' "wide HUD banner" (cyber 16:9) and
+  // "portrait beside the text" (gothic 3:4) actually happen.
+  const resolvedAspect = aspectRatio ?? spec?.aspect;
+
+  return { prompt: positivePrompt, negativePrompt, aspectRatio: resolvedAspect, seed };
 }
 
 function fallbackSvgDataUrl(message: string, aestheticId?: string) {
-  // An in-world "darkroom" placeholder rather than a plain gray box: an
-  // evidence photo still developing in the tray. Warm amber compensates for the
-  // sepia/grayscale filters the Image renderer applies on top. Non-noir presets
-  // borrow their own pending copy as the secondary line so the placeholder
-  // speaks in-world (e.g. "SIGNAL LOST" / "PORTRAIT UNDEVELOPED"); noir keeps
-  // the default message so existing snapshots/tests don't move.
-  const secondary =
-    aestheticId && aestheticId !== "noir"
-      ? getAestheticCopy(aestheticId as AestheticId).imagePending
-      : message;
+  // An in-world placeholder rather than a plain gray box, PAINTED in the active
+  // world's palette (noir was amber-everywhere before). Noir keeps its exact
+  // historical look — same hexes, same copy — so snapshots don't move; other
+  // worlds get their own background/accent and their own pending copy.
+  const isNoir = !aestheticId || aestheticId === "noir";
+  const def = getAestheticDefinition(aestheticId as AestheticId | undefined);
+  const colors = isNoir
+    ? { frame: "#141210", stroke: "#3a3424", accent: "#cbb957", muted: "#8a8170", bg: "#0a0a0a" }
+    : {
+        frame: def.theme.colors.surface,
+        stroke: def.theme.colors.border,
+        accent: def.theme.colors.accent,
+        muted: def.theme.colors.textMuted,
+        bg: def.theme.colors.background,
+      };
+  const headline = isNoir
+    ? "DARKROOM // DEVELOPING"
+    : getAestheticCopy(aestheticId as AestheticId).loadingStatus.toUpperCase();
+  const secondary = isNoir ? message : getAestheticCopy(aestheticId as AestheticId).imagePending;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="320" viewBox="0 0 512 320">
-  <rect width="512" height="320" fill="#0a0a0a"/>
-  <rect x="18" y="18" width="476" height="284" fill="#141210" stroke="#3a3424" stroke-width="2"/>
-  <rect x="18" y="18" width="476" height="284" fill="none" stroke="#3a3424" stroke-width="1" stroke-dasharray="2 6" opacity="0.5"/>
-  <circle cx="256" cy="132" r="34" fill="none" stroke="#cbb957" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="256" cy="132" r="20" fill="none" stroke="#cbb957" stroke-width="1" opacity="0.3"/>
-  <text x="50%" y="205" dominant-baseline="middle" text-anchor="middle" fill="#cbb957" font-family="monospace" font-size="15" letter-spacing="4" opacity="0.85">
-    DARKROOM // DEVELOPING
+  <rect width="512" height="320" fill="${colors.bg}"/>
+  <rect x="18" y="18" width="476" height="284" fill="${colors.frame}" stroke="${colors.stroke}" stroke-width="2"/>
+  <rect x="18" y="18" width="476" height="284" fill="none" stroke="${colors.stroke}" stroke-width="1" stroke-dasharray="2 6" opacity="0.5"/>
+  <circle cx="256" cy="132" r="34" fill="none" stroke="${colors.accent}" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="256" cy="132" r="20" fill="none" stroke="${colors.accent}" stroke-width="1" opacity="0.3"/>
+  <text x="50%" y="205" dominant-baseline="middle" text-anchor="middle" fill="${colors.accent}" font-family="monospace" font-size="15" letter-spacing="4" opacity="0.85">
+    ${headline}
   </text>
-  <text x="50%" y="232" dominant-baseline="middle" text-anchor="middle" fill="#8a8170" font-family="monospace" font-size="11" letter-spacing="2">
+  <text x="50%" y="232" dominant-baseline="middle" text-anchor="middle" fill="${colors.muted}" font-family="monospace" font-size="11" letter-spacing="2">
     ${secondary}
   </text>
   </svg>`;
@@ -301,7 +330,8 @@ function selectGoogleFallbackModel(currentModelId: string): ModelInfo | null {
 async function runImageModel(
   model: ModelInfo,
   provider: "google" | "openai",
-  direction: ImageDirection
+  direction: ImageDirection,
+  referenceImage?: { data: Buffer; mediaType: string }
 ): Promise<string | null> {
   const styledPrompt = direction.prompt;
   const method = model.capabilities.imageGenMethod;
@@ -330,14 +360,42 @@ async function runImageModel(
     const geminiPrompt = direction.negativePrompt
       ? `${styledPrompt}. Avoid: ${direction.negativePrompt}.`
       : styledPrompt;
-    result = await generateText({
-      model: google(model.id),
-      prompt: geminiPrompt,
-      maxRetries,
-      providerOptions: {
-        google: googleOptions,
-      },
-    });
+    if (referenceImage) {
+      // Cast continuity: the character's canonical face goes in as an image
+      // part; the prompt directs a NEW scene around the SAME identity.
+      result = await generateText({
+        model: google(model.id),
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image" as const,
+                image: referenceImage.data,
+                mediaType: referenceImage.mediaType,
+              },
+              {
+                type: "text" as const,
+                text: `${geminiPrompt}. Depict the SAME person as in the reference image — identical face and identity, in the new scene described.`,
+              },
+            ],
+          },
+        ],
+        maxRetries,
+        providerOptions: {
+          google: googleOptions,
+        },
+      });
+    } else {
+      result = await generateText({
+        model: google(model.id),
+        prompt: geminiPrompt,
+        maxRetries,
+        providerOptions: {
+          google: googleOptions,
+        },
+      });
+    }
   } else if (provider === "google" && method === "generateImage") {
     // Google Imagen (e.g. imagen-4.0-generate-001). It MUST go through the
     // Google provider's image() factory — passing a bare model-id string to
@@ -404,9 +462,10 @@ export async function generateImageDataUrl(
   imageModel?: string,
   aspectRatio?: string,
   sessionSeed?: number,
-  imageIndex?: number
+  imageIndex?: number,
+  referenceImage?: { data: Buffer; mediaType: string }
 ) {
-  const selection = selectImageModel(imageModel, aestheticId);
+  const selection = selectImageModel(imageModel, aestheticId, Boolean(referenceImage));
   if (!selection) {
     console.warn("[AI Image Gen] No image generation model selected or available.");
     return null;
@@ -433,7 +492,7 @@ export async function generateImageDataUrl(
   );
 
   try {
-    return await runImageModel(model, provider, direction);
+    return await runImageModel(model, provider, direction, referenceImage);
   } catch (error) {
     // A Google image backend can be "temporarily out of capacity" (429) while a
     // sibling Google image model on a different backend is fine. Rather than
@@ -445,7 +504,7 @@ export async function generateImageDataUrl(
           `[AI Image Gen] ${model.id} is out of capacity (429); falling back to ${fallback.id}.`
         );
         try {
-          return await runImageModel(fallback, "google", direction);
+          return await runImageModel(fallback, "google", direction, referenceImage);
         } catch (fallbackError) {
           console.error("Image generation fallback also failed:", fallbackError);
           return null;
@@ -484,6 +543,26 @@ interface ResolveContext {
   next: () => number;
 }
 
+/**
+ * Infer an aspect ratio from a catalog Image's size variant: a header banner is
+ * wide, an avatar/icon square. Returns undefined when the variant implies
+ * nothing — the world's spec default applies at generation time. Values are
+ * restricted to the Imagen-safe set so the narrower provider never drops them.
+ */
+function aspectForVariant(variant: unknown): string | undefined {
+  switch (variant) {
+    case "header":
+      return "16:9";
+    case "avatar":
+    case "icon":
+      return "1:1";
+    case "largeFeature":
+      return "4:3";
+    default:
+      return undefined;
+  }
+}
+
 async function resolveNode(input: unknown, ctx: ResolveContext): Promise<unknown> {
   if (!input || typeof input !== "object") {
     return input;
@@ -497,20 +576,30 @@ async function resolveNode(input: unknown, ctx: ResolveContext): Promise<unknown
 
   // Legacy image resolution
   if (node.type === "image") {
-    const prompt = typeof node.prompt === "string" ? node.prompt : "";
+    const rawPrompt = typeof node.prompt === "string" ? node.prompt : "";
+    // Cast continuity: a `[character: Name]` tag registers/looks up the
+    // character's canonical face so the same person renders everywhere.
+    const { prompt, name: characterName } = extractCharacterTag(rawPrompt);
     let resolvedSrc = typeof node.src === "string" ? node.src : null;
     if (resolvedSrc?.startsWith("data:")) {
       resolvedSrc = await persistDataUrl(resolvedSrc);
     }
     if (!resolvedSrc && prompt) {
       const id = crypto.randomUUID();
+      const variantAspect = aspectForVariant((node as { variant?: unknown }).variant);
+      const referenceImageId = characterName
+        ? await getCastEntry(ctx.aestheticId, characterName)
+        : null;
       await savePendingImageMetadata(id, {
         prompt,
         aestheticId: ctx.aestheticId,
         customImageStylePrompt: ctx.customImageStylePrompt,
         imageModel: ctx.imageModel,
+        ...(variantAspect ? { aspectRatio: variantAspect } : {}),
         sessionSeed: ctx.sessionSeed,
         imageIndex: ctx.next(),
+        ...(characterName ? { characterName } : {}),
+        ...(referenceImageId && referenceImageId !== id ? { referenceImageId } : {}),
       });
       resolvedSrc = `/api/images/${id}.jpg`;
     }
@@ -536,13 +625,21 @@ async function resolveNode(input: unknown, ctx: ResolveContext): Promise<unknown
       url.startsWith("data:");
     if (!isUrl && url.length > 0) {
       const id = crypto.randomUUID();
+      const variantAspect = aspectForVariant((node as { variant?: unknown }).variant);
+      const { prompt: cleanedPrompt, name: characterName } = extractCharacterTag(url);
+      const referenceImageId = characterName
+        ? await getCastEntry(ctx.aestheticId, characterName)
+        : null;
       await savePendingImageMetadata(id, {
-        prompt: url,
+        prompt: cleanedPrompt,
         aestheticId: ctx.aestheticId,
         customImageStylePrompt: ctx.customImageStylePrompt,
         imageModel: ctx.imageModel,
+        ...(variantAspect ? { aspectRatio: variantAspect } : {}),
         sessionSeed: ctx.sessionSeed,
         imageIndex: ctx.next(),
+        ...(characterName ? { characterName } : {}),
+        ...(referenceImageId && referenceImageId !== id ? { referenceImageId } : {}),
       });
       return {
         ...node,
