@@ -11,66 +11,18 @@ import {
   paletteFromAccent,
 } from "@/lib/customization/contrast";
 import { cn } from "@/lib/utils";
+import { FileUploadField } from "@/components/shared/FileUploadField";
 import type { ProfileColors, CustomProfile } from "@/lib/customization/types";
 import type { CustomProfileId, BuiltInAestheticId } from "@/lib/aesthetic/types";
+import { BUILT_IN_AESTHETIC_IDS } from "@/lib/aesthetic/types";
+import { AESTHETIC_DEFINITIONS } from "@/lib/aesthetic/definitions";
 
-const PRESET_COLORS: Record<BuiltInAestheticId, Required<ProfileColors>> = {
-  noir: {
-    background: "#0f0f0f",
-    surface: "#1a1a1a",
-    surfaceAlt: "#2a2a2a",
-    text: "#e0e0e0",
-    textMuted: "#a0a0a0",
-    accent: "#ffbf00",
-    accentMuted: "#b5a642",
-    border: "#2a2a2a",
-    error: "#8a0000",
-  },
-  minimal: {
-    background: "#ffffff",
-    surface: "#f4f4f5",
-    surfaceAlt: "#e4e4e7",
-    text: "#18181b",
-    textMuted: "#71717a",
-    accent: "#2563eb",
-    accentMuted: "#3b82f6",
-    border: "#e4e4e7",
-    error: "#dc2626",
-  },
-  "cyber-fixer": {
-    background: "#0a0512",
-    surface: "#140c24",
-    surfaceAlt: "#251642",
-    text: "#f0e6ff",
-    textMuted: "#8b72af",
-    accent: "#00ffcc",
-    accentMuted: "#ff007f",
-    border: "#3a1f66",
-    error: "#ff3333",
-  },
-  "nostromo-console": {
-    background: "#020804",
-    surface: "#05160b",
-    surfaceAlt: "#0a2815",
-    text: "#33ff66",
-    textMuted: "#1d8c3b",
-    accent: "#33ff66",
-    accentMuted: "#ff9900",
-    border: "#0d3b1f",
-    error: "#ff3300",
-  },
-  "gothic-manor": {
-    background: "#08080a",
-    surface: "#121217",
-    surfaceAlt: "#22222b",
-    text: "#e1e1e6",
-    textMuted: "#82828c",
-    accent: "#990011",
-    accentMuted: "#4a0008",
-    border: "#2a2a35",
-    error: "#ff0011",
-  },
-};
+// Derived from the single source of truth in definitions.ts (ThemeColors and
+// ProfileColors share the same nine keys), so a preset's swatches can never
+// drift from its definition again.
+const PRESET_COLORS: Record<BuiltInAestheticId, Required<ProfileColors>> = Object.fromEntries(
+  BUILT_IN_AESTHETIC_IDS.map((id) => [id, AESTHETIC_DEFINITIONS[id].theme.colors])
+) as Record<BuiltInAestheticId, Required<ProfileColors>>;
 
 const COLOR_GROUPS = [
   {
@@ -296,64 +248,15 @@ interface BackgroundImageCustomizerProps {
 }
 
 function BackgroundImageCustomizer({ profile, updateProfile }: BackgroundImageCustomizerProps) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const allowedTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      setError("Invalid file type. Only PNG, JPEG, GIF, and WEBP images are allowed.");
-      setSuccess(null);
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File is too large. Max size is 10MB.");
-      setSuccess(null);
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/uploads", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Upload failed");
-      }
-
-      const { url } = await response.json();
-
-      const updatedProfile = {
-        ...profile,
-        backgroundImageUrl: url,
-      };
-
-      // Live update styles
-      injectProfileStyles(updatedProfile);
-
-      // Persist updates
-      updateProfile(profile.id, { backgroundImageUrl: url });
-      setSuccess("Background image updated successfully.");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong during upload.";
-      setError(msg);
-    } finally {
-      setIsUploading(false);
-    }
+  const handleUploadSuccess = (url: string) => {
+    const updatedProfile = {
+      ...profile,
+      backgroundImageUrl: url,
+    };
+    // Live update styles
+    injectProfileStyles(updatedProfile);
+    // Persist updates
+    updateProfile(profile.id, { backgroundImageUrl: url });
   };
 
   const handleRemove = () => {
@@ -363,8 +266,6 @@ function BackgroundImageCustomizer({ profile, updateProfile }: BackgroundImageCu
     };
     injectProfileStyles(updatedProfile);
     updateProfile(profile.id, { backgroundImageUrl: undefined });
-    setSuccess("Background image removed.");
-    setError(null);
   };
 
   return (
@@ -372,62 +273,15 @@ function BackgroundImageCustomizer({ profile, updateProfile }: BackgroundImageCu
       <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--aesthetic-text-muted)]">
         Background Image
       </h3>
-      <div className="space-y-3">
-        {profile.backgroundImageUrl ? (
-          <div className="flex flex-col gap-2 p-3 bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)] rounded-sm">
-            <span
-              className="text-xs font-mono text-[var(--aesthetic-text-muted)] truncate"
-              data-testid="bg-image-url"
-            >
-              Current: {profile.backgroundImageUrl}
-            </span>
-            <button
-              onClick={handleRemove}
-              className="w-full sm:w-auto px-3 py-1.5 text-xs font-mono uppercase tracking-wide bg-[var(--aesthetic-error)] hover:opacity-90 text-[var(--aesthetic-text)] transition-colors rounded-sm"
-              data-testid="remove-bg-image"
-            >
-              Remove Image
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs text-[var(--aesthetic-text-muted)] italic">
-            No custom background image uploaded.
-          </p>
-        )}
-
-        <div className="flex flex-col gap-2">
-          <label className="relative flex items-center justify-center border border-dashed border-[var(--aesthetic-border)] hover:border-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-surface)] p-6 rounded-sm cursor-pointer transition-all">
-            <input
-              type="file"
-              accept="image/png, image/jpeg, image/gif, image/webp"
-              onChange={handleFileChange}
-              disabled={isUploading}
-              className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-              data-testid="bg-image-input"
-            />
-            <span className="text-sm font-mono text-[var(--aesthetic-text-muted)]">
-              {isUploading ? "Uploading..." : "Click to upload background image (Max 10MB)"}
-            </span>
-          </label>
-        </div>
-
-        {error && (
-          <p
-            className="text-xs font-mono text-[var(--aesthetic-error)]"
-            data-testid="bg-image-error"
-          >
-            {error}
-          </p>
-        )}
-        {success && (
-          <p
-            className="text-xs font-mono text-[var(--aesthetic-accent)]"
-            data-testid="bg-image-success"
-          >
-            {success}
-          </p>
-        )}
-      </div>
+      <FileUploadField
+        acceptTypes={["image/png", "image/jpeg", "image/gif", "image/webp"]}
+        maxSizeBytes={10 * 1024 * 1024}
+        label="Click to upload background image"
+        onUploadSuccess={handleUploadSuccess}
+        currentUrl={profile.backgroundImageUrl}
+        onRemove={handleRemove}
+        testIdPrefix="bg-image"
+      />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { cn } from "@/lib/utils";
 import { Play, Volume2, Music, CloudRain } from "lucide-react";
 import { getAudioPack } from "@/lib/aesthetic/audio-packs";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
+import { FileUploadField } from "@/components/shared/FileUploadField";
 import type { CustomProfile, SfxVolumes } from "@/lib/customization/types";
 import type { CustomProfileId } from "@/lib/aesthetic/types";
 
@@ -184,6 +184,10 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
     updateSettings({ musicEnabled: !settings.musicEnabled });
   };
 
+  const toggleLiveScore = () => {
+    updateSettings({ liveScoreEnabled: !settings.liveScoreEnabled });
+  };
+
   return (
     <div className={cn("space-y-8 p-4", className)}>
       {/* SFX Section */}
@@ -239,6 +243,23 @@ export function AudioCustomization({ className }: AudioCustomizationProps) {
             !settings.musicEnabled && "opacity-50 pointer-events-none"
           )}
         >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--aesthetic-text)]/60">
+              Living score (Lyria RealTime, experimental)
+            </span>
+            <button
+              onClick={toggleLiveScore}
+              data-testid="live-score-toggle"
+              className={cn(
+                "text-[10px] px-2 py-1 rounded border transition-colors font-mono",
+                settings.liveScoreEnabled
+                  ? "bg-[var(--aesthetic-accent)] text-[var(--aesthetic-bg)] border-[var(--aesthetic-accent)]"
+                  : "border-[var(--aesthetic-text)]/30 text-[var(--aesthetic-text)]/50 hover:text-[var(--aesthetic-text)]"
+              )}
+            >
+              {settings.liveScoreEnabled ? "ON" : "OFF"}
+            </button>
+          </div>
           <Slider
             label="MUSIC VOLUME"
             value={musicVolumeValue}
@@ -339,61 +360,12 @@ interface CustomMusicCustomizerProps {
 }
 
 function CustomMusicCustomizer({ profile, updateProfile }: CustomMusicCustomizerProps) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const allowedTypes = ["audio/mp3", "audio/mpeg", "audio/wav", "audio/webm", "audio/ogg"];
-    if (!allowedTypes.includes(file.type)) {
-      setError("Invalid file type. Only MP3, WAV, WEBM, and OGG audio are allowed.");
-      setSuccess(null);
-      return;
-    }
-
-    if (file.size > 20 * 1024 * 1024) {
-      setError("File is too large. Max size is 20MB.");
-      setSuccess(null);
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/uploads", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Upload failed");
-      }
-
-      const { url } = await response.json();
-
-      const updatedAudio = {
-        ...(profile.audio || {}),
-        customMusicUrl: url,
-      };
-
-      // Persist updates
-      updateProfile(profile.id, { audio: updatedAudio });
-      setSuccess("Custom music track updated successfully.");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong during upload.";
-      setError(msg);
-    } finally {
-      setIsUploading(false);
-    }
+  const handleUploadSuccess = (url: string) => {
+    const updatedAudio = {
+      ...(profile.audio || {}),
+      customMusicUrl: url,
+    };
+    updateProfile(profile.id, { audio: updatedAudio });
   };
 
   const handleRemove = () => {
@@ -403,8 +375,6 @@ function CustomMusicCustomizer({ profile, updateProfile }: CustomMusicCustomizer
     delete updatedAudio.customMusicUrl;
 
     updateProfile(profile.id, { audio: updatedAudio });
-    setSuccess("Custom music track removed.");
-    setError(null);
   };
 
   const currentMusic = profile.audio?.customMusicUrl;
@@ -415,59 +385,15 @@ function CustomMusicCustomizer({ profile, updateProfile }: CustomMusicCustomizer
         <Music className="w-4 h-4" />
         Custom Music
       </h3>
-      <div className="space-y-3">
-        {currentMusic ? (
-          <div className="flex flex-col gap-2 p-3 bg-[var(--aesthetic-surface)] border border-[var(--aesthetic-border)] rounded-sm">
-            <span
-              className="text-xs font-mono text-[var(--aesthetic-text-muted)] truncate"
-              data-testid="music-url"
-            >
-              Current: {currentMusic}
-            </span>
-            <button
-              onClick={handleRemove}
-              className="w-full sm:w-auto px-3 py-1.5 text-xs font-mono uppercase tracking-wide bg-[var(--aesthetic-error)] hover:opacity-90 text-[var(--aesthetic-text)] transition-colors rounded-sm"
-              data-testid="remove-music"
-            >
-              Remove Music
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs text-[var(--aesthetic-text-muted)] italic">
-            No custom music track uploaded for this profile.
-          </p>
-        )}
-
-        <div className="flex flex-col gap-2">
-          <label className="relative flex items-center justify-center border border-dashed border-[var(--aesthetic-border)] hover:border-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-surface)] p-6 rounded-sm cursor-pointer transition-all">
-            <input
-              type="file"
-              accept="audio/mp3, audio/mpeg, audio/wav, audio/webm, audio/ogg"
-              onChange={handleFileChange}
-              disabled={isUploading}
-              className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-              data-testid="music-input"
-            />
-            <span className="text-sm font-mono text-[var(--aesthetic-text-muted)]">
-              {isUploading ? "Uploading..." : "Click to upload music file (Max 20MB)"}
-            </span>
-          </label>
-        </div>
-
-        {error && (
-          <p className="text-xs font-mono text-[var(--aesthetic-error)]" data-testid="music-error">
-            {error}
-          </p>
-        )}
-        {success && (
-          <p
-            className="text-xs font-mono text-[var(--aesthetic-accent)]"
-            data-testid="music-success"
-          >
-            {success}
-          </p>
-        )}
-      </div>
+      <FileUploadField
+        acceptTypes={["audio/mp3", "audio/mpeg", "audio/wav", "audio/webm", "audio/ogg"]}
+        maxSizeBytes={20 * 1024 * 1024}
+        label="Click to upload music file"
+        onUploadSuccess={handleUploadSuccess}
+        currentUrl={currentMusic}
+        onRemove={handleRemove}
+        testIdPrefix="music"
+      />
     </div>
   );
 }

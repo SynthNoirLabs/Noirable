@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useA2UIStore } from "@/lib/store/useA2UIStore";
+import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import {
   X,
   Palette,
@@ -70,6 +73,40 @@ interface CustomizationPanelProps {
 
 export function CustomizationPanel({ isOpen, onClose }: CustomizationPanelProps) {
   const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Picking a WORLD is a commitment: auto-close the drawer (and its desk-
+  // blurring scrim) so the arrival cinematic plays on a clean, visible desk
+  // instead of behind a blurred backdrop. Editing the active profile's colors/
+  // fonts/etc. doesn't change this key, so the Lab stays open while tuning.
+  const aestheticId = useA2UIStore((state) => state.settings.aestheticId);
+  const activeCustomProfileId = useCustomProfileStore((state) => state.activeCustomProfileId);
+  const resolvedWorldKey = `${aestheticId}/${activeCustomProfileId ?? ""}`;
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+  const lastWorldKeyRef = useRef(resolvedWorldKey);
+  useEffect(() => {
+    const previous = lastWorldKeyRef.current;
+    lastWorldKeyRef.current = resolvedWorldKey;
+    if (previous !== resolvedWorldKey) {
+      onCloseRef.current();
+    }
+  }, [resolvedWorldKey]);
+
+  // Focus trap and Escape-to-close
+  useFocusTrap(isOpen, panelRef);
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -88,6 +125,10 @@ export function CustomizationPanel({ isOpen, onClose }: CustomizationPanelProps)
 
           {/* Panel */}
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customization-panel-title"
             initial={{ opacity: 0, x: "100%" }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
@@ -96,7 +137,10 @@ export function CustomizationPanel({ isOpen, onClose }: CustomizationPanelProps)
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--aesthetic-border)]/20">
-              <h2 className="text-sm font-mono uppercase tracking-wider text-[var(--aesthetic-text)]">
+              <h2
+                id="customization-panel-title"
+                className="text-sm font-mono uppercase tracking-wider text-[var(--aesthetic-text)]"
+              >
                 Customization
               </h2>
               <button

@@ -38,7 +38,7 @@ export function ThemeGenerator() {
    * the generated overrides (resolving a fallback voice if none came back),
    * activate it, and inject its styles for an immediate live preview.
    */
-  const applyGeneratedProfile = (generated: GeneratedProfile) => {
+  const applyGeneratedProfile = (generated: GeneratedProfile, options?: { offline?: boolean }) => {
     const created = createProfile(generated.name, generated.baseAestheticId);
 
     const resolvedVoiceId =
@@ -55,6 +55,7 @@ export function ThemeGenerator() {
       audio: generated.audio,
       voice: { ...generated.voice, voiceId: resolvedVoiceId },
       effects: generated.effects,
+      atmosphere: generated.atmosphere,
       imageStylePrompt: generated.imageStylePrompt,
       systemPrompt: generated.systemPrompt,
     };
@@ -66,6 +67,70 @@ export function ThemeGenerator() {
 
     setSuccessMessage(`Generated "${generated.name}" and made it your active world.`);
     setErrorMessage(null);
+
+    // Curated "Surprise Me" worlds are guaranteed OFFLINE (no key, no fetch);
+    // only AI-generated worlds mint extras.
+    if (options?.offline) return;
+
+    // Voice Design (async, best-effort): when the model described the world's
+    // VOICE and didn't name a concrete voiceId, mint a real ElevenLabs voice
+    // from the description and swap it in. The world is already live with the
+    // base preset's voice, so a failure costs nothing.
+    if (generated.voiceDescription && !generated.voice?.voiceId) {
+      void mintWorldVoice(created.id, generated.name, generated.voiceDescription, generated.voice);
+    }
+
+    // Desk backdrop (async, best-effort): mint a deferred image url for the
+    // world's establishing shot — the pixels render lazily on first display,
+    // so world creation never blocks on an image call.
+    void mintWorldBackdrop(created.id, generated);
+  };
+
+  const mintWorldBackdrop = async (profileId: CustomProfile["id"], generated: GeneratedProfile) => {
+    try {
+      const response = await fetch("/api/images/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `a wide atmospheric establishing shot of the world of "${generated.name}"${
+            generated.description ? ` — ${generated.description}` : ""
+          }, empty of people, suitable as a dim desktop backdrop`,
+          aestheticId: generated.baseAestheticId,
+          customImageStylePrompt: generated.imageStylePrompt,
+          aspectRatio: "16:9",
+        }),
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as { url?: string };
+      if (!data.url) return;
+      updateProfile(profileId, { backgroundImageUrl: data.url });
+    } catch {
+      // Best-effort: the base preset's backdrop (or none) keeps working.
+    }
+  };
+
+  const mintWorldVoice = async (
+    profileId: CustomProfile["id"],
+    worldName: string,
+    description: string,
+    prosody: GeneratedProfile["voice"]
+  ) => {
+    try {
+      const response = await fetch("/api/voice-design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description, name: worldName }),
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as { voiceId?: string };
+      if (!data.voiceId) return;
+      updateProfile(profileId, { voice: { ...prosody, voiceId: data.voiceId } });
+      setSuccessMessage(
+        `Generated "${worldName}" and designed its own voice — it speaks as itself now.`
+      );
+    } catch {
+      // Best-effort: the base preset's voice keeps working.
+    }
   };
 
   const handleGenerate = async () => {
@@ -106,7 +171,7 @@ export function ThemeGenerator() {
   const handleSurprise = () => {
     const index = surpriseIndexRef.current;
     surpriseIndexRef.current = (index + 1) % SURPRISE_PROFILE_COUNT;
-    applyGeneratedProfile(pickSurpriseProfile(index));
+    applyGeneratedProfile(pickSurpriseProfile(index), { offline: true });
   };
 
   return (

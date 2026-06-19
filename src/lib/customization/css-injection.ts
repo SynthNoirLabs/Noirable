@@ -74,6 +74,26 @@ export function buildFontVariables(fonts: ProfileFonts): string {
 /**
  * Build complete CSS for a custom profile
  */
+/**
+ * Build CSS variable declarations from atmosphere overrides. The overlay
+ * components (rain/ember/lightning) read these vars, so a custom world's
+ * weather colors apply with zero component changes; the particle TYPE switch
+ * happens in NoirEffects via the resolved profile.
+ */
+export function buildAtmosphereVariables(atmosphere: {
+  particleColor?: string;
+  lightningColor?: string;
+}): string {
+  const vars: string[] = [];
+  if (atmosphere.particleColor && isValidCSSColor(atmosphere.particleColor)) {
+    vars.push(`--aesthetic-particle-color: ${atmosphere.particleColor};`);
+  }
+  if (atmosphere.lightningColor && isValidCSSColor(atmosphere.lightningColor)) {
+    vars.push(`--aesthetic-lightning-color: ${atmosphere.lightningColor};`);
+  }
+  return vars.join("\n  ");
+}
+
 export function buildProfileCSS(profile: CustomProfile): string {
   // Scope overrides to the custom-profile attribute. The element ALSO carries
   // `data-aesthetic="<baseAestheticId>"`, so it inherits the base preset's full
@@ -83,6 +103,7 @@ export function buildProfileCSS(profile: CustomProfile): string {
   const selector = `[data-custom-profile="${profile.id}"]`;
   const colorVars = profile.colors ? buildColorVariables(profile.colors) : "";
   const fontVars = profile.fonts ? buildFontVariables(profile.fonts) : "";
+  const atmosphereVars = profile.atmosphere ? buildAtmosphereVariables(profile.atmosphere) : "";
 
   let bgVars = "";
   if (profile.backgroundImageUrl) {
@@ -91,7 +112,7 @@ export function buildProfileCSS(profile: CustomProfile): string {
     bgVars = `--aesthetic-bg-image: url("${sanitizedUrl}");`;
   }
 
-  const allVars = [colorVars, fontVars, bgVars].filter(Boolean).join("\n  ");
+  const allVars = [colorVars, fontVars, atmosphereVars, bgVars].filter(Boolean).join("\n  ");
 
   if (!allVars) return "";
 
@@ -115,27 +136,35 @@ function getStyleElement(): HTMLStyleElement {
 }
 
 /**
+ * Per-profile CSS registry. The style element's full text is REBUILT from this
+ * map on every change — the previous marker-splicing approach silently dropped
+ * other profiles' CSS when one profile was re-injected.
+ */
+const profileCssById = new Map<string, string>();
+
+function rebuildStyleElement(): void {
+  const styleElement = getStyleElement();
+  styleElement.textContent = Array.from(profileCssById.entries())
+    .map(([id, css]) => `/* profile:${id} */\n${css}`)
+    .join("\n");
+}
+
+/**
  * Inject CSS styles for a custom profile into the document
  */
 export function injectProfileStyles(profile: CustomProfile): void {
   if (typeof document === "undefined") return;
 
   const css = buildProfileCSS(profile);
-  if (!css) return;
+  if (!css) {
+    // A profile with no overrides left should also clear any previous CSS.
+    profileCssById.delete(profile.id);
+    rebuildStyleElement();
+    return;
+  }
 
-  const styleElement = getStyleElement();
-
-  // Append this profile's CSS (support multiple profiles)
-  const existingCSS = styleElement.textContent || "";
-  const profileMarker = `/* profile:${profile.id} */`;
-
-  // Remove existing CSS for this profile if present
-  const cleanedCSS = existingCSS
-    .split(profileMarker)
-    .filter((_, i) => i === 0) // Keep only content before first marker for this profile
-    .join("");
-
-  styleElement.textContent = cleanedCSS + profileMarker + "\n" + css + "\n" + profileMarker;
+  profileCssById.set(profile.id, css);
+  rebuildStyleElement();
 }
 
 /**
@@ -144,17 +173,9 @@ export function injectProfileStyles(profile: CustomProfile): void {
 export function removeProfileStyles(profileId: CustomProfileId): void {
   if (typeof document === "undefined") return;
 
-  const element = document.getElementById(STYLE_ELEMENT_ID) as HTMLStyleElement | null;
-  if (!element) return;
-
-  const existingCSS = element.textContent || "";
-  const profileMarker = `/* profile:${profileId} */`;
-
-  // Remove content between markers for this profile
-  const parts = existingCSS.split(profileMarker);
-  if (parts.length >= 3) {
-    // Remove the middle part (the profile CSS)
-    element.textContent = parts[0] + parts.slice(2).join(profileMarker);
+  profileCssById.delete(profileId);
+  if (document.getElementById(STYLE_ELEMENT_ID)) {
+    rebuildStyleElement();
   }
 }
 
@@ -164,6 +185,7 @@ export function removeProfileStyles(profileId: CustomProfileId): void {
 export function clearAllProfileStyles(): void {
   if (typeof document === "undefined") return;
 
+  profileCssById.clear();
   const element = document.getElementById(STYLE_ELEMENT_ID);
   if (element) {
     element.remove();
