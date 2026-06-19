@@ -105,8 +105,10 @@ describe("video generation REST integration", () => {
     await startVideoGeneration({ prompt: "a clip", aspectRatio: "21:9" });
 
     const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
-    // veo-3 models always request native audio; the bad aspect is dropped.
-    expect(sent.parameters).toEqual({ generateAudio: true });
+    // The default veo-3.1 model generates audio natively (no generateAudio
+    // flag — it's rejected); the bad aspect is dropped, so parameters is empty
+    // and omitted from the request entirely.
+    expect(sent.parameters).toBeUndefined();
   });
 
   it("includes asset reference images inside the instance and forces 8s/allow_adult", async () => {
@@ -159,7 +161,20 @@ describe("video generation REST integration", () => {
 
     const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(sent.instances[0].referenceImages).toBeUndefined();
-    // veo-3 models always request native audio.
+    // The default veo-3.1 model generates audio natively (no generateAudio flag),
+    // so with no aspect/references the parameters object is empty and omitted.
+    expect(sent.parameters).toBeUndefined();
+  });
+
+  it("opts into generateAudio only for the veo-3.0 family", async () => {
+    process.env.GEMINI_API_KEY = "k";
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ name: "operations/x" }) });
+
+    // veo-3.0 accepts the flag; veo-3.1-*-preview rejects it (400), so the gate
+    // must be 3.0-specific, not a broad "veo-3" match.
+    await startVideoGeneration({ prompt: "a clip", videoModel: "veo-3.0-fast-generate-001" });
+
+    const sent = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(sent.parameters).toEqual({ generateAudio: true });
   });
 

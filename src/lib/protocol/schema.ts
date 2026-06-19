@@ -777,9 +777,42 @@ function normalizeDashboard(node: Obj): Obj {
           ? "progress"
           : "metric";
     }
-    return { ...o, title, type: widgetType };
+    const widget: Obj = { ...o, title, type: widgetType };
+    // Models frequently emit the trend delta as a string ("12", "+5%", "-3").
+    // The schema requires a number, so coerce: strip any non-numeric chrome
+    // (sign-leading %, commas) and drop the trend entirely if it isn't numeric
+    // rather than letting one bad widget reject the whole dashboard.
+    if (widget.trend && typeof widget.trend === "object") {
+      const t = widget.trend as Obj;
+      if (typeof t.value === "string") {
+        const parsed = Number(t.value.replace(/[%,\s]/g, ""));
+        if (Number.isFinite(parsed)) {
+          widget.trend = { ...t, value: parsed };
+        } else {
+          delete widget.trend;
+        }
+      }
+    }
+    return widget;
   });
   return next;
+}
+
+const BUTTON_ACTIONS = new Set(["submit", "reset", "log"]);
+
+/**
+ * button: the schema only accepts `action: "submit" | "reset" | "log"`. Models
+ * routinely invent actions ("navigate", "open", "close", a URL, …). Drop any
+ * action outside the allowed set so the button still renders (as a plain,
+ * action-less button) instead of being salvaged away entirely.
+ */
+function normalizeButton(node: Obj): Obj {
+  if (typeof node.action === "string" && !BUTTON_ACTIONS.has(node.action)) {
+    const next = { ...node };
+    delete next.action;
+    return next;
+  }
+  return node;
 }
 
 /**
@@ -1055,6 +1088,10 @@ export function normalizeA2UI(input: unknown): unknown {
 
   if (type === "video") {
     normalized = normalizeVideo(normalized);
+  }
+
+  if (type === "button") {
+    normalized = normalizeButton(normalized);
   }
 
   if (Array.isArray(normalized.children)) {

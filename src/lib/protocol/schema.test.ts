@@ -198,3 +198,66 @@ describe("A2UI Schema — relationshipGraph (suspect web)", () => {
     }
   });
 });
+
+describe("A2UI Schema — model-output coercions", () => {
+  it("coerces a dataDashboard trend.value emitted as a string", () => {
+    const data = {
+      type: "dataDashboard",
+      title: "Surveillance",
+      widgets: [
+        {
+          title: "Sightings",
+          type: "metric",
+          value: "42",
+          trend: { value: "12", direction: "up" },
+        },
+        { title: "Leads", type: "metric", value: "7", trend: { value: "+5%", direction: "up" } },
+      ],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "dataDashboard") {
+      expect(result.data.widgets[0].trend?.value).toBe(12);
+      expect(result.data.widgets[1].trend?.value).toBe(5);
+    }
+  });
+
+  it("drops a non-numeric trend value rather than rejecting the dashboard", () => {
+    const data = {
+      type: "dataDashboard",
+      title: "Surveillance",
+      widgets: [
+        {
+          title: "Status",
+          type: "metric",
+          value: "open",
+          trend: { value: "n/a", direction: "neutral" },
+        },
+      ],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "dataDashboard") {
+      expect(result.data.widgets[0].trend).toBeUndefined();
+    }
+  });
+
+  it("drops an out-of-enum button action instead of failing the button", () => {
+    const data = { type: "button", label: "Open Case File", action: "navigate" };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "button") {
+      expect(result.data.action).toBeUndefined();
+      expect(result.data.label).toBe("Open Case File");
+    }
+  });
+
+  it("keeps a valid button action", () => {
+    const data = { type: "button", label: "Submit", action: "submit" };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "button") {
+      expect(result.data.action).toBe("submit");
+    }
+  });
+});

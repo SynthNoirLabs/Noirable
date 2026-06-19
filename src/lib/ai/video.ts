@@ -189,10 +189,15 @@ export async function startVideoGeneration(opts: {
   if (opts.aspectRatio && VEO_ASPECTS.has(opts.aspectRatio)) {
     parameters.aspectRatio = opts.aspectRatio;
   }
-  // Veo 3.x generates native diegetic audio; ask for it explicitly so the
-  // surveillance footage carries rain/hum/footsteps. Veo 2 models reject the
-  // parameter, so it's gated on the model family.
-  if (model.includes("veo-3")) {
+  // Veo audio handling differs by family:
+  //   - veo-2.*           : no audio support; the parameter is rejected.
+  //   - veo-3.0-*         : audio is opt-in via `generateAudio: true`.
+  //   - veo-3.1-*-preview : audio is NATIVE and always-on; passing
+  //                         `generateAudio` returns 400 INVALID_ARGUMENT
+  //                         ("`generateAudio` isn't supported by this model").
+  //                         Audio intent is steered through the prompt instead.
+  // So only send the flag for the 3.0 family; let 3.1 generate audio natively.
+  if (model.includes("veo-3.0")) {
     parameters.generateAudio = true;
   }
   if (hasReferences) {
