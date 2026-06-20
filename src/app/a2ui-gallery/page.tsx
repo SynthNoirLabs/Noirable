@@ -25,6 +25,9 @@ const C: SurfaceComponent[] = [
       "h_badges",
       "badgeRow",
       "d2",
+      "h_icons",
+      "iconRow",
+      "d_icons",
       "h_stats",
       "statsGrid",
       "d3",
@@ -73,6 +76,26 @@ const C: SurfaceComponent[] = [
   { id: "bg4", component: "Badge", label: "Ghost", variant: "ghost" },
 
   { id: "d2", component: "Divider" },
+
+  // --- Icons (semantic glyphs + size variants) ---
+  { id: "h_icons", component: "Text", variant: "h2", text: "Icons" },
+  {
+    id: "iconRow",
+    component: "Row",
+    children: ["ic1", "ic2", "ic3", "ic4", "ic5", "ic6", "ic7", "icBig", "icUnknown"],
+  },
+  { id: "ic1", component: "Icon", name: "search" },
+  { id: "ic2", component: "Icon", name: "lock" },
+  { id: "ic3", component: "Icon", name: "clock" },
+  { id: "ic4", component: "Icon", name: "eye" },
+  { id: "ic5", component: "Icon", name: "skull" },
+  { id: "ic6", component: "Icon", name: "map-pin" },
+  { id: "ic7", component: "Icon", name: "phone", size: "small" },
+  { id: "icBig", component: "Icon", name: "shield", size: "large" },
+  // An unknown name degrades to the neutral fallback glyph rather than breaking.
+  { id: "icUnknown", component: "Icon", name: "no-such-icon" },
+
+  { id: "d_icons", component: "Divider" },
 
   // --- Stats in a grid ---
   { id: "h_stats", component: "Text", variant: "h2", text: "Stats (grid)" },

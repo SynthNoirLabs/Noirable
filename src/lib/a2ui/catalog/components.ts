@@ -357,6 +357,9 @@ export type Icon = z.infer<typeof iconSchema>;
 export const videoSchema = componentCommonSchema.extend({
   component: z.literal("Video"),
   url: dynamicStringSchema,
+  // Preview frame shown before a real (playable) clip plays — A2UI v1.0's
+  // `Video.posterUrl`. Ignored by the on-demand "Generate footage" placeholder.
+  poster: dynamicStringSchema.optional(),
 });
 export type Video = z.infer<typeof videoSchema>;
 
