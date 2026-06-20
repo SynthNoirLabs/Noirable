@@ -2,7 +2,9 @@
 
 import dynamic from "next/dynamic";
 import type { SurfaceComponent } from "@/lib/a2ui/surfaces/manager";
+import { getAestheticDefinition } from "@/lib/aesthetic/definitions";
 import type { ComponentProps } from "../internal/context";
+import { useBaseAestheticId } from "../internal/binding";
 import { MissingComponent } from "../internal/registry";
 
 // Sandpack is heavy — load the escape-hatch sandbox only when a `custom`
@@ -25,6 +27,7 @@ const CustomCodeSandbox = dynamic(
  * the foreign component still reads as evidence on the desk.
  */
 export function CustomCodeRenderer({ component }: ComponentProps) {
+  const baseAestheticId = useBaseAestheticId();
   const custom = component as SurfaceComponent & {
     code?: unknown;
     title?: unknown;
@@ -32,7 +35,24 @@ export function CustomCodeRenderer({ component }: ComponentProps) {
   };
   const code = typeof custom.code === "string" ? custom.code : "";
   const title = typeof custom.title === "string" ? custom.title : "Custom build";
-  const height = typeof custom.height === "number" ? custom.height : 360;
+  // Default tall enough that the common form/calculator widget fits without an
+  // inner scrollbar; the model can still request a specific height.
+  const height = typeof custom.height === "number" ? custom.height : 520;
+
+  // Resolve the active world's palette so the sandbox paints itself in-theme
+  // (the iframe is a separate document and can't read the host's CSS vars).
+  const def = getAestheticDefinition(baseAestheticId);
+  const sandboxTheme = {
+    background: def.theme.colors.background,
+    surface: def.theme.colors.surface,
+    surfaceAlt: def.theme.colors.surfaceAlt,
+    text: def.theme.colors.text,
+    textMuted: def.theme.colors.textMuted,
+    accent: def.theme.colors.accent,
+    accentMuted: def.theme.colors.accentMuted,
+    border: def.theme.colors.border,
+    radius: def.identity.styleTokens.radius,
+  };
 
   if (!code) {
     return <MissingComponent id={`${component.id} (no code)`} />;
@@ -48,7 +68,7 @@ export function CustomCodeRenderer({ component }: ComponentProps) {
           sandboxed
         </span>
       </div>
-      <CustomCodeSandbox code={code} height={height} />
+      <CustomCodeSandbox code={code} height={height} theme={sandboxTheme} />
     </div>
   );
 }
