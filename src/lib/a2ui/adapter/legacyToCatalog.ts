@@ -65,8 +65,13 @@ function emit(builder: Builder, component: SurfaceComponent): string {
   return component.id;
 }
 
-/** Create a Text component and return its id. */
-function emitText(builder: Builder, text: string, variant?: string): string {
+/**
+ * Create a Text component and return its id. `text` may be a plain string OR a
+ * `{ path }`/functionCall binding — it's stored verbatim on the Text's `text`
+ * field, which TextRenderer resolves, so a bound heading/paragraph/card title
+ * shows live state.
+ */
+function emitText(builder: Builder, text: unknown, variant?: string): string {
   return emit(builder, {
     id: builder.nextId(),
     component: "Text",

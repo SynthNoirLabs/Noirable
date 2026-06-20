@@ -58,8 +58,8 @@ export function StateImageRenderer({ component }: ComponentProps) {
 
   // The key of the most recent state whose fork FAILED, so the spinner clears
   // (we fall back to the base) instead of spinning forever on an error or a
-  // rate-limited /fork. Cleared below whenever the selected state changes, so
-  // re-selecting a failed state retries once more.
+  // rate-limited /fork. Cleared below when the selected state changes to a
+  // DIFFERENT one — so switching away from a failed state and back retries it.
   const [failedKey, setFailedKey] = useState<string | null>(null);
 
   const def = states.find((s) => s.state === currentState);

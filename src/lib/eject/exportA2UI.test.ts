@@ -305,6 +305,30 @@ describe("exportA2UI", () => {
     expect(output).not.toContain("lucide");
   });
 
+  it("exports a reveal's children inline rather than dropping them", () => {
+    const output = exportA2UI({
+      type: "reveal",
+      when: { path: "/unlocked" },
+      children: [{ type: "text", content: "Corridor beyond" }],
+    } as A2UIInput);
+    // Regression: reveal fell through to the Unknown-component default, losing
+    // the entire revealed payload. The children must survive the export.
+    expect(output).toContain('{"Corridor beyond"}');
+    expect(output).not.toContain("Unknown component type");
+  });
+
+  it("exports a stateImage's base as a plain image", () => {
+    const output = exportA2UI({
+      type: "stateImage",
+      base: "/api/images/base.jpg",
+      value: { path: "/door" },
+      states: [{ state: "open", instruction: "the door opens" }],
+      alt: "Blast door",
+    } as A2UIInput);
+    expect(output).toContain('src={"/api/images/base.jpg"}');
+    expect(output).not.toContain("Unknown component type");
+  });
+
   it("exports a prompt-only video (no real src) as a labelled stub, not a dead <video>", () => {
     const data: A2UIInput = {
       type: "video",

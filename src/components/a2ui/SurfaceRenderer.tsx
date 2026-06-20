@@ -255,8 +255,11 @@ export function SurfaceRenderer({
             if (target && source !== undefined) {
               const current = resolvePointer(model, source);
               const matches = String(current ?? "") === String(args.equals ?? "");
+              // Guard each branch with `in`: writing `undefined` DELETES the
+              // target key (v0.9 pointer semantics), so an omitted `then`/`else`
+              // must be a no-op, not a deletion of the bound state.
               if (matches) {
-                write(target, args.then);
+                if ("then" in args) write(target, args.then);
               } else if ("else" in args) {
                 write(target, args.else);
               }

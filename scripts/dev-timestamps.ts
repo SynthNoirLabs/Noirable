@@ -48,9 +48,16 @@ function prefixStream(source: NodeJS.ReadableStream, sink: NodeJS.WriteStream): 
       sink.write(line.length > 0 ? `${stamp()}${line}\n` : "\n");
     }
   });
-  source.on("end", () => {
-    if (buffer.length > 0) sink.write(`${stamp()}${buffer}\n`);
-  });
+  const flushRemaining = () => {
+    if (buffer.length > 0) {
+      sink.write(`${stamp()}${buffer}\n`);
+      buffer = "";
+    }
+  };
+  // Flush a trailing partial line on BOTH end and close — on an abrupt teardown
+  // (Ctrl-C) the stream often emits `close` without a final `end`.
+  source.on("end", flushRemaining);
+  source.on("close", flushRemaining);
 }
 
 if (child.stdout) prefixStream(child.stdout, process.stdout);

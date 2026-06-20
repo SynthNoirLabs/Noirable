@@ -948,6 +948,35 @@ describe("Button action feedback", () => {
     expect(screen.getByText("GRANTED")).toBeInTheDocument();
   });
 
+  it("matchSet with an omitted `then` does NOT delete the target on a match", () => {
+    // Regression: write(target, undefined) deletes the key (v0.9 pointer
+    // semantics). An omitted then/else must be a no-op, not a wipe.
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "out"] },
+        {
+          id: "btn",
+          component: "Button",
+          label: "Go",
+          // No `then`: on match, /status must be LEFT ALONE (stays SEEDED).
+          action: {
+            functionCall: {
+              call: "matchSet",
+              args: { path: "/code", equals: "K", target: "/status" },
+            },
+          },
+        },
+        { id: "out", component: "Text", text: { path: "/status" } },
+      ],
+      { code: "K", status: "SEEDED" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("SEEDED")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Go" }));
+    // Still SEEDED — the match fired but had nothing to write, so it didn't wipe.
+    expect(screen.getByText("SEEDED")).toBeInTheDocument();
+  });
+
   it("runs an ARRAY action in sequence (validate, then a dependent write sees it)", () => {
     const surface = makeSurface(
       [

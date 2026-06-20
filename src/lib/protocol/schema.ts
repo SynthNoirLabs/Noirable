@@ -54,22 +54,25 @@ export const textComponentSchema = z.object({
 
 export const cardComponentSchema = z.object({
   type: z.literal("card"),
-  title: z.string(),
-  description: z.string().optional(),
+  // title/description flow through the adapter's emitText → Text, which resolves
+  // them — so a `{ path }`/functionCall binding renders live state.
+  title: dynamicStringField,
+  description: dynamicStringField.optional(),
   status: z.enum(["active", "archived", "missing", "redacted"]).default("active"),
   style: styleSchema.optional(),
 });
 
 const headingSchema = z.object({
   type: z.literal("heading"),
-  text: z.string(),
+  // Resolved downstream (adapter emitText → Text), so a binding shows live state.
+  text: dynamicStringField,
   level: z.number().int().min(1).max(4).default(2),
   style: styleSchema.optional(),
 });
 
 const paragraphSchema = z.object({
   type: z.literal("paragraph"),
-  text: z.string(),
+  text: dynamicStringField,
   style: styleSchema.optional(),
 });
 
@@ -124,7 +127,7 @@ const statSchema = z.object({
   // String or a live binding (so a Stat can read e.g. `/status`); resolved by
   // the renderer rather than stringified to "[object Object]".
   value: dynamicStringField,
-  helper: z.string().optional(),
+  helper: dynamicStringField.optional(),
   style: styleSchema.optional(),
 });
 
@@ -222,7 +225,9 @@ const sliderSchema = z.object({
   // prop). Omitted → the HTML range default of 1. Must be positive to be useful;
   // the renderer ignores a non-positive value.
   step: z.number().optional(),
-  value: z.union([z.number(), z.string()]).optional(),
+  // number/string OR a live binding (the renderer two-way-binds + setData). A
+  // bound slider tracks state instead of being dropped at validation.
+  value: z.union([z.number(), z.string(), bindingObjectSchema]).optional(),
   style: styleSchema.optional(),
 });
 
@@ -242,7 +247,9 @@ const checkboxSchema = z.object({
 // rejecting the tree. Use for affordances/evidence markers, not decoration.
 const iconComponentSchema = z.object({
   type: z.literal("icon"),
-  name: z.string(),
+  // String or a live binding; the renderer does `String(resolve(name))` and
+  // falls back to a neutral glyph, so a binding is safe.
+  name: dynamicStringField,
   size: z.enum(["small", "medium", "large"]).optional(),
   style: styleSchema.optional(),
 });
@@ -253,11 +260,13 @@ const iconComponentSchema = z.object({
 const dateTimeInputSchema = z.object({
   type: z.literal("dateTimeInput"),
   label: z.string().optional(),
-  value: z.string().optional(),
+  // ISO string OR a live binding (two-way bound date/time field) — resolved by
+  // the renderer, not dropped at validation.
+  value: dynamicStringField.optional(),
   enableDate: z.boolean().optional(),
   enableTime: z.boolean().optional(),
-  min: z.string().optional(),
-  max: z.string().optional(),
+  min: dynamicStringField.optional(),
+  max: dynamicStringField.optional(),
   style: styleSchema.optional(),
 });
 
@@ -337,7 +346,7 @@ const kanbanColumnSchema = z.object({
 
 const kanbanBoardSchema = z.object({
   type: z.literal("kanbanBoard"),
-  title: z.string().optional(),
+  title: dynamicStringField.optional(),
   columns: z.array(kanbanColumnSchema).default([]),
   style: styleSchema.optional(),
 });
@@ -356,7 +365,7 @@ const dashboardWidgetSchema = z.object({
 
 const dataDashboardSchema = z.object({
   type: z.literal("dataDashboard"),
-  title: z.string().optional(),
+  title: dynamicStringField.optional(),
   widgets: z.array(dashboardWidgetSchema).default([]),
   style: styleSchema.optional(),
 });
@@ -373,9 +382,9 @@ const audioStatementSchema = z
     /** A real audio url — plays directly when present. */
     src: z.string().optional(),
     /** Label above the player, e.g. "Witness statement — M. Doyle". */
-    description: z.string().optional(),
+    description: dynamicStringField.optional(),
     /** Speaker name — deterministically varies the voice per character. */
-    speaker: z.string().optional(),
+    speaker: dynamicStringField.optional(),
     style: styleSchema.optional(),
   })
   .refine((value) => Boolean(value.script || value.src), {
@@ -403,7 +412,7 @@ const graphEdgeSchema = z.object({
 
 const relationshipGraphSchema = z.object({
   type: z.literal("relationshipGraph"),
-  title: z.string().optional(),
+  title: dynamicStringField.optional(),
   nodes: z.array(graphNodeSchema).default([]),
   edges: z.array(graphEdgeSchema).default([]),
   style: styleSchema.optional(),
