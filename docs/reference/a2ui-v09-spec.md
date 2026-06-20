@@ -4,6 +4,11 @@
 > Source: https://a2ui.org/specification/v0.9-a2ui/
 > (Canonical spec: https://github.com/google/A2UI/blob/main/specification/0.9/docs/a2ui_protocol.md)
 > Last fetched: 2026-02-01
+>
+> **v0.9.1 update:** A minor refinement of v0.9 shipped (MIME type
+> standardization + relaxed `surfaceId` uniqueness); it requires no code change
+> here. See [`a2ui-v091-migration.md`](./a2ui-v091-migration.md) for the full
+> v0.9 → v0.9.1 diff and rationale.
 
 > **Implementation note:** The message structures below follow the upstream
 > spec, which wraps each message in a named-key envelope (e.g.
