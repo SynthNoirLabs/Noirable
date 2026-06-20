@@ -38,6 +38,17 @@ function jsxString(value: string): string {
 }
 
 /**
+ * A display field (Text content / Stat value) may now be a string OR a live
+ * `{ path }`/`functionCall` data binding. Ejected code is a STANDALONE static
+ * component with no surface data model, so a binding has nothing to resolve
+ * against — export it as an empty string rather than the literal "[object
+ * Object]". Plain strings pass through unchanged.
+ */
+function staticText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+/**
  * Mutable allocators threaded through the render so each stateful node (tabs,
  * modal) gets its own React state variable instead of sharing one.
  */
@@ -74,7 +85,7 @@ function renderNodeUnsafe(node: A2UIInput, depth: number = 0, ctx: RenderContext
       const baseClass = "px-4 py-2 bg-zinc-900/35 border border-zinc-700/40 rounded-sm shadow-lg";
       return `${ind}<p className={${jsxString(
         buildClassList([baseClass, priorityClass])
-      )}}>{${jsxString(node.content)}}</p>`;
+      )}}>{${jsxString(staticText(node.content))}}</p>`;
     }
 
     case "card": {
@@ -250,7 +261,7 @@ ${ind}</div>`;
 ${indChild}<div className="text-xs uppercase tracking-widest text-zinc-500">{${jsxString(
         node.label
       )}}</div>
-${indChild}<div className="text-2xl text-zinc-100 font-bold mt-2">{${jsxString(node.value)}}</div>
+${indChild}<div className="text-2xl text-zinc-100 font-bold mt-2">{${jsxString(staticText(node.value))}}</div>
 ${node.helper ? `${indChild}<div className="text-xs text-zinc-500 mt-1">{${jsxString(node.helper)}}</div>\n` : ""}${ind}</div>`;
     }
 
@@ -351,7 +362,11 @@ ${ind}</div>`;
           ])
         )}}>{${jsxString(`▶ ${label} (generate footage)`)}}</div>`;
       }
-      return `${ind}<video src={${jsxString(src)}} controls aria-label={${jsxString(
+      const posterAttr =
+        node.poster && /^(https?:|\/|data:)/.test(node.poster)
+          ? ` poster={${jsxString(node.poster)}}`
+          : "";
+      return `${ind}<video src={${jsxString(src)}} controls${posterAttr} aria-label={${jsxString(
         label
       )}} className={${jsxString(classes)}} />`;
     }
@@ -370,7 +385,7 @@ ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}
 ${indChild}<input
 ${indChild}  name={${jsxString(inputName)}}
 ${indChild}  placeholder={${jsxString(node.placeholder ?? "")}}
-${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
+${indChild}  ${staticText(node.value) ? `defaultValue={${jsxString(staticText(node.value))}}` : ""}
 ${indChild}  className={${jsxString(inputClasses)}}
 ${indChild}/>
 ${ind}</label>`;
@@ -390,7 +405,7 @@ ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}
 ${indChild}<textarea
 ${indChild}  name={${jsxString(textareaName)}}
 ${indChild}  placeholder={${jsxString(node.placeholder ?? "")}}
-${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
+${indChild}  ${staticText(node.value) ? `defaultValue={${jsxString(staticText(node.value))}}` : ""}
 ${indChild}  rows={${node.rows ?? 3}}
 ${indChild}  className={${jsxString(textareaClasses)}}
 ${indChild}/>
@@ -413,7 +428,7 @@ ${ind}</label>`;
 ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}}</span>
 ${indChild}<select
 ${indChild}  name={${jsxString(selectName)}}
-${indChild}  defaultValue={${jsxString(node.value ?? node.options[0])}}
+${indChild}  defaultValue={${jsxString(staticText(node.value) || node.options[0])}}
 ${indChild}  className={${jsxString(selectClasses)}}
 ${indChild}>
 ${options}
@@ -428,7 +443,7 @@ ${ind}</label>`;
       )}}>
 ${indChild}<input type="checkbox" name={${jsxString(
         checkboxName
-      )}} ${node.checked ? "defaultChecked" : ""} className="accent-amber-500" />
+      )}} ${node.checked === true ? "defaultChecked" : ""} className="accent-amber-500" />
 ${indChild}<span className="text-zinc-400">{${jsxString(node.label)}}</span>
 ${ind}</label>`;
     }
@@ -463,6 +478,42 @@ ${indChild}  max={${max}}
 ${indChild}  defaultValue={${typeof def === "number" ? def : jsxString(String(def))}}
 ${indChild}  className="w-full accent-amber-500"
 ${indChild}/>
+${ind}</label>`;
+    }
+
+    case "icon": {
+      // The live renderer maps names to lucide glyphs, but ejected code carries
+      // no icon library (React-only, no external imports). Emit a small labelled
+      // marker so the export is self-contained and self-explanatory.
+      const sizeClass =
+        node.size === "large" ? "w-7 h-7" : node.size === "small" ? "w-4 h-4" : "w-5 h-5";
+      return `${ind}<span role="img" aria-label={${jsxString(node.name)}} title={${jsxString(
+        node.name
+      )}} className={${jsxString(
+        buildClassList([
+          `inline-flex items-center justify-center ${sizeClass} rounded-sm border border-zinc-700/40 text-[9px] uppercase text-amber-500/80`,
+          node.style?.className,
+        ])
+      )}}>{${jsxString(node.name.slice(0, 2))}}</span>`;
+    }
+
+    case "dateTimeInput": {
+      const inputType =
+        node.enableDate && node.enableTime
+          ? "datetime-local"
+          : node.enableTime && !node.enableDate
+            ? "time"
+            : "date";
+      const label = node.label;
+      const dateInput = `<input type="${inputType}"${
+        node.value ? ` defaultValue={${jsxString(node.value)}}` : ""
+      }${node.min ? ` min={${jsxString(node.min)}}` : ""}${
+        node.max ? ` max={${jsxString(node.max)}}` : ""
+      } className="bg-transparent border border-zinc-700/30 rounded-sm px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500 [color-scheme:dark]" />`;
+      if (!label) return `${ind}${dateInput}`;
+      return `${ind}<label className="flex flex-col gap-1 text-xs">
+${indChild}<span className="font-medium text-zinc-400">{${jsxString(label)}}</span>
+${indChild}${dateInput}
 ${ind}</label>`;
     }
 

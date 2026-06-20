@@ -218,10 +218,12 @@ const handlers: { [K in A2UIInput["type"]]: WalkHandler<NodeOf<K>> } = {
     // `url` carries the src (a real URL) or, for on-demand footage, the prompt
     // text (normalizeA2UI coalesced prompt → src). The renderer shows a real
     // URL as a player and a prompt as the "Generate footage" placeholder.
+    // `poster` (preview frame, A2UI v1.0) only applies to a real playable clip.
     emit(builder, {
       id,
       component: "Video",
       url: node.src ?? "",
+      ...(typeof node.poster === "string" && node.poster ? { poster: node.poster } : {}),
       ...(node.alt ? { accessibility: { label: node.alt } } : {}),
     }),
 
@@ -261,31 +263,94 @@ const handlers: { [K in A2UIInput["type"]]: WalkHandler<NodeOf<K>> } = {
     const min = typeof node.min === "number" ? node.min : 0;
     const max = typeof node.max === "number" ? node.max : 100;
     const value = node.value !== undefined ? node.value : min;
+    // `step` (discrete snapping, A2UI v1.0) is passed through only when positive;
+    // the catalog Slider + renderer already understand it.
+    const step = typeof node.step === "number" && node.step > 0 ? node.step : undefined;
     return emit(builder, {
       id,
       component: "Slider",
       ...(node.label ? { label: node.label } : {}),
       min,
       max,
+      ...(step !== undefined ? { step } : {}),
       value,
     });
   },
 
   checkbox: (builder, node, id) =>
+    // The catalog CheckBox reads `value` (the renderer two-way-binds it). A
+    // `{ path }`/`functionCall` binding passes through so the box tracks live
+    // state; a literal is coerced to a boolean.
     emit(builder, {
       id,
       component: "CheckBox",
       label: node.label,
-      value: Boolean(node.checked),
+      value:
+        node.checked && typeof node.checked === "object" ? node.checked : Boolean(node.checked),
+    }),
+
+  icon: (builder, node, id) =>
+    // A single semantic glyph. The renderer maps `name` to a lucide icon (with a
+    // graceful "help" fallback) and reads an optional `size`.
+    emit(builder, {
+      id,
+      component: "Icon",
+      name: node.name,
+      ...(node.size ? { size: node.size } : {}),
+    }),
+
+  dateTimeInput: (builder, node, id) =>
+    // Date/time picker. `value` is the catalog's required field; the renderer
+    // chooses the native input type from enableDate/enableTime.
+    emit(builder, {
+      id,
+      component: "DateTimeInput",
+      value: node.value ?? "",
+      ...(node.label ? { label: node.label } : {}),
+      ...(node.enableDate !== undefined ? { enableDate: node.enableDate } : {}),
+      ...(node.enableTime !== undefined ? { enableTime: node.enableTime } : {}),
+      ...(node.min ? { min: node.min } : {}),
+      ...(node.max ? { max: node.max } : {}),
+    }),
+
+  reveal: (builder, node, id) => {
+    // A conditional wrapper: children render only when `when` resolves truthy.
+    // The condition rides through untouched (the renderer's resolver evaluates
+    // `{ path }` bindings and `functionCall` predicates against the data model).
+    const children = node.children.map((child) => walk(builder, child));
+    return emit(builder, { id, component: "Reveal", when: node.when, children });
+  },
+
+  stateImage: (builder, node, id) =>
+    // A picture that swaps with a data value. `base` carries the initial scene
+    // (a prompt the image pipeline resolves to a real url, or a url already);
+    // `states` map each state value to an edit instruction the renderer applies
+    // on demand and caches. `value` is the data binding the current state reads.
+    emit(builder, {
+      id,
+      component: "StateImage",
+      base: node.base,
+      value: node.value,
+      states: node.states,
+      ...(node.alt ? { alt: node.alt } : {}),
     }),
 
   button: (builder, node, id) => {
     const childId = emitText(builder, node.label);
+    // Preserve a rich action (a `{ functionCall }`/`{ event }` object, or an
+    // ARRAY of them) verbatim so the renderer's runAction can dispatch it —
+    // this is what makes reactive buttons (setValue/toggle/matchSet) work. A
+    // bare legacy verb string ("submit"/"reset"/"log") or a missing action is
+    // wrapped as a named server event, the historical behavior.
+    const action =
+      node.action && typeof node.action === "object"
+        ? node.action
+        : { event: { name: typeof node.action === "string" ? node.action : "click" } };
     return emit(builder, {
       id,
       component: "Button",
       child: childId,
-      action: { event: { name: node.action ?? "click" } },
+      action,
     });
   },
 

@@ -21,9 +21,33 @@ export const styleSchema = z.object({
   className: z.string().optional(),
 });
 
+/**
+ * A DATA BINDING object: either a `{ path }` JSON-pointer binding or a
+ * `{ call, args? }` function-call. Display fields that may be bound to live
+ * state (Text content, Stat value) accept these so the renderer's resolver can
+ * read the current value — instead of `String()`-ing the object to the literal
+ * "[object Object]". Kept permissive (the resolver/guards do the real work).
+ */
+export const bindingObjectSchema = z.union([
+  z.object({ path: z.string() }).loose(),
+  z.object({ call: z.string() }).loose(),
+]);
+
+/** True for a `{ path }` / `{ call }` binding object (NOT a plain value). */
+export function isBindingObject(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.path === "string" || typeof v.call === "string";
+}
+
+/** A display value that is either a plain string or a live data binding. */
+const dynamicStringField = z.union([z.string(), bindingObjectSchema]);
+
 export const textComponentSchema = z.object({
   type: z.literal("text"),
-  content: z.string(),
+  // Accept a plain string OR a `{ path }`/`functionCall` binding, so a Text can
+  // show live state (e.g. an airlock's `/status`). The renderer resolves it.
+  content: dynamicStringField,
   priority: priorityToken.default("normal"),
   style: styleSchema.optional(),
 });
@@ -97,7 +121,9 @@ const tableSchema = z.object({
 const statSchema = z.object({
   type: z.literal("stat"),
   label: z.string(),
-  value: z.string(),
+  // String or a live binding (so a Stat can read e.g. `/status`); resolved by
+  // the renderer rather than stringified to "[object Object]".
+  value: dynamicStringField,
   helper: z.string().optional(),
   style: styleSchema.optional(),
 });
@@ -129,6 +155,10 @@ const videoSchema = z.object({
   type: z.literal("video"),
   src: z.string(),
   alt: z.string().optional(),
+  // `poster` is a preview-frame URL shown before a real (playable) clip plays —
+  // the A2UI v1.0 `Video.posterUrl` prop. Only meaningful for a `src` video; the
+  // on-demand "Generate footage" placeholder ignores it.
+  poster: z.string().optional(),
   style: styleSchema.optional(),
 });
 
@@ -138,6 +168,7 @@ const videoInputSchema = z
     src: z.string().optional(),
     prompt: z.string().optional(),
     alt: z.string().optional(),
+    poster: z.string().optional(),
     style: styleSchema.optional(),
   })
   .refine((value) => Boolean(value.src || value.prompt), {
@@ -151,7 +182,9 @@ const inputSchema = z.object({
   // `placeholder` is optional: models routinely omit it, and a missing
   // placeholder must not reject the whole form.
   placeholder: z.string().optional(),
-  value: z.string().optional(),
+  // String OR a live `{ path }` binding (two-way bound input — e.g. a bypass
+  // code typed into `/code`). The TextField renderer resolves + writes it.
+  value: dynamicStringField.optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
 });
@@ -161,7 +194,7 @@ const textareaSchema = z.object({
   name: z.string().optional(),
   label: z.string(),
   placeholder: z.string().optional(),
-  value: z.string().optional(),
+  value: dynamicStringField.optional(),
   rows: z.number().int().min(2).max(12).optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
@@ -172,7 +205,7 @@ const selectSchema = z.object({
   name: z.string().optional(),
   label: z.string(),
   options: z.array(z.string()).min(1),
-  value: z.string().optional(),
+  value: dynamicStringField.optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
 });
@@ -185,6 +218,10 @@ const sliderSchema = z.object({
   label: z.string().optional(),
   min: z.number().optional(),
   max: z.number().optional(),
+  // `step` snaps the slider to discrete intervals (the A2UI v1.0 `Slider.steps`
+  // prop). Omitted → the HTML range default of 1. Must be positive to be useful;
+  // the renderer ignores a non-positive value.
+  step: z.number().optional(),
   value: z.union([z.number(), z.string()]).optional(),
   style: styleSchema.optional(),
 });
@@ -193,16 +230,85 @@ const checkboxSchema = z.object({
   type: z.literal("checkbox"),
   name: z.string().optional(),
   label: z.string(),
-  checked: z.boolean().optional(),
+  // Boolean OR a live `{ path }`/`functionCall` binding (a bound toggle). The
+  // CheckBox renderer resolves it; a literal boolean still works.
+  checked: z.union([z.boolean(), bindingObjectSchema]).optional(),
   style: styleSchema.optional(),
 });
 
+// Icon: a single semantic glyph (search, fingerprint→skull, lock, clock…). The
+// renderer maps a curated name set to lucide glyphs and falls back to a "help"
+// glyph for anything unknown, so a bad `name` degrades gracefully rather than
+// rejecting the tree. Use for affordances/evidence markers, not decoration.
+const iconComponentSchema = z.object({
+  type: z.literal("icon"),
+  name: z.string(),
+  size: z.enum(["small", "medium", "large"]).optional(),
+  style: styleSchema.optional(),
+});
+
+// DateTimeInput: a date and/or time picker (alibis, timelines, "when did you
+// last see them?"). `value`/`min`/`max` are ISO 8601 strings. Defaults to a
+// date-only picker when neither flag is set (the renderer's own fallback).
+const dateTimeInputSchema = z.object({
+  type: z.literal("dateTimeInput"),
+  label: z.string().optional(),
+  value: z.string().optional(),
+  enableDate: z.boolean().optional(),
+  enableTime: z.boolean().optional(),
+  min: z.string().optional(),
+  max: z.string().optional(),
+  style: styleSchema.optional(),
+});
+
+// Reveal: a conditional wrapper (see RevealComponent). `when` is a free-form
+// Dynamic value (a `{ path }` binding or a `functionCall` predicate), so it's
+// typed loosely here and interpreted by the renderer's resolver. `children` use
+// the recursive output schema in `a2uiSchema`; the input variant re-binds them.
+const revealSchema = z.object({
+  type: z.literal("reveal"),
+  when: z.unknown(),
+  style: styleSchema.optional(),
+  children: z.array(z.lazy(() => a2uiSchema)),
+}) satisfies z.ZodType<RevealComponent>;
+
+// StateImage: a picture that swaps with a data value (see StateImageComponent).
+const stateImageStateSchema = z.object({
+  state: z.string(),
+  instruction: z.string(),
+});
+const stateImageSchema = z.object({
+  type: z.literal("stateImage"),
+  base: z.string(),
+  value: z.unknown(),
+  states: z.array(stateImageStateSchema),
+  alt: z.string().optional(),
+  style: styleSchema.optional(),
+}) satisfies z.ZodType<StateImageComponent>;
+
 const buttonActionToken = z.enum(["submit", "reset", "log"]);
+
+// A button's `action` can be:
+//   - a legacy form verb string ("submit" | "reset" | "log"), OR
+//   - a `{ functionCall }` (setValue/toggle/matchSet/openUrl) or `{ event }`
+//     object the renderer's runAction dispatches, OR
+//   - an ARRAY of those objects, run in sequence (validate THEN react).
+// The schema is permissive (`.loose()`) on the object form — runAction does the
+// real interpretation — so the model's reactive buttons aren't salvaged out.
+const buttonActionObject = z.union([
+  z.object({ functionCall: z.unknown() }).loose(),
+  z.object({ event: z.unknown() }).loose(),
+]);
+const buttonActionSchema = z.union([
+  buttonActionToken,
+  buttonActionObject,
+  z.array(buttonActionObject),
+]);
 
 const buttonSchema = z.object({
   type: z.literal("button"),
   label: z.string(),
-  action: buttonActionToken.optional(),
+  action: buttonActionSchema.optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
 });
@@ -347,6 +453,10 @@ export const SUPPORTED_LEGACY_TYPES = [
   "textarea",
   "select",
   "checkbox",
+  "icon",
+  "dateTimeInput",
+  "reveal",
+  "stateImage",
   "button",
   "kanbanBoard",
   "dataDashboard",
@@ -380,6 +490,10 @@ type TextareaComponent = z.infer<typeof textareaSchema>;
 type SelectComponent = z.infer<typeof selectSchema>;
 type SliderComponent = z.infer<typeof sliderSchema>;
 type CheckboxComponent = z.infer<typeof checkboxSchema>;
+type IconComponent = z.infer<typeof iconComponentSchema>;
+type DateTimeInputComponent = z.infer<typeof dateTimeInputSchema>;
+// RevealComponent / StateImageComponent are declared as TS types above (the zod
+// schemas `satisfies` them); they need no `z.infer` alias.
 type ButtonComponent = z.infer<typeof buttonSchema>;
 type KanbanBoardComponent = z.infer<typeof kanbanBoardSchema>;
 type DataDashboardComponent = z.infer<typeof dataDashboardSchema>;
@@ -412,6 +526,32 @@ type GridComponent = {
   children: A2UIComponent[];
 };
 
+// Reveal: a conditional wrapper. Its children render only when `when` is truthy
+// against the live data model. `when` is a Dynamic value — a `{ path }` binding
+// (shows when that path is truthy) or a `functionCall` predicate
+// (`{ call: "eq", args: { a: { path: "/code" }, b: "937-ALPHA" } }`). This is the
+// generic gate/branch/"reveal-on-state" primitive for interactive surfaces.
+type RevealComponent = {
+  type: "reveal";
+  when: unknown;
+  style?: Style;
+  children: A2UIComponent[];
+};
+
+// StateImage: an image whose picture changes with a data-model value. `base` is
+// the initial scene's prompt/url; `states` map a string state value (read from
+// `value`'s path) to an EDIT instruction applied to the base ("the blast door is
+// now open"). The renderer caches each state's generated url, so flipping back
+// to a seen state is instant (no re-generation).
+type StateImageComponent = {
+  type: "stateImage";
+  base: string;
+  value: unknown;
+  states: { state: string; instruction: string }[];
+  alt?: string;
+  style?: Style;
+};
+
 type TabsComponent = {
   type: "tabs";
   tabs: { label: string; content: A2UIComponent }[];
@@ -442,6 +582,10 @@ export type A2UIComponent =
   | SelectComponent
   | SliderComponent
   | CheckboxComponent
+  | IconComponent
+  | DateTimeInputComponent
+  | RevealComponent
+  | StateImageComponent
   | ButtonComponent
   | KanbanBoardComponent
   | DataDashboardComponent
@@ -512,6 +656,10 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   selectSchema,
   sliderSchema,
   checkboxSchema,
+  iconComponentSchema,
+  dateTimeInputSchema,
+  revealSchema,
+  stateImageSchema,
   buttonSchema,
   kanbanBoardSchema,
   dataDashboardSchema,
@@ -587,6 +735,12 @@ function canonicalizeType(type: unknown, node: Obj): { type: unknown; node: Obj 
     relationshipgraph: "relationshipGraph",
     relationship: "relationshipGraph",
     graph: "relationshipGraph",
+    datetime: "dateTimeInput",
+    datetimeinput: "dateTimeInput",
+    datepicker: "dateTimeInput",
+    timepicker: "dateTimeInput",
+    date: "dateTimeInput",
+    time: "dateTimeInput",
   };
   const canonical =
     TYPE_ALIASES[flat] ?? SUPPORTED_LEGACY_TYPES.find((t) => t.toLowerCase() === flat);
@@ -598,7 +752,13 @@ function canonicalizeType(type: unknown, node: Obj): { type: unknown; node: Obj 
 
 /** text/callout: lift a `text` field into `content` when content is missing. */
 function normalizeTextLike(node: Obj): Obj {
+  // A binding object is a valid `content` now — leave it for the resolver.
+  if (isBindingObject(node.content)) return node;
   if (typeof node.content !== "string" && typeof node.text === "string") {
+    return { ...node, content: node.text };
+  }
+  // A bound `text` (e.g. `{ path }`) lifts into `content` unchanged.
+  if (typeof node.content !== "string" && isBindingObject(node.text)) {
     return { ...node, content: node.text };
   }
   return node;
@@ -917,9 +1077,12 @@ function normalizeSelect(node: Obj): Obj {
   return node;
 }
 
-/** `stat` requires a string `value`. */
+/** `stat` value: a string, a live binding (left intact), or a coerced scalar. */
 function normalizeStat(node: Obj): Obj {
   if (typeof node.value === "string") return node;
+  // A `{ path }`/`functionCall` binding is valid now — keep it for the resolver
+  // instead of stringifying it to "[object Object]".
+  if (isBindingObject(node.value)) return node;
   return {
     ...node,
     value: node.value === undefined || node.value === null ? "" : String(node.value),
@@ -1136,6 +1299,10 @@ type ModalInputComponent = {
   style?: Style;
 };
 
+type RevealInputComponent = Omit<RevealComponent, "children"> & {
+  children: A2UIInput[];
+};
+
 export type A2UIInput =
   | TextComponent
   | CardComponent
@@ -1160,6 +1327,10 @@ export type A2UIInput =
   | SelectComponent
   | SliderComponent
   | CheckboxComponent
+  | IconComponent
+  | DateTimeInputComponent
+  | RevealInputComponent
+  | StateImageComponent
   | ButtonComponent
   | KanbanBoardComponent
   | DataDashboardComponent
@@ -1199,6 +1370,12 @@ const modalInputSchema = modalSchema.extend({
   content: z.lazy(() => a2uiInputSchema),
 }) satisfies z.ZodType<ModalInputComponent>;
 
+// Reveal's children resolve against the INPUT schema (so nested image prompts,
+// tabs, etc. are normalized the same as anywhere else).
+const revealInputSchema = revealSchema.extend({
+  children: z.array(z.lazy(() => a2uiInputSchema)),
+}) satisfies z.ZodType<RevealInputComponent>;
+
 export const a2uiInputSchema = z.preprocess(
   normalizeA2UI,
   z.discriminatedUnion("type", [
@@ -1225,6 +1402,10 @@ export const a2uiInputSchema = z.preprocess(
     selectSchema,
     sliderSchema,
     checkboxSchema,
+    iconComponentSchema,
+    dateTimeInputSchema,
+    revealInputSchema,
+    stateImageSchema,
     buttonSchema,
     kanbanBoardSchema,
     dataDashboardSchema,

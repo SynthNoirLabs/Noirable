@@ -42,6 +42,8 @@ import { TextFieldRenderer } from "./renderers/TextField";
 import { DateTimeInputRenderer } from "./renderers/DateTimeInput";
 import { ChoicePickerRenderer } from "./renderers/ChoicePicker";
 import { SliderRenderer } from "./renderers/Slider";
+import { RevealRenderer } from "./renderers/Reveal";
+import { StateImageRenderer } from "./renderers/StateImage";
 
 // ============================================================================
 // Component Router
@@ -84,6 +86,9 @@ const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
   DateTimeInput: DateTimeInputRenderer,
   ChoicePicker: ChoicePickerRenderer,
   Slider: SliderRenderer,
+
+  Reveal: RevealRenderer,
+  StateImage: StateImageRenderer,
 };
 
 registerComponents(COMPONENT_MAP);
@@ -179,8 +184,18 @@ export function SurfaceRenderer({
     setToast((prev) => ({ text, seq: (prev?.seq ?? 0) + 1 }));
   }, []);
 
-  const runAction = useCallback(
-    (componentId: string, action: unknown, label?: string) => {
+  // Execute ONE action against a given data model with a given write function.
+  // Split out so the array path can run several in sequence over a working copy
+  // (so a later step sees an earlier step's write within the same click). For a
+  // lone action, `model`/`write` are just the live `dataModel`/`setData`.
+  const runOneAction = useCallback(
+    (
+      componentId: string,
+      action: unknown,
+      label: string | undefined,
+      model: Record<string, unknown>,
+      write: (path: string, value: unknown) => void
+    ) => {
       if (!action || typeof action !== "object") return;
 
       // Server event → emit a client→server ActionMessage + HTTP round-trip.
@@ -220,12 +235,31 @@ export function SurfaceRenderer({
         switch (fc.call) {
           case "setValue":
           case "set": {
-            if (typeof args.path === "string") setData(args.path, args.value);
+            if (typeof args.path === "string") write(args.path, args.value);
             break;
           }
           case "toggle": {
             if (typeof args.path === "string") {
-              setData(args.path, !resolvePointer(dataModel, args.path));
+              write(args.path, !resolvePointer(model, args.path));
+            }
+            break;
+          }
+          // Conditional write: if the value at `path` matches `equals`, write
+          // `then` to `target`; otherwise write `else` (when provided). This is
+          // what lets a generated surface VALIDATE input — a bypass code, a
+          // quiz answer, a combination — and branch the UI on the result.
+          // Comparison is string-based so "937-ALPHA" vs a typed field matches.
+          case "matchSet": {
+            const target = typeof args.target === "string" ? args.target : undefined;
+            const source = typeof args.path === "string" ? args.path : undefined;
+            if (target && source !== undefined) {
+              const current = resolvePointer(model, source);
+              const matches = String(current ?? "") === String(args.equals ?? "");
+              if (matches) {
+                write(target, args.then);
+              } else if ("else" in args) {
+                write(target, args.else);
+              }
             }
             break;
           }
@@ -233,7 +267,7 @@ export function SurfaceRenderer({
             // Side-effecting navigation belongs to an explicit user action, not
             // value resolution. Opt into side effects here; evaluateFunctionCall
             // applies the http(s)/same-origin protocol guard.
-            evaluateFunctionCall({ call: "openUrl", args }, dataModel, undefined, {
+            evaluateFunctionCall({ call: "openUrl", args }, model, undefined, {
               allowSideEffects: true,
             });
             break;
@@ -246,15 +280,32 @@ export function SurfaceRenderer({
         }
       }
     },
-    [
-      actionEndpoint,
-      applyServerMessages,
-      dataModel,
-      notify,
-      onAction,
-      setData,
-      surface.config.surfaceId,
-    ]
+    [actionEndpoint, applyServerMessages, notify, onAction, surface.config.surfaceId]
+  );
+
+  const runAction = useCallback(
+    (componentId: string, action: unknown, label?: string) => {
+      if (!action) return;
+
+      // An action may be a LIST — run each in sequence so one click can both
+      // mutate state and react to it (validate a code, THEN reveal a panel). A
+      // local working copy carries each step's write forward so a later step
+      // sees it (React's `dataModel` snapshot won't update until re-render).
+      if (Array.isArray(action)) {
+        let working: Record<string, unknown> = { ...dataModel };
+        const writeThrough = (path: string, value: unknown) => {
+          setData(path, value);
+          working = setAtPath(working, path, value, { immutable: true });
+        };
+        for (const single of action) {
+          runOneAction(componentId, single, label, working, writeThrough);
+        }
+        return;
+      }
+
+      runOneAction(componentId, action, label, dataModel, setData);
+    },
+    [dataModel, setData, runOneAction]
   );
 
   // Map a v0.9 object theme onto the aesthetic CSS variables. Only a small,

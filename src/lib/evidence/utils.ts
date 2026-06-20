@@ -1,6 +1,9 @@
 import type { A2UIInput } from "@/lib/protocol/schema";
 
-function firstNonEmpty(...values: Array<string | null | undefined>): string | null {
+// Accepts `unknown` because some display fields (Text content, Stat value) can
+// now be a data-binding OBJECT rather than a string; non-strings are simply
+// skipped, so a bound value falls through to the next candidate / "Evidence Item".
+function firstNonEmpty(...values: unknown[]): string | null {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }

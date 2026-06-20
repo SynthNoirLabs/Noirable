@@ -615,6 +615,42 @@ async function resolveNode(input: unknown, ctx: ResolveContext): Promise<unknown
     };
   }
 
+  // StateImage: resolve its `base` (a prompt or an already-real url) into a
+  // stored `/api/images/<uuid>` url, the SAME way a normal image prompt is. The
+  // renderer needs a real stored base so it can /fork edited states from its
+  // bytes; the per-state edits are generated lazily on demand (not here).
+  if (node.type === "stateImage" && typeof node.base === "string") {
+    const rawBase = node.base.trim();
+    const isUrl =
+      rawBase.startsWith("http://") ||
+      rawBase.startsWith("https://") ||
+      rawBase.startsWith("/api/images/") ||
+      rawBase.startsWith("data:");
+    let resolvedBase = isUrl ? rawBase : "";
+    if (!isUrl && rawBase.length > 0) {
+      const { prompt: cleanedPrompt, name: characterName } = extractCharacterTag(rawBase);
+      const id = crypto.randomUUID();
+      const referenceImageId = characterName
+        ? await getCastEntry(ctx.aestheticId, characterName)
+        : null;
+      await savePendingImageMetadata(id, {
+        prompt: cleanedPrompt,
+        aestheticId: ctx.aestheticId,
+        customImageStylePrompt: ctx.customImageStylePrompt,
+        imageModel: ctx.imageModel,
+        sessionSeed: ctx.sessionSeed,
+        imageIndex: ctx.next(),
+        ...(characterName ? { characterName } : {}),
+        ...(referenceImageId && referenceImageId !== id ? { referenceImageId } : {}),
+      });
+      resolvedBase = `/api/images/${id}.jpg`;
+    }
+    return {
+      ...node,
+      base: resolvedBase || fallbackSvgDataUrl("IMAGE UNAVAILABLE", ctx.aestheticId),
+    };
+  }
+
   // Catalog Image resolution (if the url is a prompt instead of a URL)
   if (node.component === "Image" && typeof node.url === "string") {
     const url = node.url.trim();
