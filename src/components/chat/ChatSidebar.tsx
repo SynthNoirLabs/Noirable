@@ -794,6 +794,11 @@ export function ChatSidebar({
                         speed={effectiveTypewriterSpeed}
                         glow={false}
                         showCursor={false}
+                        // Only the live, streaming message types out; completed
+                        // messages render instantly — so collapsing/showing the
+                        // sidebar (which remounts this list) never re-types a
+                        // finished answer.
+                        animate={isStreaming}
                         className="text-xs leading-relaxed font-mono"
                       />
                     </>

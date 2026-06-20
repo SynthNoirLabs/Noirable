@@ -11,6 +11,14 @@ interface TypewriterTextProps {
   speed?: number;
   glow?: boolean;
   showCursor?: boolean;
+  /**
+   * Whether to type the content out character-by-character. Only the message
+   * that is actively STREAMING should animate; a completed message renders its
+   * full text instantly. This also makes the component remount-safe: hiding and
+   * re-showing the sidebar (which unmounts/remounts the chat) no longer re-types
+   * a finished answer from scratch — it reappears complete.
+   */
+  animate?: boolean;
 }
 
 const priorityMap = {
@@ -27,11 +35,15 @@ export function TypewriterText({
   speed,
   glow = true,
   showCursor = true,
+  animate = true,
 }: TypewriterTextProps) {
   // Default to 0 in tests to avoid async rendering issues
   const defaultSpeed = process.env.NODE_ENV === "test" ? 0 : 30;
   const [reducedMotion, setReducedMotion] = useState(false);
-  const effectiveSpeed = reducedMotion ? 0 : (speed ?? defaultSpeed);
+  // speed 0 = render the full content instantly. `animate: false` (a completed,
+  // non-streaming message) and reduced-motion both force that, so a finished
+  // answer never types out — including after a remount.
+  const effectiveSpeed = reducedMotion || !animate ? 0 : (speed ?? defaultSpeed);
 
   const [displayedText, setDisplayedText] = useState(effectiveSpeed === 0 ? content : "");
   const [prevContent, setPrevContent] = useState(content);
@@ -64,6 +76,11 @@ export function TypewriterText({
         setDisplayedText("");
       }
     }
+  } else if (effectiveSpeed === 0 && displayedText !== content) {
+    // Speed just dropped to 0 (streaming ended → `animate` went false, or
+    // reduced-motion turned on) while the typewriter was still mid-text. Snap to
+    // the full content so the finished answer isn't left visually truncated.
+    setDisplayedText(content);
   }
 
   useEffect(() => {

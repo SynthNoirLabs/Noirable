@@ -24,6 +24,34 @@ describe("TypewriterText", () => {
     expect(element?.textContent).toContain("CONFIDENTIAL");
   });
 
+  it("renders full content instantly when animate=false (completed message)", () => {
+    // Regression: a non-streaming message must NOT type out — so remounting the
+    // chat (e.g. hiding/showing the sidebar) shows the finished answer whole,
+    // not re-typed from scratch. speed is set high to prove it's ignored.
+    const animatedSpan = render(
+      <TypewriterText content="The case is closed." speed={50} animate={false} />
+    ).container.querySelector('span[aria-hidden="true"]');
+    expect(animatedSpan).toHaveTextContent("The case is closed.");
+  });
+
+  it("snaps to full content when animate flips to false mid-type", () => {
+    vi.useFakeTimers();
+    const { rerender, container } = render(
+      <TypewriterText content="A long streaming answer" speed={10} animate={true} />
+    );
+    // Let it type only a few characters.
+    act(() => {
+      vi.advanceTimersByTime(30);
+    });
+    const span = container.querySelector('span[aria-hidden="true"]');
+    expect(span?.textContent?.length).toBeLessThan("A long streaming answer".length);
+
+    // Streaming ends → animate=false. It must snap to the full text, not freeze.
+    rerender(<TypewriterText content="A long streaming answer" speed={10} animate={false} />);
+    expect(span).toHaveTextContent("A long streaming answer");
+    vi.useRealTimers();
+  });
+
   it("continues animation when content updates (streaming)", () => {
     vi.useFakeTimers();
 
