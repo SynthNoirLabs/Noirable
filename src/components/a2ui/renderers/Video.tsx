@@ -78,10 +78,15 @@ export function VideoRenderer({ component }: ComponentProps) {
   const { surface } = useSurfaceContext();
   const video = component as SurfaceComponent & {
     url?: unknown;
+    poster?: unknown;
     accessibility?: { label?: unknown };
   };
   const url = String(resolve(video.url) ?? "");
   const label = video.accessibility?.label ? String(resolve(video.accessibility.label)) : undefined;
+  // Preview frame (A2UI v1.0 posterUrl). Only used for a real playable clip; the
+  // generation placeholder has no frame to show yet.
+  const posterRaw = video.poster ? String(resolve(video.poster)) : "";
+  const poster = posterRaw.trim() || undefined;
 
   const referenceImageUrls = useMemo(
     () => findSiblingImageUrls(video.id, surface.components, resolve),
@@ -103,6 +108,7 @@ export function VideoRenderer({ component }: ComponentProps) {
       <video
         src={url}
         controls
+        poster={poster}
         aria-label={label}
         className="block w-full max-w-full rounded-[var(--aesthetic-radius,2px)] border border-[var(--aesthetic-border)]/40 sepia-[0.15]"
       />

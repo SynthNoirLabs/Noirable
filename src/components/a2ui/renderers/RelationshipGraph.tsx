@@ -125,13 +125,20 @@ export function RelationshipGraphRenderer({ component }: ComponentProps) {
       const sag = Math.min(38, 14 + span * 0.08);
       const midX = (from.x + to.x) / 2;
       const midY = Math.max(from.y, to.y) + sag;
+      // Place the label at the curve's TRUE midpoint (the quadratic Bézier at
+      // t=0.5), not at the control point (midX, midY). The control point sits far
+      // below the visible string, so labelling there pushed every label toward
+      // board-bottom where radial edges all converge — they stacked. The real
+      // midpoint rides along each string, spreading labels apart.
+      const labelX = 0.25 * from.x + 0.5 * midX + 0.25 * to.x;
+      const labelY = 0.25 * from.y + 0.5 * midY + 0.25 * to.y;
       // Crime/motive strings are the accusing red thread; everything else is a
       // muted neutral string so the dangerous links pop on the board.
       const isCrime = edge.kind === "motive" || edge.kind === "alibi";
       const stroke = isCrime
         ? "var(--aesthetic-error)"
         : "color-mix(in srgb, var(--aesthetic-text) 55%, transparent)";
-      return { from, to, midX, midY, stroke, label: edge.label };
+      return { from, to, midX, midY, labelX, labelY, stroke, label: edge.label };
     })
     .filter((edge): edge is NonNullable<typeof edge> => edge !== null);
 
@@ -161,13 +168,21 @@ export function RelationshipGraphRenderer({ component }: ComponentProps) {
               />
               {edge.label && (
                 <text
-                  x={edge.midX}
-                  y={edge.midY + 4}
+                  x={edge.labelX}
+                  y={edge.labelY}
                   textAnchor="middle"
+                  dominantBaseline="middle"
                   className="font-typewriter"
-                  fontSize="10"
+                  fontSize="9"
                   fill="var(--aesthetic-text)"
-                  opacity="0.7"
+                  opacity="0.75"
+                  // Knockout halo: paint a background-colored outline UNDER the
+                  // glyphs so a label stays legible where it crosses a string or
+                  // another label (paint-order draws the stroke first).
+                  stroke="var(--aesthetic-background)"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                  style={{ paintOrder: "stroke" }}
                 >
                   {edge.label}
                 </text>
@@ -178,10 +193,14 @@ export function RelationshipGraphRenderer({ component }: ComponentProps) {
           {/* Pushpin nodes with a kind icon + label. */}
           {positioned.map((node, index) => {
             const Icon = node.kind ? KIND_ICON[node.kind] : User;
-            // Labels above the upper half flip below the pin, and vice versa, so
-            // text never runs off the top/bottom of the frame.
+            // The label sits on whichever side keeps it inside the frame: lower
+            // nodes label ABOVE the pin, upper nodes BELOW. The kind icon goes on
+            // the OPPOSITE side from the label so the two never overlap (the
+            // previous code always drew the icon above, colliding with an
+            // above-flipped label).
             const labelAbove = node.y > CENTER_Y;
-            const labelY = labelAbove ? node.y - 14 : node.y + 22;
+            const labelY = labelAbove ? node.y - 16 : node.y + 24;
+            const iconY = labelAbove ? node.y + 8 : node.y - 26;
             const pin = (
               <g>
                 <circle
@@ -192,7 +211,7 @@ export function RelationshipGraphRenderer({ component }: ComponentProps) {
                   opacity="0.9"
                 />
                 <circle cx={node.x - 1.6} cy={node.y - 1.6} r="1.8" fill="#ffffff" opacity="0.55" />
-                <foreignObject x={node.x - 9} y={node.y - 26} width="18" height="18">
+                <foreignObject x={node.x - 9} y={iconY} width="18" height="18">
                   <div className="flex items-center justify-center text-[var(--aesthetic-accent)]">
                     <Icon className="h-3.5 w-3.5" aria-hidden />
                   </div>
@@ -204,6 +223,12 @@ export function RelationshipGraphRenderer({ component }: ComponentProps) {
                   className="font-typewriter uppercase tracking-wide"
                   fontSize="11"
                   fill="var(--aesthetic-text)"
+                  // Same knockout halo as edge labels, so a node label stays
+                  // legible if a string passes behind it.
+                  stroke="var(--aesthetic-background)"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                  style={{ paintOrder: "stroke" }}
                 >
                   {node.label}
                 </text>

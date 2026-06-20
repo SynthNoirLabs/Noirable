@@ -194,6 +194,11 @@ export function PhotoDeveloper({
 
   const [prevSrc, setPrevSrc] = useState<string | null>(null);
   const [isDeveloping, setIsDeveloping] = useState(true);
+  // The source image's intrinsic aspect (width/height), captured on load, so a
+  // "living portrait" animates in the SAME orientation as the still — a tall
+  // mugshot/portrait becomes a 9:16 clip, not a letterboxed 16:9 one. Null until
+  // the image reports its natural dimensions.
+  const [imageAspect, setImageAspect] = useState<number | null>(null);
   // Per-image re-develop: a successful re-roll swaps in a cache-busted url for
   // the SAME stored image id; the reveal animation re-runs via the src change.
   const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
@@ -278,9 +283,13 @@ export function PhotoDeveloper({
     event.preventDefault();
     event.stopPropagation();
     if (animateStatus === "starting" || animateStatus === "pending") return;
+    // Veo only accepts 16:9 or 9:16. Match the still's orientation so a tall
+    // portrait doesn't get force-cropped into a landscape clip; default to 16:9
+    // until the image's dimensions are known (or when it's square/landscape).
+    const aspectRatio = typeof imageAspect === "number" && imageAspect < 1 ? "9:16" : "16:9";
     void generatePortraitLoop(
       "a living portrait: the exact subject and scene from the reference image with very subtle motion — gentle breathing, flickering light, drifting smoke or dust motes; static camera; calm, seamless ambient loop",
-      { aestheticId: baseId, referenceImageUrls: [src.split("?")[0]] }
+      { aestheticId: baseId, aspectRatio, referenceImageUrls: [src.split("?")[0]] }
     );
   };
 
@@ -362,6 +371,12 @@ export function PhotoDeveloper({
           <img
             src={effectiveSrc}
             alt={alt}
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                setImageAspect(img.naturalWidth / img.naturalHeight);
+              }
+            }}
             className={cn(
               "block w-full max-w-full object-cover",
               isDeveloping ? config.developingClass : config.settledClass

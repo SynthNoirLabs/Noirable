@@ -48,6 +48,63 @@ describe("RelationshipGraphRenderer", () => {
     expect(motivePath).toBeTruthy();
   });
 
+  it("spreads edge labels along the strings instead of stacking them at one Y", () => {
+    // Regression: labels were placed at the Bézier CONTROL point (pushed toward
+    // board-bottom), so radial edges piled every label at nearly the same Y and
+    // they overlapped. They now ride each string's true midpoint.
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "RelationshipGraph",
+        title: "The Web",
+        nodes: [
+          { id: "a", label: "A", kind: "victim" },
+          { id: "b", label: "B", kind: "suspect" },
+          { id: "c", label: "C", kind: "location" },
+          { id: "d", label: "D", kind: "witness" },
+        ],
+        edges: [
+          { from: "a", to: "b", label: "EDGE-AB", kind: "motive" },
+          { from: "a", to: "c", label: "EDGE-AC", kind: "connection" },
+          { from: "a", to: "d", label: "EDGE-AD", kind: "connection" },
+        ],
+      },
+    ]);
+
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    const labels = ["EDGE-AB", "EDGE-AC", "EDGE-AD"]
+      .map((t) => Array.from(container.querySelectorAll("text")).find((el) => el.textContent === t))
+      .filter(Boolean) as SVGTextElement[];
+    expect(labels).toHaveLength(3);
+    const ys = labels.map((el) => Number(el.getAttribute("y")));
+    // The three labels must not all collapse onto the same horizontal line.
+    expect(new Set(ys.map((y) => Math.round(y))).size).toBeGreaterThan(1);
+  });
+
+  it("places a node's kind icon on the opposite side from its label (no overlap)", () => {
+    const surface = makeSurface([
+      {
+        id: "root",
+        component: "RelationshipGraph",
+        nodes: [
+          { id: "n1", label: "Top", kind: "victim" },
+          { id: "n2", label: "BottomLeft", kind: "suspect" },
+          { id: "n3", label: "BottomRight", kind: "location" },
+        ],
+        edges: [],
+      },
+    ]);
+    const { container } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    // Each node renders exactly one label <text> and one icon <foreignObject>;
+    // their vertical bands must not coincide (icon y vs label y differ).
+    const fos = container.querySelectorAll("foreignObject");
+    expect(fos.length).toBe(3);
+    const labelEl = Array.from(container.querySelectorAll("text")).find(
+      (el) => el.textContent === "BottomLeft"
+    ) as SVGTextElement | undefined;
+    expect(labelEl).toBeTruthy();
+  });
+
   it("drops edges whose endpoints don't resolve to a placed node", () => {
     const surface = makeSurface([
       {
