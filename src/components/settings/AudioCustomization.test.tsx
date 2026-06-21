@@ -63,8 +63,8 @@ describe("AudioCustomization", () => {
 
     // Music and Rain are enabled -> 2 ON buttons
     expect(onButtons.length).toBe(2);
-    // Crackle is disabled -> 1 OFF button
-    expect(offButtons.length).toBe(1);
+    // Crackle and the live score are disabled -> 2 OFF buttons
+    expect(offButtons.length).toBe(2);
   });
 
   it("calls updateSettings when sfx slider changes", () => {

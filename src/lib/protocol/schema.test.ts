@@ -145,3 +145,193 @@ describe("A2UI Schema", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("A2UI Schema — relationshipGraph (suspect web)", () => {
+  it("accepts a valid relationship graph with nodes and edges", () => {
+    const data = {
+      type: "relationshipGraph",
+      title: "The Web",
+      nodes: [
+        { id: "n1", label: "Victor Kessler", kind: "suspect" },
+        { id: "n2", label: "The Docks", kind: "location" },
+      ],
+      edges: [{ from: "n1", to: "n2", label: "LAST SEEN AT", kind: "connection" }],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "relationshipGraph") {
+      expect(result.data.nodes).toHaveLength(2);
+      expect(result.data.edges).toHaveLength(1);
+    }
+  });
+
+  it("canonicalizes the `suspectWeb` synonym to relationshipGraph", () => {
+    const data = {
+      type: "suspectWeb",
+      nodes: [{ id: "a", label: "A" }],
+      edges: [],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe("relationshipGraph");
+    }
+  });
+
+  it("coerces edge source/target aliases and drops endpoint-less edges", () => {
+    const data = {
+      type: "relationshipGraph",
+      nodes: [
+        { id: "x", label: "X" },
+        { id: "y", label: "Y" },
+      ],
+      links: [
+        { source: "x", target: "y", kind: "motive" },
+        { source: "x" }, // missing target → dropped
+      ],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "relationshipGraph") {
+      expect(result.data.edges).toHaveLength(1);
+      expect(result.data.edges[0]).toMatchObject({ from: "x", to: "y", kind: "motive" });
+    }
+  });
+});
+
+describe("A2UI Schema — model-output coercions", () => {
+  it("coerces a dataDashboard trend.value emitted as a string", () => {
+    const data = {
+      type: "dataDashboard",
+      title: "Surveillance",
+      widgets: [
+        {
+          title: "Sightings",
+          type: "metric",
+          value: "42",
+          trend: { value: "12", direction: "up" },
+        },
+        { title: "Leads", type: "metric", value: "7", trend: { value: "+5%", direction: "up" } },
+      ],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "dataDashboard") {
+      expect(result.data.widgets[0].trend?.value).toBe(12);
+      expect(result.data.widgets[1].trend?.value).toBe(5);
+    }
+  });
+
+  it("drops a non-numeric trend value rather than rejecting the dashboard", () => {
+    const data = {
+      type: "dataDashboard",
+      title: "Surveillance",
+      widgets: [
+        {
+          title: "Status",
+          type: "metric",
+          value: "open",
+          trend: { value: "n/a", direction: "neutral" },
+        },
+      ],
+    };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "dataDashboard") {
+      expect(result.data.widgets[0].trend).toBeUndefined();
+    }
+  });
+
+  it("drops an out-of-enum button action instead of failing the button", () => {
+    const data = { type: "button", label: "Open Case File", action: "navigate" };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "button") {
+      expect(result.data.action).toBeUndefined();
+      expect(result.data.label).toBe("Open Case File");
+    }
+  });
+
+  it("keeps a valid button action", () => {
+    const data = { type: "button", label: "Submit", action: "submit" };
+    const result = a2uiInputSchema.safeParse(data);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "button") {
+      expect(result.data.action).toBe("submit");
+    }
+  });
+});
+
+describe("A2UI Schema — bound display fields (no [object Object])", () => {
+  it("keeps a {path} binding on a stat value instead of stringifying it", () => {
+    const result = a2uiInputSchema.safeParse({
+      type: "stat",
+      label: "STATUS",
+      value: { path: "/status" },
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "stat") {
+      // Regression: normalizeStat used to String() this to "[object Object]".
+      expect(result.data.value).toEqual({ path: "/status" });
+    }
+  });
+
+  it("accepts a {path} binding as text content", () => {
+    const result = a2uiInputSchema.safeParse({ type: "text", content: { path: "/status" } });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "text") {
+      expect(result.data.content).toEqual({ path: "/status" });
+    }
+  });
+
+  it("accepts a functionCall binding as a stat value", () => {
+    const result = a2uiInputSchema.safeParse({
+      type: "stat",
+      label: "TIP",
+      value: { call: "formatCurrency", args: { value: { path: "/tip" } } },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("still coerces a non-binding, non-string stat value to a string", () => {
+    const result = a2uiInputSchema.safeParse({ type: "stat", label: "N", value: 42 });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "stat") {
+      expect(result.data.value).toBe("42");
+    }
+  });
+});
+
+describe("A2UI Schema — icon and dateTimeInput", () => {
+  it("validates an icon with name + size", () => {
+    const result = a2uiInputSchema.safeParse({ type: "icon", name: "search", size: "large" });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "icon") {
+      expect(result.data.name).toBe("search");
+      expect(result.data.size).toBe("large");
+    }
+  });
+
+  it("validates a dateTimeInput with ISO value and flags", () => {
+    const result = a2uiInputSchema.safeParse({
+      type: "dateTimeInput",
+      label: "Time of death",
+      value: "1947-01-14T23:30",
+      enableDate: true,
+      enableTime: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === "dateTimeInput") {
+      expect(result.data.enableTime).toBe(true);
+      expect(result.data.value).toBe("1947-01-14T23:30");
+    }
+  });
+
+  it("canonicalizes a `datetime` synonym to dateTimeInput", () => {
+    const result = a2uiInputSchema.safeParse({ type: "datetime", label: "When" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe("dateTimeInput");
+    }
+  });
+});

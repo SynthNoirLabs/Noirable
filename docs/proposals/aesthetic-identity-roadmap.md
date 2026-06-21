@@ -1,5 +1,7 @@
 # Noirable — Design & Generative-Identity Roadmap
 
+> **ARCHIVED 2026-06:** References to DossierCard and A2UIRenderer predate their removal in the repo-audit-2026-06 cleanup. Kept for historical reference.
+
 > Make the app gorgeous, and make every generated artifact — UI, images, audio, music, voice, atmosphere, copy — feel **unique and deeply adapted to each aesthetic preset** (and to custom profiles).
 
 _Generated 2026-06-05 from an 8-angle deep analysis of the codebase (visual/motion, preset identity, image gen, audio/music, voice/narration, A2UI generation & variants, customization-lab UX, architecture). 84 grounded ideas distilled below._

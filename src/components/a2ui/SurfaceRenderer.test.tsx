@@ -640,7 +640,8 @@ describe("A2UI Templates Aesthetic Styles", () => {
     expect(container1.querySelector(".crt-scanlines")).not.toBeInTheDocument();
     expect(container1.querySelector('[class*="--aesthetic-"]')).toBeInTheDocument();
 
-    // 3. Cyber-Fixer — keeps its neon glow box-shadow decoration.
+    // 3. Cyber-Fixer — keeps its neon glow box-shadow decoration, now an
+    // accent color-mix instead of a hardcoded Tailwind cyan.
     act(() => {
       useA2UIStore.setState({
         settings: {
@@ -650,9 +651,7 @@ describe("A2UI Templates Aesthetic Styles", () => {
       });
     });
     rerender(<SurfaceRenderer surface={surface} theme="noir" />);
-    expect(
-      container1.querySelector(".shadow-\\[0_0_10px_\\#06b6d4\\,inset_0_0_5px_\\#06b6d4\\]")
-    ).toBeInTheDocument();
+    expect(container1.querySelector('[class*="shadow-[0_0_10px_color-mix"]')).toBeInTheDocument();
 
     // Reset store state
     act(() => {
@@ -884,5 +883,229 @@ describe("Button action feedback", () => {
     render(<SurfaceRenderer surface={surface} theme="noir" actionEndpoint={null} />);
     fireEvent.click(screen.getByRole("button", { name: "Set It" }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  // --------------------------------------------------------------------------
+  // Reactive primitives: matchSet, array actions, reveal
+  // --------------------------------------------------------------------------
+
+  it("matchSet writes `then` to the target when the value matches, `else` otherwise", () => {
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "status"] },
+        {
+          id: "btn",
+          component: "Button",
+          label: "Verify",
+          action: {
+            functionCall: {
+              call: "matchSet",
+              args: {
+                path: "/code",
+                equals: "937-ALPHA",
+                target: "/status",
+                then: "GRANTED",
+                else: "DENIED",
+              },
+            },
+          },
+        },
+        { id: "status", component: "Text", text: { path: "/status" } },
+      ],
+      { code: "000-WRONG", status: "" }
+    );
+    const { rerender } = render(<SurfaceRenderer surface={surface} theme="noir" />);
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText("DENIED")).toBeInTheDocument();
+
+    // Now with the correct code seeded, it grants.
+    const ok = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "status"] },
+        {
+          id: "btn",
+          component: "Button",
+          label: "Verify",
+          action: {
+            functionCall: {
+              call: "matchSet",
+              args: {
+                path: "/code",
+                equals: "937-ALPHA",
+                target: "/status",
+                then: "GRANTED",
+                else: "DENIED",
+              },
+            },
+          },
+        },
+        { id: "status", component: "Text", text: { path: "/status" } },
+      ],
+      { code: "937-ALPHA", status: "" }
+    );
+    rerender(<SurfaceRenderer surface={ok} theme="noir" />);
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByText("GRANTED")).toBeInTheDocument();
+  });
+
+  it("matchSet with an omitted `then` does NOT delete the target on a match", () => {
+    // Regression: write(target, undefined) deletes the key (v0.9 pointer
+    // semantics). An omitted then/else must be a no-op, not a wipe.
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "out"] },
+        {
+          id: "btn",
+          component: "Button",
+          label: "Go",
+          // No `then`: on match, /status must be LEFT ALONE (stays SEEDED).
+          action: {
+            functionCall: {
+              call: "matchSet",
+              args: { path: "/code", equals: "K", target: "/status" },
+            },
+          },
+        },
+        { id: "out", component: "Text", text: { path: "/status" } },
+      ],
+      { code: "K", status: "SEEDED" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("SEEDED")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Go" }));
+    // Still SEEDED — the match fired but had nothing to write, so it didn't wipe.
+    expect(screen.getByText("SEEDED")).toBeInTheDocument();
+  });
+
+  it("runs an ARRAY action in sequence (validate, then a dependent write sees it)", () => {
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "out"] },
+        {
+          id: "btn",
+          component: "Button",
+          label: "Go",
+          action: [
+            // Step 1: set /status to GRANTED (code matches).
+            {
+              functionCall: {
+                call: "matchSet",
+                args: { path: "/code", equals: "K", target: "/status", then: "GRANTED" },
+              },
+            },
+            // Step 2: mirror /status into /out — only correct if step 1's write
+            // is visible to step 2 within the same click (working-copy carry).
+            {
+              functionCall: {
+                call: "matchSet",
+                args: { path: "/status", equals: "GRANTED", target: "/out", then: "OPENED" },
+              },
+            },
+          ],
+        },
+        { id: "out", component: "Text", text: { path: "/out" } },
+      ],
+      { code: "K", status: "", out: "" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    fireEvent.click(screen.getByRole("button", { name: "Go" }));
+    expect(screen.getByText("OPENED")).toBeInTheDocument();
+  });
+
+  it("resolves a {path}-bound Stat value to live state (no [object Object])", () => {
+    const surface = makeSurface(
+      [{ id: "root", component: "Stat", label: "STATUS", value: { path: "/status" } }],
+      { status: "GRANTED" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("GRANTED")).toBeInTheDocument();
+    expect(screen.queryByText("[object Object]")).not.toBeInTheDocument();
+  });
+
+  it("a Stat value updates when a button writes its bound path", () => {
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "stat"] },
+        {
+          id: "btn",
+          component: "Button",
+          label: "Grant",
+          action: {
+            functionCall: { call: "setValue", args: { path: "/status", value: "GRANTED" } },
+          },
+        },
+        { id: "stat", component: "Stat", label: "STATUS", value: { path: "/status" } },
+      ],
+      { status: "LOCKED" }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.getByText("LOCKED")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Grant" }));
+    expect(screen.getByText("GRANTED")).toBeInTheDocument();
+  });
+
+  it("airlock flow: typing the right code + clicking grants access (input + array action + reveal)", () => {
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["code", "btn", "status", "gate"] },
+        { id: "code", component: "TextField", label: "BYPASS CODE", value: { path: "/code" } },
+        {
+          id: "btn",
+          component: "Button",
+          label: "CYCLE AIRLOCK",
+          action: [
+            {
+              functionCall: {
+                call: "matchSet",
+                args: {
+                  path: "/code",
+                  equals: "937-ALPHA",
+                  target: "/status",
+                  then: "GRANTED",
+                  else: "DENIED",
+                },
+              },
+            },
+          ],
+        },
+        { id: "status", component: "Text", text: { path: "/status" } },
+        { id: "gate", component: "Reveal", when: { path: "/granted" }, children: ["secret"] },
+        { id: "secret", component: "Text", text: "HATCH OPEN" },
+      ],
+      { code: "", status: "", granted: false }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+
+    const field = screen.getByRole("textbox");
+    // Wrong code → DENIED.
+    fireEvent.change(field, { target: { value: "000" } });
+    fireEvent.click(screen.getByRole("button", { name: "CYCLE AIRLOCK" }));
+    expect(screen.getByText("DENIED")).toBeInTheDocument();
+
+    // Right code → GRANTED.
+    fireEvent.change(field, { target: { value: "937-ALPHA" } });
+    fireEvent.click(screen.getByRole("button", { name: "CYCLE AIRLOCK" }));
+    expect(screen.getByText("GRANTED")).toBeInTheDocument();
+  });
+
+  it("reveal shows its children only when `when` is truthy", () => {
+    const surface = makeSurface(
+      [
+        { id: "root", component: "Column", children: ["btn", "gate"] },
+        {
+          id: "btn",
+          component: "Button",
+          label: "Unlock",
+          action: { functionCall: { call: "setValue", args: { path: "/unlocked", value: true } } },
+        },
+        { id: "gate", component: "Reveal", when: { path: "/unlocked" }, children: ["secret"] },
+        { id: "secret", component: "Text", text: "Corridor beyond" },
+      ],
+      { unlocked: false }
+    );
+    render(<SurfaceRenderer surface={surface} theme="noir" />);
+    expect(screen.queryByText("Corridor beyond")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
+    expect(screen.getByText("Corridor beyond")).toBeInTheDocument();
   });
 });

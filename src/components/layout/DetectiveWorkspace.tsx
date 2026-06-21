@@ -5,6 +5,8 @@ import { DeskLayout } from "./DeskLayout";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useA2UIStore } from "@/lib/store/useA2UIStore";
 import { CaseBoardEmptyState } from "@/components/board/CaseBoardEmptyState";
+import { CaseArchive } from "@/components/board/CaseArchive";
+import type { ArchivedCase } from "@/lib/store/useA2UIStore";
 import { EjectPanel } from "@/components/eject/EjectPanel";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { TemplatePanel } from "@/components/templates/TemplatePanel";
@@ -23,6 +25,9 @@ import { A2UIVariantControls } from "@/components/a2ui/A2UIVariantControls";
 import { CustomizationPanel } from "@/components/settings/CustomizationPanel";
 import { useCustomProfileStore } from "@/lib/store/useCustomProfileStore";
 import { injectProfileStyles } from "@/lib/customization/css-injection";
+import { useWorldSwitch } from "./useWorldSwitch";
+import { emitSemanticAudioEvent } from "@/lib/audio/audioEvents";
+import { useLiveWire } from "@/lib/hooks/useLiveWire";
 
 const DEFAULT_JSON = JSON.stringify(
   {
@@ -33,6 +38,63 @@ const DEFAULT_JSON = JSON.stringify(
   null,
   2
 );
+
+/**
+ * Per-world fallback narration, keyed by base aesthetic id. Used only when the
+ * model's stream didn't carry its own narration this run. Defined locally (the
+ * aesthetic definitions/types are owned elsewhere) so cyber-fixer / nostromo /
+ * gothic / grand-hotel / minimal each speak in character instead of leaking
+ * noir everywhere. Custom profiles resolve through their base id; an unknown id
+ * falls back to noir.
+ */
+const V09_FALLBACK_REPLIES_BY_WORLD: Record<string, string[]> = {
+  noir: [
+    "Case file's on the board. The evidence speaks for itself — read it and weep.",
+    "Pulled the threads together. It's pinned up and waiting. Don't touch the photos.",
+    "Filed it. The rain's still coming down, but the board's lit. Take a look.",
+    "Another case cracked open on the desk. The details are all there in the evidence.",
+    "Wired the report to the board. Cold facts, warm coffee. Your move, detective.",
+    "It's all laid out — the leads, the faces, the loose ends. Make of it what you will.",
+  ],
+  minimal: [
+    "Done. The layout is rendered above.",
+    "Generated. Review the result when ready.",
+    "Output ready. Everything is in place.",
+    "Complete. The composition is on screen.",
+  ],
+  "cyber-fixer": [
+    "Job's done, choom. The data's jacked into the board — go check it.",
+    "Wired and live. Your payload's on the deck, no ICE tripped.",
+    "Decked it clean. The output's glowing right where you want it.",
+    "Run's complete. The grid's lit — eyes up, the intel's all there.",
+  ],
+  "nostromo-console": [
+    "PROCESSING COMPLETE. OUTPUT RENDERED TO MAIN DISPLAY.",
+    "TASK FINISHED. DATA AVAILABLE FOR REVIEW.",
+    "ANALYSIS CONCLUDED. RESULTS ON SCREEN.",
+    "REQUEST EXECUTED. STANDING BY FOR FURTHER INSTRUCTIONS.",
+  ],
+  "gothic-manor": [
+    "The manuscript is complete, and its secrets lie before you upon the page.",
+    "It is done. The account has been set down — read it by candlelight, if you dare.",
+    "The pages have been inscribed. Whatever truth they hold now waits for your eyes.",
+    "Composed and sealed. The chronicle rests above; tread softly through its lines.",
+  ],
+  "grand-hotel": [
+    "Your arrangement is ready, and laid out with the utmost care above.",
+    "It is prepared. Everything has been set in its proper place for you.",
+    "Done, with pleasure. The composition awaits your gracious review.",
+    "Presented and complete — may it be entirely to your satisfaction.",
+  ],
+};
+
+/** Pick a world's fallback line set by aesthetic id (defaults to noir). */
+function getFallbackReplies(aestheticId: string | undefined): string[] {
+  if (aestheticId && V09_FALLBACK_REPLIES_BY_WORLD[aestheticId]) {
+    return V09_FALLBACK_REPLIES_BY_WORLD[aestheticId];
+  }
+  return V09_FALLBACK_REPLIES_BY_WORLD.noir;
+}
 
 /** A chat-log line. The v0.9 path drives the log by hand (it is not served by
  * an SDK), so this is a plain local message shape, not a UIMessage. */
@@ -62,6 +124,7 @@ export function DetectiveWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
   // The interrogation-log messages. The v0.9 stream is a one-shot POST (no SDK
   // chat transport), so we drive the log ourselves: each exchange pushes a user
@@ -73,6 +136,10 @@ export function DetectiveWorkspace() {
   const [variants, setVariants] = useState<CapturedVariant[]>([]);
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  // The live wire: when on, the board's numeric stats/dashboards tick with a
+  // random walk through the real store update path.
+  const [liveWire, setLiveWire] = useState(false);
+  useLiveWire(liveWire);
   // The most recent v0.9 prompt, so iteration actions ("fancier"/"simplify"/
   // "different angle") can re-issue it with a canned refinement appended.
   const lastV09PromptRef = useRef<string | null>(null);
@@ -88,6 +155,9 @@ export function DetectiveWorkspace() {
     undo,
     redo,
     addPrompt,
+    archive,
+    addToArchive,
+    removeFromArchive,
   } = useA2UIStore();
 
   const loadProfiles = useCustomProfileStore((state) => state.loadProfiles);
@@ -96,6 +166,17 @@ export function DetectiveWorkspace() {
     if (!state.activeCustomProfileId) return null;
     return state.customProfiles.find((p) => p.id === state.activeCustomProfileId) ?? null;
   });
+
+  // World-switch choreography: the STORE (and therefore prompts/personas)
+  // changes instantly, but the visible desk lags through strike-the-set →
+  // commit (View Transition / diegetic scene) → re-deal. See useWorldSwitch.
+  const {
+    displayAestheticId,
+    displayCustomProfileId,
+    exitingEntrance,
+    worldEpoch,
+    consumeArrival,
+  } = useWorldSwitch(activeProfile?.baseAestheticId ?? settings.aestheticId, activeProfile?.id);
 
   useEffect(() => {
     loadProfiles();
@@ -279,33 +360,46 @@ export function DetectiveWorkspace() {
           compositionSeed
         );
         // Prefer the model's real narration; fall back to a varied in-character
-        // line if the stream didn't provide one this run.
-        const V09_FALLBACK_REPLIES = [
-          "Case file's on the board. The evidence speaks for itself — read it and weep.",
-          "Pulled the threads together. It's pinned up and waiting. Don't touch the photos.",
-          "Filed it. The rain's still coming down, but the board's lit. Take a look.",
-          "Another case cracked open on the desk. The details are all there in the evidence.",
-          "Wired the report to the board. Cold facts, warm coffee. Your move, detective.",
-          "It's all laid out — the leads, the faces, the loose ends. Make of it what you will.",
-        ];
+        // line (per active world) if the stream didn't provide one this run.
+        const fallbacks = getFallbackReplies(
+          activeProfile?.baseAestheticId ?? settings.aestheticId
+        );
         const narrated = (v09NarrationRef.current ?? "") as string;
-        const reply = narrated.trim() || V09_FALLBACK_REPLIES[stamp % V09_FALLBACK_REPLIES.length];
+        const reply = narrated.trim() || fallbacks[stamp % fallbacks.length];
         setMessages((prev) => [
           ...prev,
           { id: `v09-asst-${stamp}`, role: "assistant", parts: [{ type: "text", text: reply }] },
         ]);
+        // First generation since arriving in a world: the world acknowledges
+        // you walked in (the preset's dramatic sting + lightning, once).
+        if (consumeArrival()) {
+          emitSemanticAudioEvent("dramatic.beat");
+        }
         // Snapshot the freshly-rendered surface so it can be re-loaded later.
         // Capture the data model alongside the components — list/template
         // children resolve from it, so a restored take needs both to render.
         const completed = readActiveSurface();
-        return completed
-          ? {
-              catalogId: completed.config.catalogId,
-              theme: completed.config.theme,
-              components: Array.from(completed.components.values()),
-              dataModel: completed.dataModel,
-            }
-          : undefined;
+        if (!completed) return undefined;
+        const snapshot: CapturedVariant = {
+          catalogId: completed.config.catalogId,
+          theme: completed.config.theme,
+          components: Array.from(completed.components.values()),
+          dataModel: completed.dataModel,
+        };
+        // Pin a genuine new generation to the persisted Case Archive. Gated on
+        // recordAsBase so silent variant re-rolls don't flood the strip with
+        // near-duplicates of one prompt.
+        if (recordAsBase) {
+          addToArchive({
+            prompt: text,
+            aestheticId: activeProfile?.id ?? settings.aestheticId ?? "noir",
+            catalogId: snapshot.catalogId,
+            theme: snapshot.theme,
+            components: snapshot.components,
+            dataModel: snapshot.dataModel,
+          });
+        }
+        return snapshot;
       } catch {
         // The hook surfaces the error in the preview pane; leave the log as-is.
         return undefined;
@@ -314,6 +408,8 @@ export function DetectiveWorkspace() {
     [
       sendV09Prompt,
       readActiveSurface,
+      consumeArrival,
+      addToArchive,
       settings.aestheticId,
       settings.imageModel,
       customSystemPrompt,
@@ -420,6 +516,43 @@ export function DetectiveWorkspace() {
     setActiveVariantIndex(index);
   }, []);
 
+  // Restore an archived case into the live surface. Reuses the same
+  // create→update→setDataModel restore path as the variant picker, so a pinned
+  // case re-renders exactly as generated. The current live generation is itself
+  // already archived, so swapping it in is non-destructive of history. Ensures
+  // the preview leaves the empty state by seeding a chat line if the log's bare.
+  const restoreArchivedCase = useCallback((entry: ArchivedCase) => {
+    const store = useSurfaceStore.getState();
+    store.clear();
+    const surfaceId = `surface-archive-${entry.id}-${Date.now()}`;
+    store.createSurface({
+      surfaceId,
+      catalogId: entry.catalogId,
+      theme: entry.theme,
+    });
+    store.updateComponents(surfaceId, entry.components);
+    if (entry.dataModel && Object.keys(entry.dataModel).length > 0) {
+      store.setDataModel(surfaceId, "/", entry.dataModel);
+    }
+    // A restored take isn't part of the live variant run; clear that picker.
+    setVariants([]);
+    setActiveVariantIndex(0);
+    lastV09PromptRef.current = entry.prompt;
+    // Drop a log marker so the preview shows the surface (not the empty state)
+    // and the user can see which case was pulled from the files.
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `archive-restore-${entry.id}-${Date.now()}`,
+        role: "assistant",
+        parts: [
+          { type: "text", text: `Pulled the file: "${entry.title}". It's back on the board.` },
+        ],
+      },
+    ]);
+    setShowArchive(false);
+  }, []);
+
   // Bet 6 — iteration actions. Re-send the current evidence (live surface) as
   // the baseline with a canned refinement appended to the last prompt, reusing
   // the already-working baseline-into-prompt flow.
@@ -478,20 +611,25 @@ export function DetectiveWorkspace() {
         showEject={layout.showEject}
         showDictaphone={layout.showDictaphone}
         showTemplates={showTemplates}
+        showArchive={showArchive}
         editorWidth={layout.editorWidth}
         sidebarWidth={layout.sidebarWidth}
         ambient={activeAmbient}
         soundEnabled={settings.soundEnabled}
         musicEnabled={settings.musicEnabled}
+        liveScoreEnabled={settings.liveScoreEnabled}
         musicVolume={activeMusicVolume}
         customMusicUrl={activeCustomMusicUrl}
-        aestheticId={activeProfile?.baseAestheticId ?? settings.aestheticId}
-        customProfileId={activeProfile?.id}
+        aestheticId={displayAestheticId}
+        customProfileId={displayCustomProfileId}
+        worldEpoch={worldEpoch}
+        exitingEntrance={exitingEntrance}
         onToggleEditor={() => updateLayout({ showEditor: !layout.showEditor })}
         onToggleSidebar={() => updateLayout({ showSidebar: !layout.showSidebar })}
         onToggleEject={() => updateLayout({ showEject: !layout.showEject })}
         onToggleDictaphone={() => updateLayout({ showDictaphone: !layout.showDictaphone })}
         onToggleTemplates={() => setShowTemplates(!showTemplates)}
+        onToggleArchive={() => setShowArchive((open) => !open)}
         onResizeEditor={(nextWidth) => updateLayout({ editorWidth: nextWidth })}
         onResizeSidebar={(nextWidth) => updateLayout({ sidebarWidth: nextWidth })}
         templatePanel={
@@ -513,6 +651,15 @@ export function DetectiveWorkspace() {
           <NoirErrorBoundary>
             <EjectPanel evidence={evidence} onClose={() => updateLayout({ showEject: false })} />
           </NoirErrorBoundary>
+        }
+        caseArchive={
+          <CaseArchive
+            cases={archive}
+            isOpen={showArchive}
+            onClose={() => setShowArchive(false)}
+            onRestore={restoreArchivedCase}
+            onRemove={removeFromArchive}
+          />
         }
         editor={
           <div className="h-full min-h-0 flex flex-col">
@@ -574,6 +721,8 @@ export function DetectiveWorkspace() {
                   onGenerateVariants={() => generateVariants(3)}
                   onSelectVariant={handleSelectVariant}
                   onIterate={iterateSurface}
+                  liveWire={liveWire}
+                  onToggleLiveWire={() => setLiveWire((on) => !on)}
                 />
                 {messages.length === 0 ? (
                   // True first run: show the inviting case-board empty state and

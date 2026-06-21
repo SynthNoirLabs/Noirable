@@ -276,6 +276,59 @@ describe("exportA2UI", () => {
     expect(output).toContain('aria-label={"Surveillance footage"}');
   });
 
+  it("exports a video poster frame as a poster attribute", () => {
+    const data: A2UIInput = {
+      type: "video",
+      src: "/api/video/file/clip-001.mp4",
+      poster: "/api/images/frame.jpg",
+      alt: "Surveillance footage",
+    };
+
+    const output = exportA2UI(data);
+    expect(output).toContain('poster={"/api/images/frame.jpg"}');
+  });
+
+  it("exports a dateTimeInput as a native typed input", () => {
+    const output = exportA2UI({
+      type: "dateTimeInput",
+      label: "Time of death",
+      enableDate: true,
+      enableTime: true,
+    });
+    expect(output).toContain('type="datetime-local"');
+    expect(output).toContain('{"Time of death"}');
+  });
+
+  it("exports an icon as a self-contained labelled marker (no external import)", () => {
+    const output = exportA2UI({ type: "icon", name: "search" });
+    expect(output).toContain('aria-label={"search"}');
+    expect(output).not.toContain("lucide");
+  });
+
+  it("exports a reveal's children inline rather than dropping them", () => {
+    const output = exportA2UI({
+      type: "reveal",
+      when: { path: "/unlocked" },
+      children: [{ type: "text", content: "Corridor beyond" }],
+    } as A2UIInput);
+    // Regression: reveal fell through to the Unknown-component default, losing
+    // the entire revealed payload. The children must survive the export.
+    expect(output).toContain('{"Corridor beyond"}');
+    expect(output).not.toContain("Unknown component type");
+  });
+
+  it("exports a stateImage's base as a plain image", () => {
+    const output = exportA2UI({
+      type: "stateImage",
+      base: "/api/images/base.jpg",
+      value: { path: "/door" },
+      states: [{ state: "open", instruction: "the door opens" }],
+      alt: "Blast door",
+    } as A2UIInput);
+    expect(output).toContain('src={"/api/images/base.jpg"}');
+    expect(output).not.toContain("Unknown component type");
+  });
+
   it("exports a prompt-only video (no real src) as a labelled stub, not a dead <video>", () => {
     const data: A2UIInput = {
       type: "video",

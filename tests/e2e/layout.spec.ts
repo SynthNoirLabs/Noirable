@@ -14,8 +14,8 @@ test.describe("Layout Visual Regression", () => {
     await page.goto("/");
     // Wait for hydration and initial render
     await page.waitForSelector('[data-testid="desk-layout"]');
-    // Wait for fonts and animations to settle
-    await page.waitForTimeout(500);
+    // Wait for fonts and animations to settle by checking layout is computed
+    await expect(page.locator('[data-testid="desk-layout"]')).toHaveCSS("display", "grid");
   });
 
   // NOTE: CI runs with `--grep-invert "matches snapshot"`, so this visual test
@@ -161,14 +161,21 @@ test.describe("Layout Responsive Behavior", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     const wideBoard = await page.locator('[data-testid="evidence-board"]').boundingBox();
+    const wideWidth = wideBoard!.width;
 
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.waitForTimeout(300); // Wait for resize
+    // Wait for layout to reflow by polling for the width to change
+    await expect
+      .poll(async () => {
+        const box = await page.locator('[data-testid="evidence-board"]').boundingBox();
+        return box!.width;
+      })
+      .toBeLessThan(wideWidth);
 
     const narrowBoard = await page.locator('[data-testid="evidence-board"]').boundingBox();
 
     // Board should be narrower on smaller viewport
-    expect(narrowBoard!.width).toBeLessThan(wideBoard!.width);
+    expect(narrowBoard!.width).toBeLessThan(wideWidth);
   });
 });
 
@@ -181,9 +188,8 @@ test.describe("Layout with Hidden Panels", () => {
     const hideButton = page.getByRole("button", { name: /hide editor/i });
     if (await hideButton.isVisible()) {
       await hideButton.click();
-      await page.waitForTimeout(300);
 
-      // Editor should be hidden
+      // Wait for the editor to actually become hidden
       const editor = page.locator('[data-testid="editor-pane"]');
       await expect(editor).not.toBeVisible();
 

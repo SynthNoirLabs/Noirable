@@ -1,5 +1,7 @@
 # Noirable — Repo & Code-Review Audit (2026-06-10)
 
+> **ARCHIVED 2026-06:** References to A2UIRenderer, DossierCard, and the training feature predate their removal in the repo-audit-2026-06 cleanup. Kept for historical reference.
+
 > A broad, **verified** code-review sweep across CSS/styling, architecture, dead code,
 > linting/TS config, documentation, dependencies/stack, tooling/CI/husky/pnpm, and testing.
 > Run as a 8-dimension parallel audit where **every finding was adversarially re-checked

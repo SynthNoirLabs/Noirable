@@ -295,6 +295,74 @@ describe("flattenLegacyToCatalog", () => {
     expect(slider?.max).toBe(10);
   });
 
+  it("passes a positive slider step through and drops a non-positive one", () => {
+    const stepped = flattenLegacyToCatalog({
+      type: "slider",
+      label: "Threat level",
+      min: 0,
+      max: 10,
+      step: 0.5,
+    } as never).components.find((c) => c.component === "Slider") as
+      | (SurfaceComponent & { step?: number })
+      | undefined;
+    expect(stepped?.step).toBe(0.5);
+
+    const zeroStep = flattenLegacyToCatalog({
+      type: "slider",
+      min: 0,
+      max: 10,
+      step: 0,
+    } as never).components.find((c) => c.component === "Slider") as
+      | (SurfaceComponent & { step?: number })
+      | undefined;
+    // step:0 is meaningless for a range input — dropped so the HTML default (1) wins.
+    expect(zeroStep?.step).toBeUndefined();
+  });
+
+  it("maps a legacy icon node into a catalog Icon carrying name + size", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "icon",
+      name: "search",
+      size: "large",
+    } as never);
+    const root = components.find((c) => c.id === rootId) as
+      | (SurfaceComponent & { name?: string; size?: string })
+      | undefined;
+    expect(root?.component).toBe("Icon");
+    expect(root?.name).toBe("search");
+    expect(root?.size).toBe("large");
+  });
+
+  it("maps a legacy dateTimeInput into a catalog DateTimeInput with its flags", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "dateTimeInput",
+      label: "Time of death",
+      enableDate: true,
+      enableTime: true,
+    } as never);
+    const root = components.find((c) => c.id === rootId) as
+      | (SurfaceComponent & {
+          label?: string;
+          value?: string;
+          enableDate?: boolean;
+          enableTime?: boolean;
+        })
+      | undefined;
+    expect(root?.component).toBe("DateTimeInput");
+    expect(root?.label).toBe("Time of death");
+    expect(root?.enableDate).toBe(true);
+    expect(root?.enableTime).toBe(true);
+    // The catalog requires `value`; the adapter seeds an empty string when omitted.
+    expect(root?.value).toBe("");
+  });
+
+  it("canonicalizes common date/time type spellings to dateTimeInput", () => {
+    for (const type of ["datetime", "datePicker", "date", "time"]) {
+      const { components } = flattenLegacyToCatalog({ type, label: "When" } as never);
+      expect(components.some((c) => c.component === "DateTimeInput")).toBe(true);
+    }
+  });
+
   it("renders an intake form (inputs without placeholders + slider + modal)", () => {
     const { components } = flattenLegacyToCatalog({
       type: "container",
@@ -361,5 +429,137 @@ describe("flattenLegacyToCatalog", () => {
       | undefined;
     expect(root?.component).toBe("Video");
     expect(root?.url).toBe("/footage/clip.mp4");
+  });
+
+  it("carries a video poster frame through to the catalog Video", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "video",
+      src: "/footage/clip.mp4",
+      poster: "/api/images/frame.jpg",
+    } as never);
+    const root = components.find((c) => c.id === rootId) as
+      | (SurfaceComponent & { url?: string; poster?: string })
+      | undefined;
+    expect(root?.poster).toBe("/api/images/frame.jpg");
+  });
+
+  it("preserves a rich button action (functionCall / array) instead of dropping the button", () => {
+    // Regression: the legacy button schema only accepted "submit"|"reset"|"log",
+    // so a reactive button (functionCall / array action) failed validation and
+    // was salvaged out — leaving an airlock with no working controls.
+    const single = flattenLegacyToCatalog({
+      type: "button",
+      label: "OPEN",
+      action: { functionCall: { call: "setValue", args: { path: "/door", value: "open" } } },
+    } as never).components.find((c) => c.component === "Button") as
+      | (SurfaceComponent & { action?: unknown })
+      | undefined;
+    expect(single?.action).toMatchObject({ functionCall: { call: "setValue" } });
+
+    const array = flattenLegacyToCatalog({
+      type: "button",
+      label: "CYCLE",
+      action: [
+        {
+          functionCall: { call: "matchSet", args: { path: "/code", equals: "937", target: "/s" } },
+        },
+        { functionCall: { call: "setValue", args: { path: "/door", value: "open" } } },
+      ],
+    } as never).components.find((c) => c.component === "Button") as
+      | (SurfaceComponent & { action?: unknown[] })
+      | undefined;
+    expect(Array.isArray(array?.action)).toBe(true);
+    expect(array?.action).toHaveLength(2);
+
+    // A bare legacy verb string still becomes a named server event.
+    const verb = flattenLegacyToCatalog({
+      type: "button",
+      label: "Submit",
+      action: "submit",
+    } as never).components.find((c) => c.component === "Button") as
+      | (SurfaceComponent & { action?: { event?: { name?: string } } })
+      | undefined;
+    expect(verb?.action?.event?.name).toBe("submit");
+  });
+
+  it("keeps a {path} binding on a bound input / checkbox (two-way binding survives)", () => {
+    const input = flattenLegacyToCatalog({
+      type: "input",
+      label: "CODE",
+      value: { path: "/code" },
+    } as never).components.find((c) => c.component === "TextField") as
+      | (SurfaceComponent & { value?: unknown })
+      | undefined;
+    expect(input?.value).toEqual({ path: "/code" });
+
+    const box = flattenLegacyToCatalog({
+      type: "checkbox",
+      label: "Armed",
+      checked: { path: "/armed" },
+    } as never).components.find((c) => c.component === "CheckBox") as
+      | (SurfaceComponent & { value?: unknown })
+      | undefined;
+    expect(box?.value).toEqual({ path: "/armed" });
+  });
+
+  it("maps a legacy reveal into a catalog Reveal carrying its condition + children", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "reveal",
+      when: { path: "/unlocked" },
+      children: [{ type: "text", content: "Corridor beyond" }],
+    } as never);
+    const root = components.find((c) => c.id === rootId) as
+      | (SurfaceComponent & { when?: unknown; children?: string[] })
+      | undefined;
+    expect(root?.component).toBe("Reveal");
+    expect(root?.when).toEqual({ path: "/unlocked" });
+    expect(root?.children).toHaveLength(1);
+    const childId = root?.children?.[0] as string;
+    const child = components.find((c) => c.id === childId);
+    expect(child?.component).toBe("Text");
+    expect(child?.text).toBe("Corridor beyond");
+  });
+
+  it("maps a legacy stateImage into a catalog StateImage with base/value/states", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "stateImage",
+      base: "/api/images/abc.jpg",
+      value: { path: "/door" },
+      states: [{ state: "open", instruction: "the door is now open" }],
+      alt: "Blast door",
+    } as never);
+    const root = components.find((c) => c.id === rootId) as
+      | (SurfaceComponent & {
+          base?: string;
+          value?: unknown;
+          states?: { state: string; instruction: string }[];
+          alt?: string;
+        })
+      | undefined;
+    expect(root?.component).toBe("StateImage");
+    expect(root?.base).toBe("/api/images/abc.jpg");
+    expect(root?.value).toEqual({ path: "/door" });
+    expect(root?.states?.[0]).toMatchObject({ state: "open" });
+    expect(root?.alt).toBe("Blast door");
+  });
+});
+
+describe("flattenLegacyToCatalog — relationshipGraph", () => {
+  it("emits a RelationshipGraph catalog component with resolved nodes/edges", () => {
+    const { components, rootId } = flattenLegacyToCatalog({
+      type: "relationshipGraph",
+      title: "Suspect Web",
+      nodes: [
+        { id: "n1", label: "Kessler", kind: "suspect" },
+        { id: "n2", label: "Docks", kind: "location" },
+      ],
+      edges: [{ from: "n1", to: "n2", label: "LAST SEEN", kind: "connection" }],
+    });
+
+    const root = byId(components).get(rootId);
+    expect(root?.component).toBe("RelationshipGraph");
+    expect(root?.title).toBe("Suspect Web");
+    expect(root?.nodes).toHaveLength(2);
+    expect(root?.edges).toMatchObject([{ from: "n1", to: "n2", kind: "connection" }]);
   });
 });

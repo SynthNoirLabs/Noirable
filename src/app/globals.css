@@ -9,8 +9,8 @@
      the OS monospace. */
   --font-mono: var(--font-typewriter);
 
-  /* Only paper/ink are live (the `.bg-paper` darkroom texture + the print
-     overrides). The rest of the noir palette is expressed through the
+  /* Only paper/ink are live (the `data-effect-card="paper"` material + the
+     print overrides). The rest of the noir palette is expressed through the
      --aesthetic-* vars below and hardcoded hex where needed, so no other
      `noir-*` utility tokens are declared here. */
   --color-noir-paper: #e0e0e0;
@@ -118,9 +118,10 @@
   --aesthetic-border: #3a1f66;
   --aesthetic-error: #ff3333;
 
-  /* Monospace futuristic stack — the world's signature typeface. */
+  /* Monospace body + Chakra Petch display headings (loaded in layout.tsx) —
+     the world's signature typeface pair. Mirrors definitions.ts theme.fonts. */
   --aesthetic-font-body: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
-  --aesthetic-font-heading: ui-monospace, sfmono-regular, consolas, "Courier New", monospace;
+  --aesthetic-font-heading: var(--font-cyber), ui-monospace, sfmono-regular, monospace;
   --aesthetic-glow-strength: 1.4;
   --aesthetic-particle-color: #ff007f;
   --aesthetic-lightning-color: #00ffcc;
@@ -145,9 +146,10 @@
   --aesthetic-border: #0d3b1f;
   --aesthetic-error: #ff3300;
 
-  /* Retro terminal monospace stack — the world's signature typeface. */
+  /* Courier body + VT323 phosphor display headings (loaded in layout.tsx) —
+     the world's signature typeface pair. Mirrors definitions.ts theme.fonts. */
   --aesthetic-font-body: "Courier New", courier, monospace;
-  --aesthetic-font-heading: "Courier New", courier, monospace;
+  --aesthetic-font-heading: var(--font-terminal), "Courier New", courier, monospace;
   --aesthetic-glow-strength: 1.1;
   --aesthetic-particle-color: #33ff66;
   --aesthetic-lightning-color: #33ff66;
@@ -172,9 +174,10 @@
   --aesthetic-border: #2a2a35;
   --aesthetic-error: #ff0011;
 
-  /* Classic elegant serif stack — the world's signature typeface. */
+  /* Georgia body + Cormorant Garamond display headings (loaded in layout.tsx)
+     — the world's signature typeface pair. Mirrors definitions.ts theme.fonts. */
   --aesthetic-font-body: georgia, garamond, "Times New Roman", serif;
-  --aesthetic-font-heading: georgia, garamond, "Times New Roman", serif;
+  --aesthetic-font-heading: var(--font-gothic), georgia, garamond, "Times New Roman", serif;
   --aesthetic-glow-strength: 0.8;
   --aesthetic-particle-color: #990011;
   --aesthetic-lightning-color: #cc3344;
@@ -186,6 +189,34 @@
 
   /* Manuscript measure — gothic reads as a bound page, narrower and intimate. */
   --aesthetic-max-width: 54rem;
+}
+
+[data-aesthetic="grand-hotel"] {
+  --aesthetic-background: #0c0a08;
+  --aesthetic-surface: #171310;
+  --aesthetic-surface-alt: #241d16;
+  --aesthetic-text: #ece4d4;
+  --aesthetic-text-muted: #9c8f78;
+  --aesthetic-accent: #d4af37;
+  --aesthetic-accent-muted: #8a6d2f;
+  --aesthetic-border: #332a1d;
+  --aesthetic-error: #b3243a;
+
+  /* Georgia body + Poiret One deco display headings (loaded in layout.tsx) —
+     the world's signature typeface pair. Mirrors definitions.ts theme.fonts. */
+  --aesthetic-font-body: georgia, garamond, "Times New Roman", serif;
+  --aesthetic-font-heading: var(--font-deco), georgia, serif;
+  --aesthetic-glow-strength: 0.9;
+  --aesthetic-particle-color: #e8c96a;
+  --aesthetic-lightning-color: #f0d98c;
+  --aesthetic-vignette-color: #000000;
+  --aesthetic-vignette-intensity: 0.55;
+  --aesthetic-lightning-frequency: 0.2;
+  --aesthetic-bg-image: none;
+  --aesthetic-case-file-image: none;
+
+  /* Programme measure — symmetric, composed, a touch wider than noir. */
+  --aesthetic-max-width: 56rem;
 }
 
 body {
@@ -369,13 +400,13 @@ body {
   );
 }
 
-/* Old Paper Texture */
-.bg-paper {
-  @apply bg-noir-paper text-noir-ink;
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+/* Theme-aware text selection — even highlighting text reads in-world. */
+::selection {
+  background: color-mix(in srgb, var(--aesthetic-accent) 35%, transparent);
+  color: var(--aesthetic-text);
 }
 
-/* Noir Scrollbar */
+/* Themed Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -386,7 +417,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a; /* noir-gray */
+  background: var(--aesthetic-border); /* themed per world, not noir-gray */
   border-radius: 0px;
 }
 
@@ -624,6 +655,40 @@ html {
   }
 }
 
+/* Grand Hotel — 1920s press-camera flashbulb: a hard overexposed pop that
+   settles into a warm print. */
+@keyframes photo-flashbulb {
+  0% {
+    filter: brightness(3) contrast(0.6) saturate(0.4);
+    opacity: 0;
+  }
+  8% {
+    filter: brightness(2.6) contrast(0.7) saturate(0.5);
+    opacity: 1;
+  }
+  45% {
+    filter: brightness(1.35) contrast(0.95) saturate(0.85);
+    opacity: 1;
+  }
+  100% {
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes flashbulb-burst {
+  0% {
+    background: radial-gradient(circle at 50% 42%, rgba(255, 252, 240, 0.95) 0%, transparent 80%);
+    opacity: 1;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .animate-photo-crisp {
     animation: photo-crisp 0.32s ease-out forwards;
@@ -651,6 +716,14 @@ html {
 
   .animate-candle-glow {
     animation: candle-glow 1.8s ease-in-out forwards;
+  }
+
+  .animate-photo-flashbulb {
+    animation: photo-flashbulb 1.1s ease-out forwards;
+  }
+
+  .animate-flashbulb-burst {
+    animation: flashbulb-burst 1.1s ease-out forwards;
   }
 }
 
@@ -726,6 +799,21 @@ html {
   }
 }
 
+/* 2b. Grand Hotel Background — a faint deco sunburst rising from the lower
+   edge, in brass over near-black, plus the usual center-lit radial. */
+[data-aesthetic="grand-hotel"] .bg-venetian {
+  background:
+    radial-gradient(circle at 50% 45%, transparent 35%, rgba(12, 10, 8, 0.85)),
+    repeating-conic-gradient(
+      from 170deg at 50% 115%,
+      rgba(212, 175, 55, 0.05) 0deg 3deg,
+      transparent 3deg 10deg
+    ) !important;
+  background-size:
+    100% 100%,
+    100% 100% !important;
+}
+
 /* 3. Gothic Manor Background */
 [data-aesthetic="gothic-manor"] .bg-venetian {
   background:
@@ -734,122 +822,6 @@ html {
   background-size:
     100% 100%,
     auto !important;
-}
-
-/* --- THEME-SPECIFIC EVIDENCE CARDS & BORDERS --- */
-
-/* 1. Cyber-Fixer: Neon Glowing Hologram Cards */
-[data-aesthetic="cyber-fixer"] .bg-paper {
-  background-color: rgba(20, 12, 36, 0.85) !important;
-  background-image: none !important;
-  color: var(--aesthetic-text) !important;
-  border: 1px solid var(--aesthetic-accent) !important;
-  border-radius: 4px !important;
-  box-shadow:
-    0 0 15px rgba(0, 255, 204, 0.2),
-    inset 0 0 10px rgba(0, 255, 204, 0.1),
-    0 10px 30px rgba(0, 0, 0, 0.5) !important;
-}
-
-[data-aesthetic="cyber-fixer"] .coffee-stain {
-  display: none !important; /* Hide coffee stains on hologram screens */
-}
-
-/* Digital label style for stamp */
-[data-aesthetic="cyber-fixer"] .mask-stamp {
-  border: 1px solid var(--aesthetic-accent-muted) !important;
-  color: var(--aesthetic-accent-muted) !important;
-  background: rgba(255, 0, 127, 0.05) !important;
-  text-shadow: 0 0 5px var(--aesthetic-accent-muted) !important;
-  mask-image: none !important;
-  transform: rotate(4deg) !important;
-  border-radius: 2px !important;
-}
-
-/* 2. Nostromo Console: Wireframe / Terminal Cards */
-[data-aesthetic="nostromo-console"] .bg-paper {
-  background-color: #05160b !important;
-  background-image: none !important;
-  color: var(--aesthetic-text) !important;
-  border: 1px solid var(--aesthetic-border) !important;
-  border-radius: 0 !important;
-  box-shadow:
-    inset 0 0 15px rgba(51, 255, 102, 0.08),
-    0 10px 30px rgba(0, 0, 0, 0.6) !important;
-}
-
-[data-aesthetic="nostromo-console"] .coffee-stain {
-  display: none !important;
-}
-
-/* Terminal tag style for status stamp */
-[data-aesthetic="nostromo-console"] .mask-stamp {
-  border: 1px solid var(--aesthetic-accent) !important;
-  color: var(--aesthetic-accent) !important;
-  background: transparent !important;
-  text-shadow: 0 0 6px rgba(51, 255, 102, 0.5) !important;
-  mask-image: none !important;
-  transform: none !important;
-  border-radius: 0 !important;
-}
-
-/* Retro-futuristic bracket highlights for Nostromo cards */
-[data-aesthetic="nostromo-console"] .bg-paper::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border: 1px solid var(--aesthetic-accent);
-  pointer-events: none;
-  opacity: 0.25;
-}
-
-/* 3. Gothic Manor: Aged Parchment with Wood/Stone Borders */
-[data-aesthetic="gothic-manor"] .bg-paper {
-  background-color: #d7c5a9 !important; /* warm yellow parchment */
-  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper-noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.72 0 0 0 0 0.63 0 0 0 0.18 0'/%3E%3CfeBlend mode='multiply' in='SourceGraphic' in2='noise'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper-noise)'/%3E%3C/svg%3E") !important;
-  color: #1f1408 !important; /* dark brown ink */
-  border: 4px double #4a3424 !important; /* stone/wood double border */
-  border-radius: 2px !important;
-  box-shadow:
-    0 15px 40px rgba(0, 0, 0, 0.7),
-    inset 0 0 60px rgba(74, 52, 36, 0.2) !important;
-}
-
-/* Adjust stain to look like blood splatter / dark ink */
-[data-aesthetic="gothic-manor"] .coffee-stain {
-  border-color: rgba(153, 0, 17, 0.18) !important;
-  background-color: rgba(153, 0, 17, 0.03) !important;
-  border-radius: 40% 60% 50% 50% / 50% 40% 60% 50% !important; /* asymmetric organic splash */
-}
-
-/* Wax Seal style status stamp */
-[data-aesthetic="gothic-manor"] .mask-stamp {
-  border: 2px solid #990011 !important;
-  color: #e1e1e6 !important;
-  background: radial-gradient(circle, #990011 0%, #66000b 100%) !important;
-  border-radius: 50% !important;
-  width: 56px !important;
-  height: 56px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 8px !important;
-  letter-spacing: 0.05em !important;
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.5),
-    inset 0 0 8px rgba(0, 0, 0, 0.6) !important;
-  transform: rotate(-12deg) !important;
-  mask-image: none !important;
-}
-
-/* 4. Noir Detective (Default Base overrides) */
-[data-aesthetic="noir"] .bg-paper {
-  background-color: var(--color-noir-paper) !important;
-  color: var(--color-noir-ink) !important;
-  border: 1px solid var(--aesthetic-border) !important;
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.45),
-    inset 0 0 40px rgba(112, 66, 20, 0.08) !important;
 }
 
 /* --- DATA-DRIVEN CARD MATERIALS (Bet 2) --- */
@@ -978,6 +950,28 @@ html {
     0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+/* Gilded (grand-hotel) — a polished ebony panel in a brass frame. A vertical
+   champagne sheen (accent color-mix, never a literal gold hex) gives the dark
+   lacquer its polish; the double border reads as the brass inlay. */
+.a2ui-card[data-effect-card="gilded"] {
+  background-color: var(--aesthetic-surface);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--aesthetic-accent) 7%, transparent) 0%,
+    transparent 35%,
+    transparent 70%,
+    color-mix(in srgb, var(--aesthetic-accent) 4%, transparent) 100%
+  );
+  color: var(--aesthetic-text);
+  border: 3px double color-mix(in srgb, var(--aesthetic-accent) 55%, transparent);
+  border-radius: var(--aesthetic-radius, 6px);
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 color-mix(in srgb, var(--aesthetic-accent) 18%, transparent),
+    0 0 calc(8px * var(--aesthetic-glow-strength, 1))
+      color-mix(in srgb, var(--aesthetic-accent) 10%, transparent);
+}
+
 /* --- PER-MATERIAL SIGNATURE TOUCHES (per-preset craft, data-driven) --- */
 
 /* These accents key off the card MATERIAL (`data-effect-card`) / stamp
@@ -1085,6 +1079,43 @@ html {
   color: var(--aesthetic-accent);
   text-shadow: 0 0 5px var(--aesthetic-accent);
   pointer-events: none;
+  z-index: 1;
+}
+
+/* GRAND HOTEL — gilded panel: hairline brass inner frame + corner sunburst
+   fan, the deco signature, in accent color-mixes only. */
+.a2ui-card[data-effect-card="gilded"]::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  z-index: 0;
+  border: 1px solid color-mix(in srgb, var(--aesthetic-accent) 30%, transparent);
+  border-radius: calc(var(--aesthetic-radius, 6px) - 3px);
+}
+
+.a2ui-card[data-effect-card="gilded"]::after {
+  content: "";
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  width: 88px;
+  height: 44px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-conic-gradient(
+    from 150deg at 50% 0%,
+    color-mix(in srgb, var(--aesthetic-accent) 35%, transparent) 0deg 4deg,
+    transparent 4deg 12deg
+  );
+  opacity: 0.5;
+  mask-image: radial-gradient(circle at 50% 0%, black 0%, transparent 75%);
+}
+
+/* Keep the panel content above the inner frame + sunburst. */
+.a2ui-card[data-effect-card="gilded"] > * {
+  position: relative;
   z-index: 1;
 }
 
@@ -1239,6 +1270,588 @@ html {
   }
 }
 
+/* --- PER-MATERIAL HOVER PHYSICALITY --- */
+
+/* The generated card reacts to the pointer in its material's own physics:
+   paper lifts off the desk, the hologram brightens, the terminal pane's
+   phosphor wash intensifies, the parchment stirs, the gilded panel gleams.
+   The base rule owns `transform` (composing the deterministic desk tilt from
+   the --card-tilt var CardRenderer sets) so hover can lift WITHOUT erasing the
+   tilt. Minimal's flat card gets only a whisper of shadow — restraint is its
+   identity. The global reduced-motion reset neutralizes the transitions. */
+.a2ui-card {
+  transform: rotate(var(--card-tilt, 0deg));
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.a2ui-card[data-effect-card="paper"]:hover {
+  transform: translateY(-3px) rotate(var(--card-tilt, 0deg));
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.5),
+    inset 0 0 40px rgba(112, 66, 20, 0.08),
+    0 0 calc(10px * var(--aesthetic-glow-strength, 1))
+      color-mix(in srgb, var(--aesthetic-accent) 16%, transparent);
+}
+
+.a2ui-card[data-effect-card="parchment"]:hover {
+  transform: translateY(-2px) rotate(var(--card-tilt, 0deg));
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.72),
+    inset 0 0 60px rgba(74, 52, 36, 0.2),
+    0 0 calc(12px * var(--aesthetic-glow-strength, 1)) rgba(122, 0, 14, 0.28);
+}
+
+.a2ui-card[data-effect-card="hologram"]:hover {
+  box-shadow:
+    0 0 calc(22px * var(--aesthetic-bloom, 1)) rgba(0, 255, 204, 0.3),
+    inset 0 0 calc(14px * var(--aesthetic-bloom, 1)) rgba(0, 255, 204, 0.14),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.a2ui-card[data-effect-card="wireframe"]:hover {
+  box-shadow:
+    inset 0 0 calc(24px * var(--aesthetic-bloom, 1)) rgba(51, 255, 102, 0.13),
+    0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.a2ui-card[data-effect-card="gilded"]:hover {
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 color-mix(in srgb, var(--aesthetic-accent) 30%, transparent),
+    0 0 calc(14px * var(--aesthetic-glow-strength, 1))
+      color-mix(in srgb, var(--aesthetic-accent) 18%, transparent);
+}
+
+.a2ui-card[data-effect-card="flat"]:hover {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* --- WORLD-TRANSITION CINEMATICS --- */
+
+/* Full-screen arrival scene played ONCE when the desk commits to a new world
+   (see WorldTransition.tsx + useWorldSwitch.ts). Each world powers on in its
+   own physics: MU-TH-UR boots, the hotel elevator opens, the netrunner jacks
+   in, a match strikes in the manor, noir cuts from black (or irises in via the
+   View Transitions API below). All scene classes are inert (opacity 0, no
+   animation) under reduced motion — the component never mounts them anyway. */
+.world-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.world-transition::before,
+.world-transition::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+/* The title card every scene carries — the world announces itself in its own
+   display face. */
+.wt-titlecard {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 0 8vw;
+  opacity: 0;
+  z-index: 2;
+}
+
+.wt-title {
+  font-family: var(--aesthetic-font-heading);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  letter-spacing: 0.18em;
+  color: var(--aesthetic-accent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--aesthetic-accent) 45%, transparent);
+}
+
+.wt-tagline {
+  font-family: var(--aesthetic-font-body);
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--aesthetic-text) 70%, transparent);
+}
+
+/* Nostromo boot self-test lines (children reuse .skeleton-line staggering). */
+.wt-boot-lines {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--font-terminal), "Courier New", monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+  color: var(--aesthetic-accent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--aesthetic-accent) 60%, transparent);
+  z-index: 2;
+}
+
+/* Grand-hotel elevator doors — brass-trimmed panels that part on the lobby. */
+.wt-elevator-door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 26px,
+      color-mix(in srgb, var(--aesthetic-accent) 9%, transparent) 26px 28px
+    ),
+    linear-gradient(105deg, #15110d 0%, #2a2218 48%, #15110d 100%);
+}
+
+.wt-elevator-door-left {
+  left: 0;
+  border-right: 3px double color-mix(in srgb, var(--aesthetic-accent) 65%, transparent);
+}
+
+.wt-elevator-door-right {
+  right: 0;
+  border-left: 3px double color-mix(in srgb, var(--aesthetic-accent) 65%, transparent);
+}
+
+.wt-elevator-floor {
+  position: absolute;
+  top: 11%;
+  width: 100%;
+  text-align: center;
+  font-family: var(--aesthetic-font-heading);
+  font-size: 0.85rem;
+  letter-spacing: 0.45em;
+  color: var(--aesthetic-accent);
+  z-index: 2;
+}
+
+/* Cyber jack-in — streaming glyph columns. */
+.wt-glyph-field {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.wt-glyph-column {
+  position: absolute;
+  top: -15%;
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--aesthetic-accent) 75%, transparent);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--aesthetic-accent) 60%, transparent);
+}
+
+/* Gothic match strike — a flame blooms and light spreads from it. */
+.wt-match-flame {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 13px;
+  height: 22px;
+  transform: translate(-50%, -50%) scale(0.2);
+  border-radius: 50% / 62% 62% 38% 38%;
+  background: radial-gradient(ellipse at 50% 72%, #ffd9a0 0%, #f0a93c 55%, transparent 78%);
+  filter: blur(0.5px);
+  opacity: 0;
+  z-index: 2;
+}
+
+.wt-match-bloom {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 55%,
+    color-mix(in srgb, var(--aesthetic-accent) 26%, transparent) 0%,
+    transparent 62%
+  );
+  opacity: 0;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wt-titlecard {
+    animation: wt-card 1.4s ease-in-out forwards;
+  }
+
+  /* noir fallback (no View Transitions support) — fade up from black. */
+  .world-transition-cinematic {
+    background: #000;
+    animation: wt-fade-hold 1.4s ease-out forwards;
+  }
+
+  /* noir with View Transitions — the iris does the reveal; the overlay is
+     just the floating title card. */
+  .world-transition-card-only {
+    opacity: 1;
+  }
+
+  /* minimal — a fast clean white blink, no card. */
+  .world-transition-crisp {
+    background: #fff;
+    animation: wt-fade-quick 0.3s ease-out forwards;
+  }
+
+  /* nostromo — boot over black shutters that part from a phosphor line. */
+  .world-transition-boot {
+    opacity: 1;
+  }
+  .world-transition-boot::before {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: #000;
+    border-bottom: 2px solid var(--aesthetic-accent);
+    box-shadow: 0 0 18px var(--aesthetic-accent);
+    animation: wt-crt-top 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) 1.05s forwards;
+  }
+  .world-transition-boot::after {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: #000;
+    animation: wt-crt-bottom 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) 1.05s forwards;
+  }
+  .world-transition-boot .wt-boot-lines {
+    animation: wt-fade-quick 0.45s ease-out 1.05s forwards;
+  }
+
+  /* grand-hotel — the elevator arrives, a beat, the doors part. */
+  .world-transition-elevator {
+    opacity: 1;
+    animation: wt-fade-quick 0.3s linear 1.4s forwards;
+  }
+  .world-transition-elevator .wt-elevator-door-left {
+    animation: wt-door-left 0.85s cubic-bezier(0.65, 0, 0.35, 1) 0.75s forwards;
+  }
+  .world-transition-elevator .wt-elevator-door-right {
+    animation: wt-door-right 0.85s cubic-bezier(0.65, 0, 0.35, 1) 0.75s forwards;
+  }
+  .world-transition-elevator .wt-elevator-floor {
+    animation: wt-fade-quick 0.5s ease-out 0.85s forwards;
+  }
+
+  /* cyber — the jack-in glyph tunnel shreds away. */
+  .world-transition-jackin {
+    background: var(--aesthetic-background);
+    animation: wt-shred 1.3s steps(6, end) forwards;
+  }
+  .world-transition-jackin .wt-glyph-column {
+    animation: wt-glyph-fall 1.1s linear infinite;
+  }
+
+  /* gothic — black, a match strikes, light blooms, the manor appears. */
+  .world-transition-match {
+    background: #000;
+    opacity: 1;
+    animation: wt-fade-late 1.7s ease-in-out forwards;
+  }
+  .world-transition-match .wt-match-flame {
+    animation:
+      wt-flame 0.5s ease-out 0.15s forwards,
+      crt-flicker 0.12s linear 0.7s 6 alternate;
+  }
+  .world-transition-match .wt-match-bloom {
+    animation: wt-bloom 1s ease-in-out 0.5s forwards;
+  }
+}
+
+@keyframes wt-card {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  20%,
+  72% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes wt-fade-quick {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wt-fade-hold {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wt-fade-late {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wt-shred {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  62% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  72% {
+    transform: translateX(-8px);
+  }
+  82% {
+    transform: translateX(7px);
+  }
+  92% {
+    transform: translateX(-4px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wt-glyph-fall {
+  from {
+    transform: translateY(-12%);
+  }
+  to {
+    transform: translateY(16%);
+  }
+}
+
+@keyframes wt-flame {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -28%) scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes wt-bloom {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wt-crt-top {
+  0%,
+  20% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-101%);
+  }
+}
+
+@keyframes wt-crt-bottom {
+  0%,
+  20% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(101%);
+  }
+}
+
+@keyframes wt-door-left {
+  to {
+    transform: translateX(-101%);
+  }
+}
+
+@keyframes wt-door-right {
+  to {
+    transform: translateX(101%);
+  }
+}
+
+/* --- VIEW-TRANSITION WORLD MORPHS --- */
+
+/* When the browser supports the View Transitions API, useWorldSwitch commits
+   the morph-style worlds through document.startViewTransition and scopes the
+   keyframes with a class on <html>. noir irises in; minimal is a fast
+   crossfade. The diegetic scene worlds skip VT (their overlays ARE the show). */
+html.vt-cinematic::view-transition-old(root) {
+  animation: none;
+}
+
+html.vt-cinematic::view-transition-new(root) {
+  animation: vt-iris-in 0.9s cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes vt-iris-in {
+  from {
+    clip-path: circle(0% at 50% 45%);
+  }
+  to {
+    clip-path: circle(135% at 50% 45%);
+  }
+}
+
+html.vt-crisp::view-transition-old(root),
+html.vt-crisp::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+
+/* --- STRIKE THE SET (world-exit animations) --- */
+
+/* While useWorldSwitch counts down to the swap, the layout root carries
+   data-world-exiting="<outgoing entrance>" and the OLD world's content leaves
+   in its own physics: noir papers scatter off the desk, the hologram jitters
+   out, terminal lines collapse, the hotel programme drifts away. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-world-exiting] .a2ui-card,
+  [data-world-exiting] .a2ui-stat {
+    animation: world-exit-fade 0.42s ease-in forwards;
+  }
+
+  [data-world-exiting="cinematic"] .a2ui-card {
+    animation: world-exit-scatter 0.42s ease-in forwards;
+  }
+
+  [data-world-exiting="glitch"] .a2ui-card {
+    animation: world-exit-jitter 0.42s steps(5, end) forwards;
+  }
+
+  [data-world-exiting="terminal"] .a2ui-card {
+    animation: world-exit-collapse 0.42s steps(8, end) forwards;
+  }
+
+  [data-world-exiting="waltz"] .a2ui-card {
+    animation: world-exit-drift 0.42s ease-in forwards;
+  }
+
+  /* Leaving noir: a soft hand-shadow sweeps the desk clear. (A silhouette
+     image is a drop-in replacement for the radial-gradient shape.) */
+  [data-world-exiting="cinematic"] .world-exit-sweep {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 9996;
+    pointer-events: none;
+    background: radial-gradient(
+      42% 58% at 50% 50%,
+      rgba(0, 0, 0, 0.85) 0%,
+      rgba(0, 0, 0, 0.45) 58%,
+      transparent 76%
+    );
+    filter: blur(14px);
+    transform: translateX(-120%) rotate(-8deg);
+    animation: world-exit-sweep 0.45s ease-in forwards;
+  }
+}
+
+.world-exit-sweep {
+  display: none;
+}
+
+@keyframes world-exit-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes world-exit-scatter {
+  to {
+    opacity: 0;
+    transform: translate(-30px, 38px) rotate(-3deg);
+  }
+}
+
+@keyframes world-exit-jitter {
+  25% {
+    transform: translateX(-6px);
+  }
+  55% {
+    transform: translateX(5px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+@keyframes world-exit-collapse {
+  to {
+    opacity: 0;
+    transform: translateY(-14px) scaleY(0.6);
+  }
+}
+
+@keyframes world-exit-drift {
+  to {
+    opacity: 0;
+    transform: translateX(42px);
+  }
+}
+
+/* --- WEATHER HANDOFF --- */
+
+/* Registering the atmosphere colors as typed properties lets them TWEEN when
+   the world changes: rain recolors mid-fall instead of cutting. Browsers
+   without @property fall back to an instant switch. NoirEffects crossfades the
+   particle TYPE (old overlay fades under .atmosphere-handoff-out). */
+@property --aesthetic-particle-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #bcd2eb;
+}
+
+@property --aesthetic-lightning-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #fff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-aesthetic] {
+    transition:
+      --aesthetic-particle-color 1.6s ease-in-out,
+      --aesthetic-lightning-color 1.6s ease-in-out;
+  }
+
+  .atmosphere-handoff-out {
+    animation: wt-fade-quick 1.6s ease-in-out forwards;
+  }
+}
+
 /* --- DATA-DRIVEN SCREEN TREATMENTS (Bet 2) --- */
 
 /* Scanline screen — CRT line overlay across the whole layout root. Driven by
@@ -1316,6 +1929,17 @@ html {
     );
 }
 
+/* Grand Hotel: a warm brass sheen on display titles + accent text. */
+[data-aesthetic="grand-hotel"] .a2ui-heading,
+[data-aesthetic="grand-hotel"] .text-\[var\(--aesthetic-accent\)\] {
+  text-shadow: 0 0 4px
+    color-mix(
+      in srgb,
+      var(--aesthetic-accent) calc(30% * var(--aesthetic-glow-strength, 1)),
+      transparent
+    );
+}
+
 /* Minimal intentionally gets NO text glow: its glow-strength is 0 and its
    signature is crisp dark-on-light type. Its compositional "anchor" lives in
    the flat card's layered shadow + accent top hairline, not in the text. */
@@ -1357,6 +1981,11 @@ html {
 [data-aesthetic="minimal"] .a2ui-heading {
   letter-spacing: -0.015em;
   font-weight: 600;
+}
+[data-aesthetic="grand-hotel"] .a2ui-heading {
+  /* Poiret One ships one weight; the deco voice is wide, even tracking. */
+  letter-spacing: 0.14em;
+  font-weight: 400;
 }
 
 /* --- RANGE SLIDER (a2ui-slider) --- */
@@ -1426,6 +2055,11 @@ html {
 .a2ui-stat[data-effect-stat="parchment"] {
   background: rgba(122, 0, 14, 0.06);
 }
+.a2ui-stat[data-effect-stat="gilded"] {
+  background: color-mix(in srgb, var(--aesthetic-accent) 5%, transparent);
+  border-left-color: var(--aesthetic-accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--aesthetic-accent) 18%, transparent);
+}
 
 /* --- BADGE PER-AESTHETIC REFINEMENT (a2ui-badge) --- */
 
@@ -1488,7 +2122,120 @@ html {
   border-color: var(--aesthetic-accent) !important;
   box-shadow: 0 0 0 1px var(--aesthetic-accent) !important;
 }
+
+/* 4. Grand Hotel Form Controls */
+[data-aesthetic="grand-hotel"] input:not([type="checkbox"], [type="range"]),
+[data-aesthetic="grand-hotel"] textarea,
+[data-aesthetic="grand-hotel"] select {
+  background-color: #171310 !important;
+  border: 1px solid var(--aesthetic-border) !important;
+  color: var(--aesthetic-text) !important;
+}
+[data-aesthetic="grand-hotel"] input:focus,
+[data-aesthetic="grand-hotel"] textarea:focus,
+[data-aesthetic="grand-hotel"] select:focus {
+  border-color: var(--aesthetic-accent) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--aesthetic-accent) 30%, transparent) !important;
+}
 /* stylelint-enable no-descending-specificity */
+
+/* --- PER-WORLD LOADING SKELETON HELPERS --- */
+
+/* The loading state is the longest single visual moment — these helpers let
+   EvidenceSkeleton dress it per world instead of one generic gray pulse. All
+   gated behind no-preference; the reduced-motion reset below also makes the
+   terminal lines appear instantly. */
+
+/* Terminal (nostromo): printed lines appear one-by-one (per-line delay inline). */
+.skeleton-line {
+  opacity: 0;
+}
+
+/* Typewriter (noir): the status line types itself, over and over. */
+.skeleton-typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  border-right: 2px solid var(--aesthetic-accent);
+}
+
+/* Shimmer (cyber/grand-hotel): an accent sheen sweeps across skeleton bars. */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Candle (gothic): a warm glow breathing low on the card. */
+.skeleton-candle-glow {
+  background: radial-gradient(
+    ellipse at 50% 80%,
+    color-mix(in srgb, var(--aesthetic-accent) 16%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-line {
+    animation: skeleton-appear 1ms steps(1) forwards;
+  }
+
+  .skeleton-typewriter {
+    animation:
+      skeleton-typing 2.4s steps(26) infinite,
+      typewriter-blink 0.9s steps(1) infinite;
+  }
+
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--aesthetic-accent) 18%, transparent),
+      transparent
+    );
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
+  }
+
+  .skeleton-candle-glow {
+    animation: skeleton-breathe 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes skeleton-typing {
+  0% {
+    width: 0;
+  }
+  60%,
+  100% {
+    width: 100%;
+  }
+}
+
+@keyframes skeleton-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes skeleton-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
 
 /* --- GLOBAL REDUCED-MOTION RESET --- */
 
@@ -1523,7 +2270,8 @@ html {
   .animate-photo-crisp,
   .animate-photo-scanline,
   .animate-photo-raster,
-  .animate-photo-candle {
+  .animate-photo-candle,
+  .animate-photo-flashbulb {
     animation: none !important;
     clip-path: none !important;
     filter: none !important;
@@ -1532,9 +2280,23 @@ html {
 
   .animate-scanline-wipe,
   .animate-raster-sweep,
-  .animate-candle-glow {
+  .animate-candle-glow,
+  .animate-flashbulb-burst {
     animation: none !important;
     display: none !important;
+  }
+
+  /* Skeleton helpers: lines appear instantly (animation-delay is NOT covered by
+     the duration reset above), the typewriter line shows in full. */
+  .skeleton-line {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .skeleton-typewriter {
+    animation: none !important;
+    width: 100% !important;
+    border-right-color: transparent !important;
   }
 
   /* Signature touches: stop the HUD shimmer sweep and the terminal caret blink.

@@ -8,9 +8,12 @@ import {
   profileAudioSchema,
   profileVoiceSchema,
   profileEffectsSchema,
+  profileAtmosphereSchema,
 } from "@/lib/customization/types";
+import { contrastRatio, nudgeToAA, normalizeHex } from "@/lib/customization/contrast";
 import type { CustomProfile } from "@/lib/customization/types";
 import { getDefaultVoiceId } from "@/lib/aesthetic/voice-defaults";
+import { BUILT_IN_AESTHETIC_IDS } from "@/lib/aesthetic/types";
 import type { BuiltInAestheticId } from "@/lib/aesthetic/types";
 import type { ProviderResult } from "@/lib/ai/factory";
 
@@ -31,9 +34,18 @@ export type GeneratedProfile = Pick<
   | "audio"
   | "voice"
   | "effects"
+  | "atmosphere"
   | "imageStylePrompt"
   | "systemPrompt"
->;
+> & {
+  /**
+   * Free-text description of the world's VOICE (e.g. "a weary baritone with a
+   * slight rasp, speaks slowly"). Not part of the stored profile — the client
+   * sends it to /api/voice-design to MINT a real ElevenLabs voice for the
+   * world, then stores the returned voiceId.
+   */
+  voiceDescription?: string;
+};
 
 /**
  * The base preset the model picks as scaffolding. Mirrors the
@@ -41,9 +53,9 @@ export type GeneratedProfile = Pick<
  * inherits a coherent audio/effects/voice foundation it only needs to tweak.
  */
 const baseAestheticIdSchema = z
-  .enum(["noir", "minimal", "cyber-fixer", "nostromo-console", "gothic-manor"])
+  .enum(BUILT_IN_AESTHETIC_IDS)
   .describe(
-    "The CLOSEST built-in preset to use as scaffolding so audio, effects, and voice inherit sensibly: 'noir' (dark detective, amber accents, rain/jazz), 'minimal' (clean light, neutral), 'cyber-fixer' (neon cyberpunk, magenta/cyan), 'nostromo-console' (retro green-phosphor terminal), 'gothic-manor' (dark Victorian gothic, crimson). Pick the one whose mood is nearest the requested vibe."
+    "The CLOSEST built-in preset to use as scaffolding so audio, effects, and voice inherit sensibly: 'noir' (dark detective, amber accents, rain/jazz), 'minimal' (clean light, neutral), 'cyber-fixer' (neon cyberpunk, magenta/cyan), 'nostromo-console' (retro green-phosphor terminal), 'gothic-manor' (dark Victorian gothic, crimson), 'grand-hotel' (1920s art-deco, brass and champagne gold). Pick the one whose mood is nearest the requested vibe."
   );
 
 /**
@@ -103,9 +115,22 @@ export const themeGeneratorTool = tool({
       .describe(
         "Persona prosody: stability/similarityBoost/style (0-1), speed (0.7-1.2). Leave voiceId out unless you know a specific ElevenLabs id."
       ),
+    voiceDescription: z
+      .string()
+      .min(20)
+      .max(400)
+      .optional()
+      .describe(
+        "A vivid description of the world's SPEAKING VOICE (age, timbre, pace, accent, mood — e.g. 'a weary baritone with a slight rasp, speaks slowly like he's seen too much'). The app mints a real voice from it."
+      ),
     effects: profileEffectsSchema
       .optional()
       .describe("Visual effect intensities: rain/fog/crackle (0-1), typewriterSpeed (ms/char)."),
+    atmosphere: profileAtmosphereSchema
+      .optional()
+      .describe(
+        "The world's WEATHER: particle ('rain'|'fog'|'grain'|'ember'|'none'), an optional secondary fog (boolean), and the particleColor/lightningColor (hex) the overlays render in. Pick what the vibe implies — golden motes for a temple, cyan rain for a flooded city."
+      ),
     imageStylePrompt: z
       .string()
       .max(500)
@@ -174,12 +199,14 @@ function buildMockProfile(prompt: string, baseAestheticId?: BuiltInAestheticId):
 const generatedProfileSchema = z.object({
   name: z.string().min(1).max(50),
   description: z.string().max(200).optional(),
-  baseAestheticId: z.enum(["noir", "minimal", "cyber-fixer", "nostromo-console", "gothic-manor"]),
+  baseAestheticId: z.enum(BUILT_IN_AESTHETIC_IDS),
   colors: profileColorsSchema.optional(),
   fonts: profileFontsSchema.optional(),
   audio: profileAudioSchema.optional(),
   voice: profileVoiceSchema.optional(),
   effects: profileEffectsSchema.optional(),
+  atmosphere: profileAtmosphereSchema.optional(),
+  voiceDescription: z.string().max(400).optional(),
   imageStylePrompt: z.string().max(500).optional(),
   systemPrompt: z.string().max(3000).optional(),
 });
@@ -203,8 +230,38 @@ export function normalizeGeneratedProfile(raw: unknown): GeneratedProfile | null
 
   return {
     ...data,
+    colors: data.colors ? enforcePaletteLegibility(data.colors) : data.colors,
     voice: { ...voice, voiceId: resolvedVoiceId },
   };
+}
+
+/**
+ * Programmatic legibility guardrail: the GENERATOR_SYSTEM asks for WCAG AA in
+ * prose, but a model can and will emit a moody #1a1a2e-on-#16161f palette that
+ * validates fine and reads terribly. Nudge `text` (and `textMuted`) until they
+ * clear AA against both the background and the surface. Hex-only — non-hex
+ * values (rgb()/hsl()) pass through untouched, since nudgeToAA operates on hex.
+ */
+function enforcePaletteLegibility<T extends { [key: string]: string | undefined }>(colors: T): T {
+  const next: Record<string, string | undefined> = { ...colors };
+  const fixAgainst = (fgKey: string, bgKeys: string[], largeText = false) => {
+    let fg = next[fgKey];
+    if (!fg || !normalizeHex(fg)) return;
+    for (const bgKey of bgKeys) {
+      const bg = next[bgKey];
+      if (!bg || !normalizeHex(bg)) continue;
+      const threshold = largeText ? 3 : 4.5;
+      if (contrastRatio(fg, bg) < threshold) {
+        fg = nudgeToAA(fg, bg, largeText);
+      }
+    }
+    next[fgKey] = fg;
+  };
+  fixAgainst("text", ["background", "surface"]);
+  // Muted text is secondary/larger-context copy; hold it to the AA-large bar so
+  // it stays visibly muted while remaining readable.
+  fixAgainst("textMuted", ["background", "surface"], true);
+  return next as T;
 }
 
 /**
@@ -217,7 +274,7 @@ Given a short vibe description, design ONE internally-coherent world by calling 
 Rules:
 - Pick the closest built-in base preset so audio/effects/voice inherit a sensible foundation; override only what the vibe demands.
 - Produce a palette where body text is comfortably legible on the background and surface (WCAG AA, contrast >= 4.5:1). Never pair low-contrast text with its background.
-- Make the font pair, palette, effects, image style, and persona all reinforce the SAME mood.
+- Make the font pair, palette, effects, atmosphere, image style, voiceDescription, and persona all reinforce the SAME mood.
 - The systemPrompt you author is the persona's SPEAKING VOICE only. Do NOT write UI, layout, or component instructions there — the application appends its own immutable UI-generation directives at runtime.`;
 
 export interface GenerateThemeOptions {

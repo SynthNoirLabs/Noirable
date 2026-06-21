@@ -54,7 +54,12 @@ async function injectE2EStyles(
 // removed), so this is a no-op kept for call-site clarity — it just waits for
 // hydration before the test drives the chat.
 async function enableA2UIv09(page: Page) {
-  await page.waitForTimeout(1500); // Wait for hydration
+  // Wait for React hydration by checking that interactive elements are ready
+  const input = page.getByPlaceholder("Type your command...");
+  await input.waitFor({ state: "attached" });
+  await page.waitForFunction(() => {
+    return document.readyState === "complete";
+  });
 }
 
 test.describe("Tier 1: Feature Coverage", () => {
@@ -63,9 +68,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.waitForSelector("button[aria-label='Select active profile']");
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Cyber Fixer" }).click();
+    await page.getByRole("button", { name: "Switch to Cyber Fixer" }).click();
 
     const rootElement = page.locator("[data-aesthetic]");
     await expect(rootElement).toHaveAttribute("data-aesthetic", "cyber-fixer");
@@ -76,9 +79,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.waitForSelector("button[aria-label='Select active profile']");
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Nostromo Console" }).click();
+    await page.getByRole("button", { name: "Switch to Nostromo Console" }).click();
 
     const rootElement = page.locator("[data-aesthetic]");
     await expect(rootElement).toHaveAttribute("data-aesthetic", "nostromo-console");
@@ -89,9 +90,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.waitForSelector("button[aria-label='Select active profile']");
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Gothic Manor" }).click();
+    await page.getByRole("button", { name: "Switch to Gothic Manor" }).click();
 
     const rootElement = page.locator("[data-aesthetic]");
     await expect(rootElement).toHaveAttribute("data-aesthetic", "gothic-manor");
@@ -102,9 +101,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.waitForSelector("button[aria-label='Select active profile']");
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Noir Detective" }).click();
+    await page.getByRole("button", { name: "Switch to Noir Detective" }).click();
 
     const rootElement = page.locator("[data-aesthetic]");
     await expect(rootElement).toHaveAttribute("data-aesthetic", "noir");
@@ -115,16 +112,14 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.waitForSelector("button[aria-label='Select active profile']");
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Cyber Fixer" }).click();
+    await page.getByRole("button", { name: "Switch to Cyber Fixer" }).click();
 
-    // Wait for the debounced store persist to finish before reloading
-    await page.waitForTimeout(500);
+    // Wait for the aesthetic to actually be applied (confirms persist triggered)
+    const rootElement = page.locator("[data-aesthetic]");
+    await expect(rootElement).toHaveAttribute("data-aesthetic", "cyber-fixer");
 
     await page.reload();
     await page.waitForSelector('[data-testid="desk-layout"]');
-    const rootElement = page.locator("[data-aesthetic]");
     await expect(rootElement).toHaveAttribute("data-aesthetic", "cyber-fixer");
   });
 
@@ -219,11 +214,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
     await page.getByRole("button", { name: "Create New Profile" }).click();
-
-    // Close the dropdown so it doesn't intercept pointer events
-    await page.getByLabel("Select active profile").click();
 
     await page.getByPlaceholder("Profile name...").fill("Asset Upload Profile");
     await page.locator("select").selectOption("noir");
@@ -256,11 +247,7 @@ test.describe("Tier 1: Feature Coverage", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
     await page.getByRole("button", { name: "Create New Profile" }).click();
-
-    // Close the dropdown so it doesn't intercept pointer events
-    await page.getByLabel("Select active profile").click();
 
     await page.getByPlaceholder("Profile name...").fill("Music Upload Profile");
     await page.locator("select").selectOption("noir");
@@ -337,8 +324,7 @@ test.describe("Tier 1: Feature Coverage", () => {
 
     // Switch theme to cyber-fixer
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Cyber Fixer" }).click();
+    await page.getByRole("button", { name: "Switch to Cyber Fixer" }).click();
 
     // Trigger chat flow for kanban template
     const input = page.getByPlaceholder("Type your command...");
@@ -373,23 +359,24 @@ test.describe("Tier 2: Boundary & Corner Cases", () => {
   test("Test 5.2: Rapidly triggering theme changes does not crash UI", async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector('[data-testid="desk-layout"]');
+    // Switching to a built-in world auto-closes the lab (so the arrival
+    // cinematic plays on a clean desk), so reopen it before each switch and
+    // fire them in quick succession to stress the rapid-change path.
+    const root = page.locator("[data-aesthetic]");
+
     await page.getByLabel("Open theme customization lab").click();
+    await page.getByRole("button", { name: "Switch to Cyber Fixer" }).click();
+    await expect(root).toHaveAttribute("data-aesthetic", "cyber-fixer");
 
-    // Open selector
-    await page.getByLabel("Select active profile").click();
+    await page.getByLabel("Open theme customization lab").click();
+    await page.getByRole("button", { name: "Switch to Nostromo Console" }).click();
+    await expect(root).toHaveAttribute("data-aesthetic", "nostromo-console");
 
-    // Quickly click Cyber Fixer, then Nostromo Console, then Gothic Manor
-    await page.getByRole("option", { name: "Cyber Fixer" }).click();
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Nostromo Console" }).click();
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Gothic Manor" }).click();
+    await page.getByLabel("Open theme customization lab").click();
+    await page.getByRole("button", { name: "Switch to Gothic Manor" }).click();
 
     // UI should still be responsive and on Gothic Manor
-    await expect(page.locator("[data-aesthetic]")).toHaveAttribute(
-      "data-aesthetic",
-      "gothic-manor"
-    );
+    await expect(root).toHaveAttribute("data-aesthetic", "gothic-manor");
   });
 
   test("Test 5.3: Merges partial custom profiles correctly", async ({ page }) => {
@@ -529,11 +516,7 @@ test.describe("Tier 2: Boundary & Corner Cases", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
     await page.getByRole("button", { name: "Create New Profile" }).click();
-
-    // Close the dropdown so it doesn't intercept pointer events
-    await page.getByLabel("Select active profile").click();
 
     await page.getByPlaceholder("Profile name...").fill("Large File Profile");
     await page.locator("select").selectOption("noir");
@@ -559,11 +542,7 @@ test.describe("Tier 2: Boundary & Corner Cases", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
     await page.getByRole("button", { name: "Create New Profile" }).click();
-
-    // Close the dropdown so it doesn't intercept pointer events
-    await page.getByLabel("Select active profile").click();
 
     await page.getByPlaceholder("Profile name...").fill("Script Block Profile");
     await page.locator("select").selectOption("noir");
@@ -685,10 +664,9 @@ test.describe("Tier 3: Cross-Feature Combinations", () => {
 
     // Open Theme Customization lab
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
 
     // Select Gothic Manor
-    await page.getByRole("option", { name: "Gothic Manor" }).click();
+    await page.getByRole("button", { name: "Switch to Gothic Manor" }).click();
 
     // Verify active aesthetic is gothic-manor
     await expect(page.locator("[data-aesthetic]")).toHaveAttribute(
@@ -711,13 +689,9 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
 
     // Open Theme Customization lab
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
 
     // Create a new custom profile "Rainy Docks"
     await page.getByRole("button", { name: "Create New Profile" }).click();
-
-    // Close the dropdown so it doesn't intercept pointer events
-    await page.getByLabel("Select active profile").click();
 
     await page.getByPlaceholder("Profile name...").fill("Rainy Docks");
     await page.locator("select").selectOption("noir");
@@ -772,8 +746,7 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
 
     // Open Theme Customization lab and switch to Gothic Manor
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Gothic Manor" }).click();
+    await page.getByRole("button", { name: "Switch to Gothic Manor" }).click();
 
     // Search for suspect Kanban
     const input = page.getByPlaceholder("Type your command...");
@@ -793,8 +766,7 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
 
     // Switch to Nostromo Console
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Nostromo Console" }).click();
+    await page.getByRole("button", { name: "Switch to Nostromo Console" }).click();
 
     const input = page.getByPlaceholder("Type your command...");
     await input.fill("show a dashboard for system logs");
@@ -810,11 +782,7 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
     await page.waitForSelector('[data-testid="desk-layout"]');
 
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
     await page.getByRole("button", { name: "Create New Profile" }).click();
-
-    // Close the dropdown so it doesn't intercept pointer events
-    await page.getByLabel("Select active profile").click();
 
     await page.getByPlaceholder("Profile name...").fill("Recovery Profile");
     await page.locator("select").selectOption("gothic-manor");
@@ -832,8 +800,7 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
     });
     await expect(page.getByTestId("bg-image-error")).toBeVisible();
 
-    // Reload page, ensure Gothic Manor base still loads
-    await page.waitForTimeout(500);
+    // Reload page, ensure custom profile persisted and still loads
     await page.reload();
     await page.waitForSelector('[data-testid="desk-layout"]');
     await expect(page.locator("[data-custom-profile]")).toHaveAttribute(
@@ -843,8 +810,7 @@ test.describe("Tier 4: Real-World Application Scenarios", () => {
 
     // Switch back to Noir
     await page.getByLabel("Open theme customization lab").click();
-    await page.getByLabel("Select active profile").click();
-    await page.getByRole("option", { name: "Noir Detective" }).click();
+    await page.getByRole("button", { name: "Switch to Noir Detective" }).click();
     await expect(page.locator("[data-aesthetic]")).toHaveAttribute("data-aesthetic", "noir");
   });
 });

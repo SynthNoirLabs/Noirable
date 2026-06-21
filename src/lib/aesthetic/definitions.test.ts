@@ -10,6 +10,7 @@ const IDS: BuiltInAestheticId[] = [
   "cyber-fixer",
   "nostromo-console",
   "gothic-manor",
+  "grand-hotel",
 ];
 
 describe("AESTHETIC_DEFINITIONS", () => {
@@ -79,14 +80,29 @@ describe("AESTHETIC_DEFINITIONS", () => {
         "dictaphoneEmptyHint",
         "loadingImageLabel",
         "loadingStatus",
+        "logTitle",
+        "thinkingLines",
+        "chatEmptyLine",
+        "ttsUnavailableLine",
+        "dictaphoneEmpty",
+        "dictaphoneArchiveTitle",
+        "dictaphoneArchiveHint",
+        "dictaphoneArchiveSubhint",
+        "interrogationTitle",
+        "interrogationPlaceholder",
+        "interrogationRecordingLine",
+        "interrogationActionLine",
       ])
     );
+    // thinkingLines is the rotating loader copy — at least one in-character line.
+    expect(identity.copy.thinkingLines.length).toBeGreaterThanOrEqual(1);
+    expect(identity.copy.logTitle).toBeTruthy();
 
     // Bigger-bets identity layer: style tokens, effects, atmosphere, motion.
     expect(identity.styleTokens.radius).toBeTruthy();
     expect(["sharp", "soft", "beveled", "double"]).toContain(identity.styleTokens.borderStyle);
     expect(["uppercase", "titlecase", "normal"]).toContain(identity.styleTokens.headerCase);
-    expect(["paper", "parchment", "hologram", "wireframe", "flat"]).toContain(
+    expect(["paper", "parchment", "hologram", "wireframe", "flat", "gilded"]).toContain(
       identity.effects.card
     );
     expect(["wax", "digital", "blood", "none"]).toContain(identity.effects.stamp);
@@ -96,11 +112,11 @@ describe("AESTHETIC_DEFINITIONS", () => {
     expect(identity.atmosphere.vignetteIntensity).toBeGreaterThanOrEqual(0);
     expect(identity.atmosphere.vignetteIntensity).toBeLessThanOrEqual(1);
     expect(identity.atmosphere.lightningFrequency).toBeGreaterThanOrEqual(0);
-    expect(["cinematic", "crisp", "glitch", "terminal", "candle"]).toContain(
+    expect(["cinematic", "crisp", "glitch", "terminal", "candle", "waltz"]).toContain(
       identity.motion.entrance
     );
     expect(identity.motion.durationMs).toBeGreaterThan(0);
-    expect(["darkroom", "crisp", "scanline", "raster", "candle"]).toContain(
+    expect(["darkroom", "crisp", "scanline", "raster", "candle", "flashbulb"]).toContain(
       identity.motion.imageReveal
     );
 
@@ -146,6 +162,9 @@ describe("AESTHETIC_DEFINITIONS", () => {
         def.audio.ambient.crackle?.src,
       ].filter((s): s is string => Boolean(s));
       for (const src of srcs) {
+        // Generated foley (grand-hotel / AI worlds) is served by the lazy
+        // /api/sfx route, not a static file — nothing to assert on disk.
+        if (src.startsWith("/api/")) continue;
         const path = join(publicDir, src);
         expect(existsSync(path), `${id}: missing asset ${src}`).toBe(true);
       }

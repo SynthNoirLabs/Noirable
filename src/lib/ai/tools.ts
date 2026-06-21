@@ -1,8 +1,9 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { a2uiInputSchema, a2uiSchema } from "@/lib/protocol/schema";
+import { a2uiInputSchema, a2uiSchema, SUPPORTED_LEGACY_TYPE_LIST } from "@/lib/protocol/schema";
 import { resolveA2UIImagePrompts } from "@/lib/ai/images";
 import { isValidAestheticId } from "@/lib/aesthetic/registry";
+import { BUILT_IN_AESTHETIC_IDS } from "@/lib/aesthetic/types";
 import type { AestheticId } from "@/lib/aesthetic/types";
 
 /**
@@ -11,9 +12,9 @@ import type { AestheticId } from "@/lib/aesthetic/types";
  * noir/minimal.
  */
 const aestheticIdSchema = z
-  .enum(["noir", "minimal", "cyber-fixer", "nostromo-console", "gothic-manor"])
+  .enum(BUILT_IN_AESTHETIC_IDS)
   .describe(
-    "The aesthetic profile to switch to. 'noir' is a dark detective theme, 'minimal' is a clean light theme, 'cyber-fixer' is a neon cyberpunk theme, 'nostromo-console' is a retro green-phosphor terminal, 'gothic-manor' is a dark Victorian gothic theme."
+    "The aesthetic profile to switch to. 'noir' is a dark detective theme, 'minimal' is a clean light theme, 'cyber-fixer' is a neon cyberpunk theme, 'nostromo-console' is a retro green-phosphor terminal, 'gothic-manor' is a dark Victorian gothic theme, 'grand-hotel' is a 1920s art-deco grand hotel."
   );
 
 /**
@@ -66,14 +67,28 @@ export function createTools(
   return {
     generate_ui: tool({
       // The component tree is passed as a JSON STRING, not a structured object.
-      // The full `a2uiInputSchema` is a deep, 50-branch recursive discriminated
-      // union; converted to a tool/function-declaration JSON Schema it is complex
-      // enough that some models (notably Gemini) fail to fill it and emit garbage
-      // (a number, an empty object, or a stringified fragment). Asking for a single
-      // JSON string sidesteps that entirely — models reliably emit one string field
-      // — and we parse + validate server-side via `a2uiInputSchema`.
+      //
+      // This is NOT us out-engineering a flaw in A2UI. A2UI itself is
+      // "prompt-first" (v0.9+): it puts the schema/examples in the PROMPT as
+      // documentation and asks the model to emit free-text JSON that is validated
+      // AFTER generation — it never feeds the recursive schema into the provider's
+      // function-calling / constrained-decoding mechanism. Google moved off the
+      // structured-output approach (v0.8) for exactly this reason.
+      //
+      // We only hit a problem because we route generation through a FORCED tool
+      // call (to separate "here is the UI" from the detective's narration in one
+      // streamText pass). Our first cut set this tool's `inputSchema` to the full
+      // ~50-branch recursive `a2uiInputSchema`; the SDK compiled that to a Gemini
+      // function-declaration schema and tripped Gemini's documented "very large /
+      // deeply nested schema" limit, so the model emitted garbage (a number, an
+      // empty object, a stringified fragment). Taking a single JSON string and
+      // validating server-side puts us back on A2UI's own prompt-first pattern —
+      // the tool just guarantees UI is produced; it no longer constrains its shape.
       description:
-        'Submit a generated A2UI component tree for rendering. Pass `component` as a JSON string encoding a nested A2UI object: a root node with a `type` (one of: container, row, column, grid, card, tabs, heading, paragraph, text, callout, badge, divider, list, table, stat, image, video, input, textarea, select, checkbox, button) plus type-specific fields, and for layout types a `children` array of further nodes. For `image` and `video`, set their field to a short scene/shot DESCRIPTION (e.g. {"type":"image","prompt":"a rain-slicked alley mugshot"} or {"type":"video","prompt":"grainy security-cam footage of a figure crossing the alley"}); image is generated automatically, video renders as an on-demand "Generate footage" placeholder the user clicks (use video sparingly, only for genuine motion). Example: \'{"type":"card","title":"Suspect","description":"Wanted"}\'.',
+        `Submit a generated A2UI component tree for rendering. Pass \`component\` as a JSON string encoding a nested A2UI object: a root node with a \`type\` (one of: ${SUPPORTED_LEGACY_TYPE_LIST}) plus type-specific fields, and for layout types a \`children\` array of further nodes. ` +
+        'For `image` and `video`, set their field to a short scene/shot DESCRIPTION (e.g. {"type":"image","prompt":"a rain-slicked alley mugshot"} or {"type":"video","prompt":"grainy security-cam footage of a figure crossing the alley"}); image is generated automatically, video renders as an on-demand "Generate footage" placeholder the user clicks (use video sparingly, only for genuine motion). ' +
+        'For `kanbanBoard`, use {"type":"kanbanBoard","title":…,"columns":[{"title":"To Do","cards":[{"title":…,"description":…,"assignee":…,"tags":[…]}]}]}. For `dataDashboard`, use {"type":"dataDashboard","title":…,"widgets":[{"title":…,"type":"metric"|"progress"|"chart","value":…,"unit":…,"progress":0-100,"data":[{"label":…,"value":…}],"trend":{"value":…,"direction":"up"|"down"|"neutral"}}]}. ' +
+        'Example: \'{"type":"card","title":"Suspect","description":"Wanted"}\'.',
       inputSchema: z.object({
         component: z.string().describe("The A2UI component tree, encoded as a JSON string."),
       }),

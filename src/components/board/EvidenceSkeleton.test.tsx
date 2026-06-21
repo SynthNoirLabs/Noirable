@@ -6,7 +6,7 @@ describe("EvidenceSkeleton", () => {
   it("renders loading state correctly", () => {
     render(<EvidenceSkeleton />);
     expect(screen.getByText("Generating...")).toBeInTheDocument();
-    expect(screen.getByText("Compiling evidence")).toBeInTheDocument();
+    expect(screen.getByText(/Compiling evidence/)).toBeInTheDocument();
   });
 
   it("applies custom className", () => {

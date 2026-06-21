@@ -5,6 +5,16 @@
  */
 
 import { z } from "zod";
+import {
+  SUPPORTED_LEGACY_TYPES,
+  SUPPORTED_LEGACY_TYPE_LIST,
+  isBindingObject,
+} from "./legacy-constants";
+import { normalizeA2UI } from "./normalize";
+
+// Re-exported for back-compat: existing `@/lib/protocol/schema` imports of these
+// keep working after the constants/normalize split.
+export { SUPPORTED_LEGACY_TYPES, SUPPORTED_LEGACY_TYPE_LIST, isBindingObject, normalizeA2UI };
 
 const spacingToken = z.enum(["none", "xs", "sm", "md", "lg", "xl"]);
 const alignToken = z.enum(["start", "center", "end", "stretch"]);
@@ -21,31 +31,51 @@ export const styleSchema = z.object({
   className: z.string().optional(),
 });
 
+/**
+ * A DATA BINDING object: either a `{ path }` JSON-pointer binding or a
+ * `{ call, args? }` function-call. Display fields that may be bound to live
+ * state (Text content, Stat value) accept these so the renderer's resolver can
+ * read the current value — instead of `String()`-ing the object to the literal
+ * "[object Object]". Kept permissive (the resolver/guards do the real work).
+ */
+export const bindingObjectSchema = z.union([
+  z.object({ path: z.string() }).loose(),
+  z.object({ call: z.string() }).loose(),
+]);
+
+/** A display value that is either a plain string or a live data binding. */
+const dynamicStringField = z.union([z.string(), bindingObjectSchema]);
+
 export const textComponentSchema = z.object({
   type: z.literal("text"),
-  content: z.string(),
+  // Accept a plain string OR a `{ path }`/`functionCall` binding, so a Text can
+  // show live state (e.g. an airlock's `/status`). The renderer resolves it.
+  content: dynamicStringField,
   priority: priorityToken.default("normal"),
   style: styleSchema.optional(),
 });
 
 export const cardComponentSchema = z.object({
   type: z.literal("card"),
-  title: z.string(),
-  description: z.string().optional(),
+  // title/description flow through the adapter's emitText → Text, which resolves
+  // them — so a `{ path }`/functionCall binding renders live state.
+  title: dynamicStringField,
+  description: dynamicStringField.optional(),
   status: z.enum(["active", "archived", "missing", "redacted"]).default("active"),
   style: styleSchema.optional(),
 });
 
 const headingSchema = z.object({
   type: z.literal("heading"),
-  text: z.string(),
+  // Resolved downstream (adapter emitText → Text), so a binding shows live state.
+  text: dynamicStringField,
   level: z.number().int().min(1).max(4).default(2),
   style: styleSchema.optional(),
 });
 
 const paragraphSchema = z.object({
   type: z.literal("paragraph"),
-  text: z.string(),
+  text: dynamicStringField,
   style: styleSchema.optional(),
 });
 
@@ -97,8 +127,10 @@ const tableSchema = z.object({
 const statSchema = z.object({
   type: z.literal("stat"),
   label: z.string(),
-  value: z.string(),
-  helper: z.string().optional(),
+  // String or a live binding (so a Stat can read e.g. `/status`); resolved by
+  // the renderer rather than stringified to "[object Object]".
+  value: dynamicStringField,
+  helper: dynamicStringField.optional(),
   style: styleSchema.optional(),
 });
 
@@ -129,6 +161,10 @@ const videoSchema = z.object({
   type: z.literal("video"),
   src: z.string(),
   alt: z.string().optional(),
+  // `poster` is a preview-frame URL shown before a real (playable) clip plays —
+  // the A2UI v1.0 `Video.posterUrl` prop. Only meaningful for a `src` video; the
+  // on-demand "Generate footage" placeholder ignores it.
+  poster: z.string().optional(),
   style: styleSchema.optional(),
 });
 
@@ -138,6 +174,7 @@ const videoInputSchema = z
     src: z.string().optional(),
     prompt: z.string().optional(),
     alt: z.string().optional(),
+    poster: z.string().optional(),
     style: styleSchema.optional(),
   })
   .refine((value) => Boolean(value.src || value.prompt), {
@@ -151,7 +188,9 @@ const inputSchema = z.object({
   // `placeholder` is optional: models routinely omit it, and a missing
   // placeholder must not reject the whole form.
   placeholder: z.string().optional(),
-  value: z.string().optional(),
+  // String OR a live `{ path }` binding (two-way bound input — e.g. a bypass
+  // code typed into `/code`). The TextField renderer resolves + writes it.
+  value: dynamicStringField.optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
 });
@@ -161,7 +200,7 @@ const textareaSchema = z.object({
   name: z.string().optional(),
   label: z.string(),
   placeholder: z.string().optional(),
-  value: z.string().optional(),
+  value: dynamicStringField.optional(),
   rows: z.number().int().min(2).max(12).optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
@@ -172,7 +211,7 @@ const selectSchema = z.object({
   name: z.string().optional(),
   label: z.string(),
   options: z.array(z.string()).min(1),
-  value: z.string().optional(),
+  value: dynamicStringField.optional(),
   variant: variantToken.optional(),
   style: styleSchema.optional(),
 });
@@ -185,7 +224,13 @@ const sliderSchema = z.object({
   label: z.string().optional(),
   min: z.number().optional(),
   max: z.number().optional(),
-  value: z.union([z.number(), z.string()]).optional(),
+  // `step` snaps the slider to discrete intervals (the A2UI v1.0 `Slider.steps`
+  // prop). Omitted → the HTML range default of 1. Must be positive to be useful;
+  // the renderer ignores a non-positive value.
+  step: z.number().optional(),
+  // number/string OR a live binding (the renderer two-way-binds + setData). A
+  // bound slider tracks state instead of being dropped at validation.
+  value: z.union([z.number(), z.string(), bindingObjectSchema]).optional(),
   style: styleSchema.optional(),
 });
 
@@ -193,17 +238,201 @@ const checkboxSchema = z.object({
   type: z.literal("checkbox"),
   name: z.string().optional(),
   label: z.string(),
-  checked: z.boolean().optional(),
+  // Boolean OR a live `{ path }`/`functionCall` binding (a bound toggle). The
+  // CheckBox renderer resolves it; a literal boolean still works.
+  checked: z.union([z.boolean(), bindingObjectSchema]).optional(),
   style: styleSchema.optional(),
 });
 
+// Icon: a single semantic glyph (search, fingerprint→skull, lock, clock…). The
+// renderer maps a curated name set to lucide glyphs and falls back to a "help"
+// glyph for anything unknown, so a bad `name` degrades gracefully rather than
+// rejecting the tree. Use for affordances/evidence markers, not decoration.
+const iconComponentSchema = z.object({
+  type: z.literal("icon"),
+  // String or a live binding; the renderer does `String(resolve(name))` and
+  // falls back to a neutral glyph, so a binding is safe.
+  name: dynamicStringField,
+  size: z.enum(["small", "medium", "large"]).optional(),
+  style: styleSchema.optional(),
+});
+
+// DateTimeInput: a date and/or time picker (alibis, timelines, "when did you
+// last see them?"). `value`/`min`/`max` are ISO 8601 strings. Defaults to a
+// date-only picker when neither flag is set (the renderer's own fallback).
+const dateTimeInputSchema = z.object({
+  type: z.literal("dateTimeInput"),
+  label: z.string().optional(),
+  // ISO string OR a live binding (two-way bound date/time field) — resolved by
+  // the renderer, not dropped at validation.
+  value: dynamicStringField.optional(),
+  enableDate: z.boolean().optional(),
+  enableTime: z.boolean().optional(),
+  min: dynamicStringField.optional(),
+  max: dynamicStringField.optional(),
+  style: styleSchema.optional(),
+});
+
+// Reveal: a conditional wrapper (see RevealComponent). `when` is a free-form
+// Dynamic value (a `{ path }` binding or a `functionCall` predicate), so it's
+// typed loosely here and interpreted by the renderer's resolver. `children` use
+// the recursive output schema in `a2uiSchema`; the input variant re-binds them.
+const revealSchema = z.object({
+  type: z.literal("reveal"),
+  when: z.unknown(),
+  style: styleSchema.optional(),
+  children: z.array(z.lazy(() => a2uiSchema)),
+}) satisfies z.ZodType<RevealComponent>;
+
+// StateImage: a picture that swaps with a data value (see StateImageComponent).
+const stateImageStateSchema = z.object({
+  state: z.string(),
+  instruction: z.string(),
+});
+const stateImageSchema = z.object({
+  type: z.literal("stateImage"),
+  base: z.string(),
+  value: z.unknown(),
+  states: z.array(stateImageStateSchema),
+  alt: z.string().optional(),
+  style: styleSchema.optional(),
+}) satisfies z.ZodType<StateImageComponent>;
+
 const buttonActionToken = z.enum(["submit", "reset", "log"]);
+
+// A button's `action` can be:
+//   - a legacy form verb string ("submit" | "reset" | "log"), OR
+//   - a `{ functionCall }` (setValue/toggle/matchSet/openUrl) or `{ event }`
+//     object the renderer's runAction dispatches, OR
+//   - an ARRAY of those objects, run in sequence (validate THEN react).
+// The schema is permissive (`.loose()`) on the object form — runAction does the
+// real interpretation — so the model's reactive buttons aren't salvaged out.
+const buttonActionObject = z.union([
+  z.object({ functionCall: z.unknown() }).loose(),
+  z.object({ event: z.unknown() }).loose(),
+]);
+const buttonActionSchema = z.union([
+  buttonActionToken,
+  buttonActionObject,
+  z.array(buttonActionObject),
+]);
 
 const buttonSchema = z.object({
   type: z.literal("button"),
   label: z.string(),
-  action: buttonActionToken.optional(),
+  action: buttonActionSchema.optional(),
   variant: variantToken.optional(),
+  style: styleSchema.optional(),
+});
+
+// KanbanBoard / DataDashboard — the two template components the personas and
+// the COMPONENT PLAYBOOK steer the model toward. Previously they had no legacy
+// schema arm, so a model that obeyed its own prompt emitted a node the
+// discriminated union rejected and the board/dashboard silently vanished
+// (salvageChildren can't recurse into `columns`/`widgets`). These arms accept
+// the legacy-shaped node; the adapter passes the payload through to the
+// catalog renderers (KanbanBoardRenderer / DataDashboardRenderer).
+
+const kanbanCardSchema = z.object({
+  id: z.string().optional(),
+  title: z.string(),
+  description: z.string().optional(),
+  assignee: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+const kanbanColumnSchema = z.object({
+  id: z.string().optional(),
+  title: z.string(),
+  cards: z.array(kanbanCardSchema).default([]),
+});
+
+const kanbanBoardSchema = z.object({
+  type: z.literal("kanbanBoard"),
+  title: dynamicStringField.optional(),
+  columns: z.array(kanbanColumnSchema).default([]),
+  style: styleSchema.optional(),
+});
+
+const dashboardWidgetSchema = z.object({
+  id: z.string().optional(),
+  title: z.string(),
+  type: z.enum(["metric", "progress", "chart"]),
+  value: z.union([z.string(), z.number()]).optional(),
+  unit: z.string().optional(),
+  progress: z.number().optional(),
+  chartType: z.enum(["line", "bar", "pie"]).optional(),
+  data: z.array(z.object({ label: z.string(), value: z.number() })).optional(),
+  trend: z.object({ value: z.number(), direction: z.enum(["up", "down", "neutral"]) }).optional(),
+});
+
+const dataDashboardSchema = z.object({
+  type: z.literal("dataDashboard"),
+  title: dynamicStringField.optional(),
+  widgets: z.array(dashboardWidgetSchema).default([]),
+  style: styleSchema.optional(),
+});
+
+// Audio statement — a witness statement / voice log carried as a SCRIPT. The
+// renderer offers a "play statement" affordance that reads the script through
+// the TTS pipeline in a per-speaker voice variation (witness statements). A
+// real `src` url plays directly instead.
+const audioStatementSchema = z
+  .object({
+    type: z.literal("audio"),
+    /** The spoken script (free text); rendered on demand through TTS. */
+    script: z.string().optional(),
+    /** A real audio url — plays directly when present. */
+    src: z.string().optional(),
+    /** Label above the player, e.g. "Witness statement — M. Doyle". */
+    description: dynamicStringField.optional(),
+    /** Speaker name — deterministically varies the voice per character. */
+    speaker: dynamicStringField.optional(),
+    style: styleSchema.optional(),
+  })
+  .refine((value) => Boolean(value.script || value.src), {
+    message: "Audio requires either script or src",
+  });
+
+// RelationshipGraph — the "suspect web" / conspiracy-board: people, places, and
+// clues (nodes) wired together by typed red-string edges (alibi/motive/etc).
+// The signature noir investigation visual. The renderer lays the nodes out
+// deterministically and draws sagging red-string edges (CaseYarn aesthetic).
+
+const graphNodeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  kind: z.enum(["suspect", "victim", "location", "clue", "witness"]).optional(),
+  detail: z.string().optional(),
+});
+
+const graphEdgeSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  label: z.string().optional(),
+  kind: z.enum(["alibi", "motive", "connection", "witnessed"]).optional(),
+});
+
+const relationshipGraphSchema = z.object({
+  type: z.literal("relationshipGraph"),
+  title: dynamicStringField.optional(),
+  nodes: z.array(graphNodeSchema).default([]),
+  edges: z.array(graphEdgeSchema).default([]),
+  style: styleSchema.optional(),
+});
+
+// Custom component — the catalog ESCAPE HATCH: a complete, self-contained
+// React component (default export, Tailwind classes) rendered inside the
+// eject pipeline's Sandpack sandbox (a real iframe boundary). For requests the
+// catalog genuinely can't express: canvas animations, custom visualizations,
+// tiny games. The playbook tells the model to use it sparingly.
+const customComponentSchema = z.object({
+  type: z.literal("custom"),
+  /** Complete React component module source; must default-export a component. */
+  code: z.string().min(20).max(8000),
+  title: z.string().optional(),
+  /** Sandbox height in px (defaults to 360 in the renderer). */
+  height: z.number().int().min(120).max(900).optional(),
   style: styleSchema.optional(),
 });
 
@@ -229,7 +458,16 @@ type TextareaComponent = z.infer<typeof textareaSchema>;
 type SelectComponent = z.infer<typeof selectSchema>;
 type SliderComponent = z.infer<typeof sliderSchema>;
 type CheckboxComponent = z.infer<typeof checkboxSchema>;
+type IconComponent = z.infer<typeof iconComponentSchema>;
+type DateTimeInputComponent = z.infer<typeof dateTimeInputSchema>;
+// RevealComponent / StateImageComponent are declared as TS types above (the zod
+// schemas `satisfies` them); they need no `z.infer` alias.
 type ButtonComponent = z.infer<typeof buttonSchema>;
+type KanbanBoardComponent = z.infer<typeof kanbanBoardSchema>;
+type DataDashboardComponent = z.infer<typeof dataDashboardSchema>;
+type RelationshipGraphComponent = z.infer<typeof relationshipGraphSchema>;
+type AudioStatementComponent = z.infer<typeof audioStatementSchema>;
+type CustomComponent = z.infer<typeof customComponentSchema>;
 
 type ContainerComponent = {
   type: "container";
@@ -254,6 +492,32 @@ type GridComponent = {
   columns?: "2" | "3" | "4";
   style?: Style;
   children: A2UIComponent[];
+};
+
+// Reveal: a conditional wrapper. Its children render only when `when` is truthy
+// against the live data model. `when` is a Dynamic value — a `{ path }` binding
+// (shows when that path is truthy) or a `functionCall` predicate
+// (`{ call: "eq", args: { a: { path: "/code" }, b: "937-ALPHA" } }`). This is the
+// generic gate/branch/"reveal-on-state" primitive for interactive surfaces.
+type RevealComponent = {
+  type: "reveal";
+  when: unknown;
+  style?: Style;
+  children: A2UIComponent[];
+};
+
+// StateImage: an image whose picture changes with a data-model value. `base` is
+// the initial scene's prompt/url; `states` map a string state value (read from
+// `value`'s path) to an EDIT instruction applied to the base ("the blast door is
+// now open"). The renderer caches each state's generated url, so flipping back
+// to a seen state is instant (no re-generation).
+type StateImageComponent = {
+  type: "stateImage";
+  base: string;
+  value: unknown;
+  states: { state: string; instruction: string }[];
+  alt?: string;
+  style?: Style;
 };
 
 type TabsComponent = {
@@ -286,7 +550,16 @@ export type A2UIComponent =
   | SelectComponent
   | SliderComponent
   | CheckboxComponent
-  | ButtonComponent;
+  | IconComponent
+  | DateTimeInputComponent
+  | RevealComponent
+  | StateImageComponent
+  | ButtonComponent
+  | KanbanBoardComponent
+  | DataDashboardComponent
+  | RelationshipGraphComponent
+  | AudioStatementComponent
+  | CustomComponent;
 
 const containerSchema = z.object({
   type: z.literal("container"),
@@ -351,284 +624,17 @@ export const a2uiSchema = z.discriminatedUnion("type", [
   selectSchema,
   sliderSchema,
   checkboxSchema,
+  iconComponentSchema,
+  dateTimeInputSchema,
+  revealSchema,
+  stateImageSchema,
   buttonSchema,
+  kanbanBoardSchema,
+  dataDashboardSchema,
+  relationshipGraphSchema,
+  audioStatementSchema,
+  customComponentSchema,
 ]) as z.ZodType<A2UIComponent>;
-
-/**
- * Coerce a single table row to a string[]. Models emit rows as a cell array, an
- * object keyed by column name (or any object), or a scalar. An object row is
- * mapped into `columnNames` order when those keys exist; otherwise its values
- * are used in insertion order. This prevents the "[object Object]" cells that
- * appear when an object row is naively String()-ed.
- */
-function coerceTableRow(row: unknown, columnNames: string[]): string[] {
-  if (Array.isArray(row)) {
-    return row.map((c) => (c == null ? "" : String(c)));
-  }
-  if (row && typeof row === "object") {
-    const obj = row as Record<string, unknown>;
-    // Prefer column-name lookup so cells land in the right column. Match keys
-    // loosely — lowercased with non-alphanumerics stripped — so "Last Seen"
-    // (column) lines up with `lastSeen`/`last_seen` (object key).
-    const loose = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const looseKeys = new Map(Object.keys(obj).map((k) => [loose(k), k]));
-    const matched = columnNames.length > 0 && columnNames.some((c) => looseKeys.has(loose(c)));
-    if (matched) {
-      return columnNames.map((c) => {
-        const key = looseKeys.get(loose(c));
-        const v = key ? obj[key] : undefined;
-        return v == null ? "" : String(v);
-      });
-    }
-    return Object.values(obj).map((v) => (v == null ? "" : String(v)));
-  }
-  return [row == null ? "" : String(row)];
-}
-
-export function normalizeA2UI(input: unknown): unknown {
-  if (Array.isArray(input)) {
-    return input.map((entry) => normalizeA2UI(entry));
-  }
-
-  if (typeof input !== "object" || input === null) {
-    return input;
-  }
-
-  const node = input as Record<string, unknown>;
-  const type = node.type;
-  let normalized = { ...node };
-
-  if (
-    (type === "text" || type === "callout") &&
-    typeof normalized.content !== "string" &&
-    typeof normalized.text === "string"
-  ) {
-    normalized = { ...normalized, content: normalized.text };
-  }
-
-  // Models often emit `card` as a generic container with a `children` array
-  // (sometimes alongside a title/description). The legacy `card` has no
-  // `children` field and only renders title/description, which would drop the
-  // nested content. Reinterpret any card-with-children as a `container`, lifting
-  // a title/description into leading heading + text nodes so nothing is lost.
-  if (type === "card" && Array.isArray(normalized.children)) {
-    const lead: Record<string, unknown>[] = [];
-    if (typeof normalized.title === "string") {
-      lead.push({ type: "heading", text: normalized.title, level: 3 });
-    }
-    if (typeof normalized.description === "string") {
-      lead.push({ type: "paragraph", text: normalized.description });
-    }
-    const rest = { ...normalized };
-    delete (rest as Record<string, unknown>).title;
-    delete (rest as Record<string, unknown>).description;
-    delete (rest as Record<string, unknown>).status;
-    normalized = {
-      ...rest,
-      type: "container",
-      children: [...lead, ...(normalized.children as unknown[])],
-    };
-  }
-
-  // Clamp `variant` to the supported token set. Models invent values like
-  // "warning", "success", "info", "error" — map the common ones to the nearest
-  // supported token and drop anything else so one stray value doesn't fail the
-  // whole tree.
-  if (typeof normalized.variant === "string") {
-    const VARIANTS = new Set(["primary", "secondary", "ghost", "danger"]);
-    if (!VARIANTS.has(normalized.variant)) {
-      const VARIANT_ALIASES: Record<string, string> = {
-        warning: "danger",
-        error: "danger",
-        destructive: "danger",
-        critical: "danger",
-        success: "secondary",
-        info: "secondary",
-        muted: "ghost",
-        outline: "ghost",
-        default: "primary",
-      };
-      const mapped = VARIANT_ALIASES[normalized.variant.toLowerCase()];
-      if (mapped) {
-        normalized = { ...normalized, variant: mapped };
-      } else {
-        const next = { ...normalized };
-        delete (next as Record<string, unknown>).variant;
-        normalized = next;
-      }
-    }
-  }
-
-  // Grid: models use `cols` instead of `columns`, and/or a number instead of the
-  // "2"|"3"|"4" string enum. Coerce both, clamp to range, and ensure children.
-  if (type === "grid") {
-    const rawCols = normalized.columns ?? normalized.cols;
-    const next = { ...normalized };
-    delete (next as Record<string, unknown>).cols;
-    if (rawCols !== undefined) {
-      const n = Math.min(4, Math.max(2, Number(rawCols) || 2));
-      next.columns = String(n);
-    }
-    if (!Array.isArray(next.children)) {
-      next.children = [];
-    }
-    normalized = next;
-  }
-
-  // Layout/container types require a `children` array; default to empty if the
-  // model omitted it so a childless container doesn't fail the whole tree.
-  if (
-    (type === "container" || type === "row" || type === "column") &&
-    !Array.isArray(normalized.children)
-  ) {
-    normalized = { ...normalized, children: [] };
-  }
-
-  // Table: models frequently name the columns `headers` (or `header`) instead of
-  // `columns`, and may omit `rows`. Coerce to the required shape so one synonym
-  // doesn't reject the whole tree.
-  if (type === "table") {
-    const cols = normalized.columns ?? normalized.headers ?? normalized.header;
-    const next = { ...normalized };
-    delete (next as Record<string, unknown>).headers;
-    delete (next as Record<string, unknown>).header;
-    const columnNames = Array.isArray(cols) ? cols.map(String) : [];
-    next.columns = columnNames;
-    // Rows come in three shapes from models: an array of cell arrays, an array
-    // of objects keyed by column name (→ map into column order so they don't
-    // stringify to "[object Object]"), or a scalar. Coerce all to string[].
-    next.rows = Array.isArray(normalized.rows)
-      ? (normalized.rows as unknown[]).map((r) => coerceTableRow(r, columnNames))
-      : [];
-    normalized = next;
-  }
-
-  // Types that require a string `label` — default to "" (or lift `text`/`content`)
-  // when the model omits it, so one bare node doesn't fail the whole tree.
-  const LABEL_REQUIRED = new Set([
-    "badge",
-    "stat",
-    "input",
-    "textarea",
-    "select",
-    "checkbox",
-    "button",
-  ]);
-  if (
-    typeof type === "string" &&
-    LABEL_REQUIRED.has(type) &&
-    typeof normalized.label !== "string"
-  ) {
-    const lifted =
-      typeof normalized.text === "string"
-        ? normalized.text
-        : typeof normalized.content === "string"
-          ? normalized.content
-          : "";
-    normalized = { ...normalized, label: lifted };
-  }
-
-  // `select` requires a non-empty `options` string array.
-  if (type === "select" && !Array.isArray(normalized.options)) {
-    normalized = { ...normalized, options: [] };
-  }
-  if (type === "select" && Array.isArray(normalized.options) && normalized.options.length === 0) {
-    normalized = { ...normalized, options: ["Option"] };
-  }
-
-  // `stat` also requires a string `value`.
-  if (type === "stat" && typeof normalized.value !== "string") {
-    normalized = {
-      ...normalized,
-      value:
-        normalized.value === undefined || normalized.value === null ? "" : String(normalized.value),
-    };
-  }
-
-  if (type === "badge" && typeof normalized.label !== "string") {
-    const badgeLabel =
-      typeof normalized.text === "string"
-        ? normalized.text
-        : typeof normalized.content === "string"
-          ? normalized.content
-          : undefined;
-    if (badgeLabel) {
-      normalized = { ...normalized, label: badgeLabel };
-      delete (normalized as Record<string, unknown>).text;
-      delete (normalized as Record<string, unknown>).content;
-    }
-  }
-
-  if (type === "image") {
-    const altFallback =
-      typeof normalized.alt === "string"
-        ? normalized.alt
-        : typeof normalized.prompt === "string"
-          ? normalized.prompt
-          : "Generated image";
-    normalized = { ...normalized, alt: altFallback };
-  }
-
-  // Video: unlike images (whose prompt is resolved into a real src), a video's
-  // prompt is kept as the `src` text on purpose — the renderer treats a non-URL
-  // src as the on-demand "Generate footage" seed. So coalesce prompt → src when
-  // only a prompt was given, and supply an alt fallback for accessibility.
-  if (type === "video") {
-    const src =
-      typeof normalized.src === "string" && normalized.src
-        ? normalized.src
-        : typeof normalized.prompt === "string"
-          ? normalized.prompt
-          : "";
-    const altFallback =
-      typeof normalized.alt === "string"
-        ? normalized.alt
-        : typeof normalized.prompt === "string"
-          ? normalized.prompt
-          : "Generated footage";
-    normalized = { ...normalized, src, alt: altFallback };
-  }
-
-  if (Array.isArray(normalized.children)) {
-    normalized = {
-      ...normalized,
-      children: normalized.children.map((child) => normalizeA2UI(child)),
-    };
-  }
-
-  if (type === "tabs" && Array.isArray(normalized.tabs)) {
-    normalized = {
-      ...normalized,
-      tabs: normalized.tabs.map((tab, i) => {
-        if (typeof tab !== "object" || tab === null) return tab;
-        const tabObj = tab as Record<string, unknown>;
-
-        // Each tab must be { label: string, content: A2UIComponent }. Models use
-        // many shapes: a `children` array, a `panel`/`body` alias, or just a
-        // label with the content omitted entirely. Coerce all of them, and drop
-        // stray fields like `id` that the tab schema doesn't allow.
-        const label =
-          typeof tabObj.label === "string"
-            ? tabObj.label
-            : typeof tabObj.title === "string"
-              ? tabObj.title
-              : `Tab ${i + 1}`;
-
-        let content = tabObj.content ?? tabObj.panel ?? tabObj.body;
-        if (content === undefined && Array.isArray(tabObj.children)) {
-          content = { type: "container", children: tabObj.children };
-        }
-        if (content === undefined || content === null) {
-          content = { type: "container", children: [] };
-        }
-
-        return { label, content: normalizeA2UI(content) };
-      }),
-    };
-  }
-
-  return normalized;
-}
 
 type ContainerInputComponent = Omit<ContainerComponent, "children"> & {
   children: A2UIInput[];
@@ -658,6 +664,10 @@ type ModalInputComponent = {
   style?: Style;
 };
 
+type RevealInputComponent = Omit<RevealComponent, "children"> & {
+  children: A2UIInput[];
+};
+
 export type A2UIInput =
   | TextComponent
   | CardComponent
@@ -682,7 +692,16 @@ export type A2UIInput =
   | SelectComponent
   | SliderComponent
   | CheckboxComponent
-  | ButtonComponent;
+  | IconComponent
+  | DateTimeInputComponent
+  | RevealInputComponent
+  | StateImageComponent
+  | ButtonComponent
+  | KanbanBoardComponent
+  | DataDashboardComponent
+  | RelationshipGraphComponent
+  | AudioStatementComponent
+  | CustomComponent;
 
 const containerInputSchema = containerSchema.extend({
   children: z.array(z.lazy(() => a2uiInputSchema)),
@@ -716,6 +735,12 @@ const modalInputSchema = modalSchema.extend({
   content: z.lazy(() => a2uiInputSchema),
 }) satisfies z.ZodType<ModalInputComponent>;
 
+// Reveal's children resolve against the INPUT schema (so nested image prompts,
+// tabs, etc. are normalized the same as anywhere else).
+const revealInputSchema = revealSchema.extend({
+  children: z.array(z.lazy(() => a2uiInputSchema)),
+}) satisfies z.ZodType<RevealInputComponent>;
+
 export const a2uiInputSchema = z.preprocess(
   normalizeA2UI,
   z.discriminatedUnion("type", [
@@ -742,6 +767,15 @@ export const a2uiInputSchema = z.preprocess(
     selectSchema,
     sliderSchema,
     checkboxSchema,
+    iconComponentSchema,
+    dateTimeInputSchema,
+    revealInputSchema,
+    stateImageSchema,
     buttonSchema,
+    kanbanBoardSchema,
+    dataDashboardSchema,
+    relationshipGraphSchema,
+    audioStatementSchema,
+    customComponentSchema,
   ])
 ) as z.ZodType<A2UIInput>;

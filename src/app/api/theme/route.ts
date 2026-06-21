@@ -4,15 +4,10 @@ import { NextRequest } from "next/server";
 import { getProviderWithOverrides, type ModelOverride } from "@/lib/ai/factory";
 import { generateTheme } from "@/lib/ai/theme-generator";
 import { apiSecurityCheck } from "@/lib/api/security";
+import { BUILT_IN_AESTHETIC_IDS } from "@/lib/aesthetic/types";
 import type { BuiltInAestheticId } from "@/lib/aesthetic/types";
 
-const BASE_AESTHETIC_IDS: readonly BuiltInAestheticId[] = [
-  "noir",
-  "minimal",
-  "cyber-fixer",
-  "nostromo-console",
-  "gothic-manor",
-];
+const BASE_AESTHETIC_IDS: readonly BuiltInAestheticId[] = BUILT_IN_AESTHETIC_IDS;
 
 /**
  * Request body for the theme-generation endpoint. `prompt` is the free-text

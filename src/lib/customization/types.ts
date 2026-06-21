@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BUILT_IN_AESTHETIC_IDS } from "@/lib/aesthetic/types";
 import type { CustomProfileId } from "@/lib/aesthetic/types";
 
 /**
@@ -97,12 +98,26 @@ export const profileEffectsSchema = z.object({
 });
 export type ProfileEffects = z.infer<typeof profileEffectsSchema>;
 
+// Ambient atmosphere overrides — lets a custom/AI-generated world own its
+// weather instead of inheriting the base preset's (a "sunken cathedral" no
+// longer gets noir-blue rain). Particle TYPE switches the overlay component
+// (NoirEffects); the colors ride the --aesthetic-particle/lightning-color CSS
+// vars the overlays already read.
+export const profileAtmosphereSchema = z.object({
+  particle: z.enum(["rain", "fog", "grain", "ember", "none"]).optional(),
+  /** Secondary fog haze under the dominant particle. */
+  fog: z.boolean().optional(),
+  particleColor: z.string().max(50).optional(),
+  lightningColor: z.string().max(50).optional(),
+});
+export type ProfileAtmosphere = z.infer<typeof profileAtmosphereSchema>;
+
 // Complete custom profile
 export const customProfileSchema = z.object({
   id: z.custom<CustomProfileId>((val) => typeof val === "string" && val.startsWith("custom-")),
   name: z.string().min(1).max(50),
   description: z.string().max(200).optional(),
-  baseAestheticId: z.enum(["noir", "minimal", "cyber-fixer", "nostromo-console", "gothic-manor"]), // Which built-in to extend
+  baseAestheticId: z.enum(BUILT_IN_AESTHETIC_IDS), // Which built-in to extend
   createdAt: z.number(),
   updatedAt: z.number(),
   // Customization overrides
@@ -111,6 +126,7 @@ export const customProfileSchema = z.object({
   audio: profileAudioSchema.optional(),
   voice: profileVoiceSchema.optional(),
   effects: profileEffectsSchema.optional(),
+  atmosphere: profileAtmosphereSchema.optional(),
   imageStylePrompt: z.string().max(500).optional(),
   systemPrompt: z.string().max(3000).optional(),
   backgroundImageUrl: mediaUrlSchema.optional(),

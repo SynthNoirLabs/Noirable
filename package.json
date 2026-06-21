@@ -6,9 +6,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "next dev --webpack",
-    "dev:lowmem": "RAYON_NUM_THREADS=1 SWC_THREADS=1 next dev --webpack",
-    "dev:turbo": "next dev --turbo",
+    "dev": "tsx scripts/dev-timestamps.ts --webpack",
+    "dev:raw": "next dev --webpack",
+    "dev:lowmem": "RAYON_NUM_THREADS=1 SWC_THREADS=1 tsx scripts/dev-timestamps.ts --webpack",
+    "dev:turbo": "tsx scripts/dev-timestamps.ts --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -31,6 +32,7 @@
     "@ai-sdk/google": "^3.0.10",
     "@ai-sdk/openai": "^3.0.12",
     "@codesandbox/sandpack-react": "^2.20.0",
+    "@google/genai": "^2.8.0",
     "@tailwindcss/postcss": "^4",
     "ai": "6.0.41",
     "clsx": "^2.1.1",

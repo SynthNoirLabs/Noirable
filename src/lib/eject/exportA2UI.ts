@@ -38,6 +38,17 @@ function jsxString(value: string): string {
 }
 
 /**
+ * A display field (Text content / Stat value) may now be a string OR a live
+ * `{ path }`/`functionCall` data binding. Ejected code is a STANDALONE static
+ * component with no surface data model, so a binding has nothing to resolve
+ * against — export it as an empty string rather than the literal "[object
+ * Object]". Plain strings pass through unchanged.
+ */
+function staticText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+/**
  * Mutable allocators threaded through the render so each stateful node (tabs,
  * modal) gets its own React state variable instead of sharing one.
  */
@@ -74,15 +85,15 @@ function renderNodeUnsafe(node: A2UIInput, depth: number = 0, ctx: RenderContext
       const baseClass = "px-4 py-2 bg-zinc-900/35 border border-zinc-700/40 rounded-sm shadow-lg";
       return `${ind}<p className={${jsxString(
         buildClassList([baseClass, priorityClass])
-      )}}>{${jsxString(node.content)}}</p>`;
+      )}}>{${jsxString(staticText(node.content))}}</p>`;
     }
 
     case "card": {
       const statusClass = statusClasses[node.status] || "";
       const baseClass = "border bg-zinc-900/50 p-4 rounded-sm shadow-lg max-w-md";
       return `${ind}<div className={${jsxString(buildClassList([baseClass, statusClass]))}}>
-${indChild}<h3 className="font-bold text-lg text-zinc-100 mb-2">{${jsxString(node.title)}}</h3>
-${node.description ? `${indChild}<p className="text-zinc-400 text-sm">{${jsxString(node.description)}}</p>\n` : ""}${ind}</div>`;
+${indChild}<h3 className="font-bold text-lg text-zinc-100 mb-2">{${jsxString(staticText(node.title))}}</h3>
+${staticText(node.description) ? `${indChild}<p className="text-zinc-400 text-sm">{${jsxString(staticText(node.description))}}</p>\n` : ""}${ind}</div>`;
     }
 
     case "container": {
@@ -128,7 +139,7 @@ ${ind}</div>`;
         level === 1 ? "text-3xl" : level === 2 ? "text-2xl" : level === 3 ? "text-xl" : "text-lg";
       const classes = buildClassList(["font-bold text-zinc-100", sizeClass, node.style?.className]);
       return `${ind}<h${level} className={${jsxString(classes)}}>{${jsxString(
-        node.text
+        staticText(node.text)
       )}}</h${level}>`;
     }
 
@@ -137,7 +148,7 @@ ${ind}</div>`;
         "text-sm leading-relaxed text-zinc-400",
         node.style?.className,
       ]);
-      return `${ind}<p className={${jsxString(classes)}}>{${jsxString(node.text)}}</p>`;
+      return `${ind}<p className={${jsxString(classes)}}>{${jsxString(staticText(node.text))}}</p>`;
     }
 
     case "callout": {
@@ -250,8 +261,8 @@ ${ind}</div>`;
 ${indChild}<div className="text-xs uppercase tracking-widest text-zinc-500">{${jsxString(
         node.label
       )}}</div>
-${indChild}<div className="text-2xl text-zinc-100 font-bold mt-2">{${jsxString(node.value)}}</div>
-${node.helper ? `${indChild}<div className="text-xs text-zinc-500 mt-1">{${jsxString(node.helper)}}</div>\n` : ""}${ind}</div>`;
+${indChild}<div className="text-2xl text-zinc-100 font-bold mt-2">{${jsxString(staticText(node.value))}}</div>
+${staticText(node.helper) ? `${indChild}<div className="text-xs text-zinc-500 mt-1">{${jsxString(staticText(node.helper))}}</div>\n` : ""}${ind}</div>`;
     }
 
     case "tabs": {
@@ -351,7 +362,11 @@ ${ind}</div>`;
           ])
         )}}>{${jsxString(`▶ ${label} (generate footage)`)}}</div>`;
       }
-      return `${ind}<video src={${jsxString(src)}} controls aria-label={${jsxString(
+      const posterAttr =
+        node.poster && /^(https?:|\/|data:)/.test(node.poster)
+          ? ` poster={${jsxString(node.poster)}}`
+          : "";
+      return `${ind}<video src={${jsxString(src)}} controls${posterAttr} aria-label={${jsxString(
         label
       )}} className={${jsxString(classes)}} />`;
     }
@@ -370,7 +385,7 @@ ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}
 ${indChild}<input
 ${indChild}  name={${jsxString(inputName)}}
 ${indChild}  placeholder={${jsxString(node.placeholder ?? "")}}
-${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
+${indChild}  ${staticText(node.value) ? `defaultValue={${jsxString(staticText(node.value))}}` : ""}
 ${indChild}  className={${jsxString(inputClasses)}}
 ${indChild}/>
 ${ind}</label>`;
@@ -390,7 +405,7 @@ ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}
 ${indChild}<textarea
 ${indChild}  name={${jsxString(textareaName)}}
 ${indChild}  placeholder={${jsxString(node.placeholder ?? "")}}
-${indChild}  ${node.value ? `defaultValue={${jsxString(node.value)}}` : ""}
+${indChild}  ${staticText(node.value) ? `defaultValue={${jsxString(staticText(node.value))}}` : ""}
 ${indChild}  rows={${node.rows ?? 3}}
 ${indChild}  className={${jsxString(textareaClasses)}}
 ${indChild}/>
@@ -413,7 +428,7 @@ ${ind}</label>`;
 ${indChild}<span className="font-medium text-zinc-400">{${jsxString(node.label)}}</span>
 ${indChild}<select
 ${indChild}  name={${jsxString(selectName)}}
-${indChild}  defaultValue={${jsxString(node.value ?? node.options[0])}}
+${indChild}  defaultValue={${jsxString(staticText(node.value) || node.options[0])}}
 ${indChild}  className={${jsxString(selectClasses)}}
 ${indChild}>
 ${options}
@@ -428,7 +443,7 @@ ${ind}</label>`;
       )}}>
 ${indChild}<input type="checkbox" name={${jsxString(
         checkboxName
-      )}} ${node.checked ? "defaultChecked" : ""} className="accent-amber-500" />
+      )}} ${node.checked === true ? "defaultChecked" : ""} className="accent-amber-500" />
 ${indChild}<span className="text-zinc-400">{${jsxString(node.label)}}</span>
 ${ind}</label>`;
     }
@@ -464,6 +479,66 @@ ${indChild}  defaultValue={${typeof def === "number" ? def : jsxString(String(de
 ${indChild}  className="w-full accent-amber-500"
 ${indChild}/>
 ${ind}</label>`;
+    }
+
+    case "icon": {
+      // The live renderer maps names to lucide glyphs, but ejected code carries
+      // no icon library (React-only, no external imports). Emit a small labelled
+      // marker so the export is self-contained and self-explanatory.
+      const sizeClass =
+        node.size === "large" ? "w-7 h-7" : node.size === "small" ? "w-4 h-4" : "w-5 h-5";
+      // A bound icon name has no value in static export; fall back to a generic
+      // "icon" label so the marker is still self-explanatory.
+      const iconName = staticText(node.name) || "icon";
+      return `${ind}<span role="img" aria-label={${jsxString(iconName)}} title={${jsxString(
+        iconName
+      )}} className={${jsxString(
+        buildClassList([
+          `inline-flex items-center justify-center ${sizeClass} rounded-sm border border-zinc-700/40 text-[9px] uppercase text-amber-500/80`,
+          node.style?.className,
+        ])
+      )}}>{${jsxString(iconName.slice(0, 2))}}</span>`;
+    }
+
+    case "dateTimeInput": {
+      const inputType =
+        node.enableDate && node.enableTime
+          ? "datetime-local"
+          : node.enableTime && !node.enableDate
+            ? "time"
+            : "date";
+      const label = node.label;
+      const dateInput = `<input type="${inputType}"${
+        staticText(node.value) ? ` defaultValue={${jsxString(staticText(node.value))}}` : ""
+      }${staticText(node.min) ? ` min={${jsxString(staticText(node.min))}}` : ""}${
+        staticText(node.max) ? ` max={${jsxString(staticText(node.max))}}` : ""
+      } className="bg-transparent border border-zinc-700/30 rounded-sm px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-amber-500 [color-scheme:dark]" />`;
+      if (!label) return `${ind}${dateInput}`;
+      return `${ind}<label className="flex flex-col gap-1 text-xs">
+${indChild}<span className="font-medium text-zinc-400">{${jsxString(label)}}</span>
+${indChild}${dateInput}
+${ind}</label>`;
+    }
+
+    case "reveal": {
+      // A reveal gates its children on live state, which a static export has no
+      // data model for. Export the children INLINE (always visible) rather than
+      // dropping the whole payload — the content is the point; the gating isn't
+      // expressible without a runtime.
+      const children = node.children.map((child) => renderNode(child, depth + 1, ctx)).join("\n");
+      return `${ind}<div className="flex flex-col gap-3">\n${children}\n${ind}</div>`;
+    }
+
+    case "stateImage": {
+      // The base scene is the only state a static export can show (the per-state
+      // edits are generated on demand at runtime). Emit the base as a plain
+      // image, or a labelled stub if the base never resolved to a real url.
+      const base = typeof node.base === "string" ? node.base : "";
+      const alt = node.alt || "Image";
+      if (!base || !/^(https?:|\/|data:)/.test(base)) {
+        return `${ind}<div className="rounded-sm border border-zinc-700/40 bg-zinc-900/50 p-4 text-center text-xs text-zinc-500">{${jsxString(`▶ ${alt}`)}}</div>`;
+      }
+      return `${ind}<img src={${jsxString(base)}} alt={${jsxString(alt)}} className="rounded-sm w-full" />`;
     }
 
     default:

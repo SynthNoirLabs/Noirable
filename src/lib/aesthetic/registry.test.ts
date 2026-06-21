@@ -16,6 +16,7 @@ describe("AESTHETIC_REGISTRY", () => {
       "cyber-fixer",
       "nostromo-console",
       "gothic-manor",
+      "grand-hotel",
     ]);
   });
 
@@ -113,7 +114,8 @@ describe("getAvailableAesthetics", () => {
     expect(ids).toContain("cyber-fixer");
     expect(ids).toContain("nostromo-console");
     expect(ids).toContain("gothic-manor");
-    expect(ids).toHaveLength(5);
+    expect(ids).toContain("grand-hotel");
+    expect(ids).toHaveLength(6);
   });
 });
 
@@ -122,7 +124,7 @@ describe("getAllAestheticProfiles", () => {
     const { getAllAestheticProfiles } = await import("./registry");
 
     const profiles = getAllAestheticProfiles();
-    expect(profiles).toHaveLength(5);
+    expect(profiles).toHaveLength(6);
     expect(profiles.map((p) => p.id)).toContain("noir");
     expect(profiles.map((p) => p.id)).toContain("minimal");
     expect(profiles.map((p) => p.id)).toContain("cyber-fixer");

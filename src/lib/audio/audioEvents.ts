@@ -27,6 +27,7 @@ export const AUDIO_EVENT_NAMES: readonly AudioEventName[] = [
   "message.complete",
   "component.placed",
   "dramatic.beat",
+  "world.arrived",
   "error",
 ] as const;
 
@@ -163,6 +164,57 @@ export function duckMusic(): void {
 /** Restore the music bed to full volume (TTS ended / stopped). */
 export function restoreMusic(): void {
   setMusicDuckFactor(RESTORE_FACTOR);
+}
+
+// ---------------------------------------------------------------------------
+// Semantic-event channel (cross-subtree pub/sub) — the reactive desk
+// ---------------------------------------------------------------------------
+
+/**
+ * Lets RENDERED CONTENT cue the world: a `danger` badge landing on the board
+ * emits a `dramatic.beat`, which the audio owner (ChatSidebar, which holds the
+ * NoirSoundEffects controls) resolves through the active preset's AudioEventMap
+ * — thunder in noir, the reactor groan in nostromo — and pairs with the
+ * lightning overlay via {@link eventTriggersLightning}. Same singleton-channel
+ * pattern as the music duck above, because emitter and owner live in disjoint
+ * React subtrees.
+ */
+export type SemanticEventListener = (event: AudioEventName) => void;
+
+const semanticListeners = new Set<SemanticEventListener>();
+
+/** Per-event throttle so a board of six danger badges fires ONE thunderclap. */
+const lastEmittedAt = new Map<AudioEventName, number>();
+const SEMANTIC_EVENT_MIN_INTERVAL_MS = 4000;
+
+/** Subscribe to semantic events emitted by rendered content. */
+export function subscribeSemanticAudioEvents(listener: SemanticEventListener): () => void {
+  semanticListeners.add(listener);
+  return () => {
+    semanticListeners.delete(listener);
+  };
+}
+
+/**
+ * Emit a semantic event from rendered content (throttled per event name).
+ * Returns true when the event was delivered, false when throttled.
+ */
+export function emitSemanticAudioEvent(event: AudioEventName): boolean {
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const last = lastEmittedAt.get(event) ?? -Infinity;
+  if (now - last < SEMANTIC_EVENT_MIN_INTERVAL_MS) {
+    return false;
+  }
+  lastEmittedAt.set(event, now);
+  for (const listener of semanticListeners) {
+    listener(event);
+  }
+  return true;
+}
+
+/** Test hook: clear the semantic-event throttle clock. */
+export function resetSemanticAudioEventThrottle(): void {
+  lastEmittedAt.clear();
 }
 
 /** Current duck factor — exposed for late subscribers and tests. */

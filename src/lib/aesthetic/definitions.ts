@@ -108,6 +108,31 @@ const noir: AestheticDefinition = {
       dictaphoneEmptyHint: "Load a recording from the archive",
       loadingImageLabel: "Generating...",
       loadingStatus: "Compiling evidence",
+      emptyTitle: "Case File // Unopened",
+      emptyBody:
+        "The board is clean. Describe the interface you want built and the detective will track it down — every component lands here as evidence.",
+      emptyLeadsLabel: "Leads to pursue",
+      emptyHint: "Begin in the Interrogation Log",
+      exhibitLabel: "Exhibit",
+      arrivalTitle: "SYNTHNOIR CITY",
+      arrivalTagline: "The rain never stops in this town.",
+      logTitle: "INTERROGATION LOG",
+      thinkingLines: [
+        "Working the angles…",
+        "Following the wire…",
+        "Shaking down the leads…",
+        "Reading between the lines…",
+      ],
+      chatEmptyLine: "No record found. Begin interrogation.",
+      ttsUnavailableLine: "Wire dead — set ELEVENLABS_API_KEY",
+      dictaphoneEmpty: "NO TAPE MOUNTED",
+      dictaphoneArchiveTitle: "Archived Tape Cassettes",
+      dictaphoneArchiveHint: "No cassettes recorded.",
+      dictaphoneArchiveSubhint: "Click play on a chat message to voice-record a tape.",
+      interrogationTitle: "Interrogation Room",
+      interrogationPlaceholder: "Suspect's name",
+      interrogationRecordingLine: "On the wire…",
+      interrogationActionLine: "Interrogate",
     },
     samplePrompts: [
       "Open a case file on three suspects with mugshots, status badges, and an evidence log table",
@@ -116,11 +141,13 @@ const noir: AestheticDefinition = {
     ],
     voicePreviewLine: "The rain never stops in this town. Neither does the code.",
     layoutDoctrine: `LAYOUT DOCTRINE (Noir — case-file dossier):
-When the request is open-ended, lean toward a case-file dossier: a heading, a grid of suspect/evidence cards (2-3 columns), a table acting as an evidence log, and status badges (danger for threats, primary for cleared). Favor a single hero mugshot image inside the top card. Compose like paper laid on a desk — clear hierarchy, terse labels. Alternatives: a surveillance board (dashboard of stats) or an interrogation summary (table + callout).`,
+When the request is open-ended, lean toward a case-file dossier: a heading, a grid of suspect/evidence cards (2-3 columns), a table acting as an evidence log, and status badges (danger for threats, primary for cleared). Favor a single hero mugshot image inside the top card. Compose like paper laid on a desk — clear hierarchy, terse labels. Alternatives: a surveillance board (dashboard of stats) or an interrogation summary (table + callout).
+Example shape (adapt content, keep the composition): {"type":"container","children":[{"type":"heading","text":"CASE 114 — THE HARBOR JOB","level":1},{"type":"row","children":[{"type":"badge","label":"OPEN","variant":"danger"},{"type":"badge","label":"PRIORITY","variant":"primary"}]},{"type":"grid","columns":"3","children":[{"type":"card","title":"V. Kessler","description":"Last seen at Pier 9, midnight."},{"type":"card","title":"M. Doyle","description":"Alibi unverified."},{"type":"card","title":"The Ledger","description":"Recovered, water-damaged."}]},{"type":"image","prompt":"1940s mugshot of a man in a wet overcoat under harsh light","alt":"Suspect mugshot"},{"type":"table","columns":["Exhibit","Where","Status"],"rows":[["A1","Pier 9","Logged"],["A2","Warehouse 4","Missing"]]}]}`,
     styleTokens: { radius: "2px", borderStyle: "sharp", headerCase: "uppercase" },
     effects: { card: "paper", stamp: "wax", screen: "none", bloom: 0.4 },
     atmosphere: {
       particle: "rain",
+      fog: true,
       particleColor: "#bcd2eb",
       lightningColor: "#ffffff",
       vignetteColor: "#000000",
@@ -154,9 +181,24 @@ When the request is open-ended, lean toward a case-file dossier: a heading, a gr
         "venetian-blind shadows across a face",
         "a neon sign reflected in a puddle",
       ],
+      aspect: "4:3",
     },
+    sfxPrompts: {
+      typewriter: "a single sharp manual-typewriter key strike on paper",
+      thunder: "a deep rolling thunderclap over a rainy city street",
+      phone: "a 1940s rotary desk telephone ringing twice in an empty office",
+      ambient: "steady rain on pavement and window glass, distant city hum, looping",
+      crackle: "soft vinyl record surface noise, gentle pops and crackle, looping",
+    },
+    // Composed but atmospheric — noir narrates with discipline.
+    sampling: { temperature: 0.8 },
     compositionSeed: 42,
-    audioEvents: { "component.placed": "typewriter", "dramatic.beat": "thunder", error: "phone" },
+    audioEvents: {
+      "component.placed": "typewriter",
+      "dramatic.beat": "thunder",
+      "world.arrived": "thunder",
+      error: "phone",
+    },
   },
 };
 
@@ -255,6 +297,27 @@ const minimal: AestheticDefinition = {
       dictaphoneEmptyHint: "Select a recording to play it",
       loadingImageLabel: "Generating",
       loadingStatus: "Generating",
+      emptyTitle: "Blank canvas",
+      emptyBody:
+        "Nothing here yet. Describe the interface you want and it will be generated onto the canvas.",
+      emptyLeadsLabel: "Try one of these",
+      emptyHint: "Type a request in the chat",
+      exhibitLabel: "Fig.",
+      // Minimal's arrival is intentionally silent restraint — no card, no sting.
+      arrivalTitle: "",
+      arrivalTagline: "",
+      logTitle: "TRANSCRIPT",
+      thinkingLines: ["Generating…", "Working on it…", "One moment…"],
+      chatEmptyLine: "No messages yet. Start a conversation.",
+      ttsUnavailableLine: "Voice unavailable — set ELEVENLABS_API_KEY",
+      dictaphoneEmpty: "No recording loaded",
+      dictaphoneArchiveTitle: "Recordings",
+      dictaphoneArchiveHint: "No recordings yet.",
+      dictaphoneArchiveSubhint: "Play a chat message to create a recording.",
+      interrogationTitle: "Two-voice recording",
+      interrogationPlaceholder: "Name",
+      interrogationRecordingLine: "Recording…",
+      interrogationActionLine: "Record",
     },
     samplePrompts: [
       "Create a clean pricing page with three plan cards and a feature comparison",
@@ -263,7 +326,8 @@ const minimal: AestheticDefinition = {
     ],
     voicePreviewLine: "Voice preview. This is how I sound.",
     layoutDoctrine: `LAYOUT DOCTRINE (Minimal — clean cards):
-When the request is open-ended, keep it restrained: one clear heading, 2-3 cards in a grid, generous whitespace, and at most a single accent stat. Avoid badges, kanban boards, and dashboards unless explicitly asked. Match complexity to the request — a one-line answer is a single card, not a dashboard. Prefer clarity over decoration.`,
+When the request is open-ended, keep it restrained: one clear heading, 2-3 cards in a grid, generous whitespace, and at most a single accent stat. Avoid badges, kanban boards, and dashboards unless explicitly asked. Match complexity to the request — a one-line answer is a single card, not a dashboard. Prefer clarity over decoration.
+Example shape (adapt content, keep the restraint): {"type":"container","children":[{"type":"heading","text":"Project overview","level":1},{"type":"grid","columns":"2","children":[{"type":"card","title":"Status","description":"On track for the June milestone."},{"type":"card","title":"Next step","description":"Review the draft proposal."}]},{"type":"stat","label":"Open items","value":"4"}]}`,
     styleTokens: { radius: "10px", borderStyle: "soft", headerCase: "normal" },
     effects: { card: "flat", stamp: "none", screen: "none", bloom: 0 },
     atmosphere: {
@@ -294,7 +358,17 @@ When the request is open-ended, keep it restrained: one clear heading, 2-3 cards
         "minimal line-art icon",
         "a calm gradient field",
       ],
+      aspect: "16:9",
     },
+    sfxPrompts: {
+      typewriter: "a single soft modern keyboard key press, clean and quiet",
+      thunder: "a soft low whoosh notification swell, neutral and unobtrusive",
+      phone: "a gentle two-tone notification chime, clean and modern",
+      ambient: "a near-silent airy room tone with faint soft pads, looping",
+      crackle: "a barely-audible warm static texture, very quiet, looping",
+    },
+    // Clean and predictable — minimal does not improvise.
+    sampling: { temperature: 0.4 },
     compositionSeed: 17,
     audioEvents: { "message.complete": "typewriter" },
   },
@@ -321,9 +395,11 @@ const cyberFixer: AestheticDefinition = {
       error: "#ff3333",
     },
     fonts: {
-      body: "var(--font-mono)",
-      mono: "var(--font-mono)",
-      heading: "var(--font-sans)",
+      // Mirrors the [data-aesthetic="cyber-fixer"] block in globals.css —
+      // monospace body, Chakra Petch display headings (loaded in layout.tsx).
+      body: 'ui-monospace, sfmono-regular, consolas, "Courier New", monospace',
+      mono: 'ui-monospace, sfmono-regular, consolas, "Courier New", monospace',
+      heading: "var(--font-cyber)",
     },
   },
   audio: {
@@ -346,14 +422,19 @@ const cyberFixer: AestheticDefinition = {
     generate: "inject grid load",
     error: "connection dropped",
   },
-  voiceId: "pNInz6obpgDQGcFmaJgB",
+  // Matt — natural, hyper-conversational American male. Replaces the stock
+  // "Adam" voice, which read as a generic/robotic TTS for the streetwise fixer.
+  voiceId: "pwMBn0SsmN1220Aorv15",
   imageStylePrompt:
     "cyberpunk aesthetic, futuristic cyberpunk command center, neon lights, high-tech overlays, glowing digital HUD, cybernetic implants, wireframe graphics, cyan and magenta accents, rainy futuristic cityscape window, synthwave style, no text or watermark",
   // Dense neon/HUD detail — the higher-fidelity Gemini Pro image model.
   imageModel: "gemini-3-pro-image",
   identity: {
     glowStrength: 1.4,
-    voiceDirection: { stability: 0.2, similarityBoost: 0.6, style: 0.8, speed: 1.1 },
+    // Tuned for Matt (a natural conversational voice): moderate stability so he
+    // stays steady, modest style so the delivery reads as a real person with
+    // edge rather than an exaggerated AI, and a slight speed lift for fixer energy.
+    voiceDirection: { stability: 0.45, similarityBoost: 0.75, style: 0.35, speed: 1.08 },
     musicStylePrompt:
       "dark synthwave — driving arpeggiated bass, neon pads, gated reverb drums, 110bpm, retro-futuristic and propulsive, Blade Runner street energy",
     musicPresets: [
@@ -394,6 +475,31 @@ const cyberFixer: AestheticDefinition = {
       dictaphoneEmptyHint: "Jack in a recording from the cache",
       loadingImageLabel: "RENDERING...",
       loadingStatus: "Injecting grid load",
+      emptyTitle: "GRID // NO SIGNAL",
+      emptyBody:
+        "Deck's hot, grid's empty. Describe the rig you want and the fixer will inject it — every widget lands on the grid.",
+      emptyLeadsLabel: "Jobs on the board",
+      emptyHint: "Jack into the comms feed",
+      exhibitLabel: "IMG",
+      arrivalTitle: "THE GRID // NEO-NOIR CITY",
+      arrivalTagline: "Deck's hot. Run it.",
+      logTitle: "COMMS FEED",
+      thinkingLines: [
+        "Jacking in…",
+        "Running the trace…",
+        "Decrypting the stream…",
+        "Burning through ICE…",
+      ],
+      chatEmptyLine: "Dead air. Open a channel, choom.",
+      ttsUnavailableLine: "Voicebox fried — set ELEVENLABS_API_KEY",
+      dictaphoneEmpty: "NO SHARD LOADED",
+      dictaphoneArchiveTitle: "Cached Voice Shards",
+      dictaphoneArchiveHint: "Cache empty.",
+      dictaphoneArchiveSubhint: "Jack a chat message to burn a voice shard.",
+      interrogationTitle: "Shakedown Booth",
+      interrogationPlaceholder: "Mark's handle",
+      interrogationRecordingLine: "On the run…",
+      interrogationActionLine: "Shake 'em down",
     },
     samplePrompts: [
       "Spin up a netrunner HUD with system stats, a target deck, and neon status badges",
@@ -402,11 +508,13 @@ const cyberFixer: AestheticDefinition = {
     ],
     voicePreviewLine: "Neon's bleeding, choom. Deck's hot — what're we running?",
     layoutDoctrine: `LAYOUT DOCTRINE (Cyber Fixer — HUD panels):
-When the request is open-ended, compose like a heads-up display: a stat row across the top (metrics/KPIs), then HUD panels — a DataDashboard of neon charts, tabbed "decks" for grouped content, and a grid of glowing cards. Lean into Stat and DataDashboard. Use a wide HUD banner image. Keep it dense, fast, and futuristic. Alternatives: a netrunner deck (tabs) or a market ticker (table + stats).`,
+When the request is open-ended, compose like a heads-up display: a stat row across the top (metrics/KPIs), then HUD panels — a dataDashboard of neon charts, tabbed "decks" for grouped content, and a grid of glowing cards. Lean into stat and dataDashboard. Use a wide HUD banner image. Keep it dense, fast, and futuristic. Alternatives: a netrunner deck (tabs) or a market ticker (table + stats).
+Example shape (adapt content, keep the composition): {"type":"container","children":[{"type":"heading","text":"NETRUNNER HUD // SECTOR 7","level":1},{"type":"row","children":[{"type":"stat","label":"ICE","value":"3"},{"type":"stat","label":"TRACE","value":"41%"},{"type":"stat","label":"CREDITS","value":"12,400"}]},{"type":"image","prompt":"wide neon cityscape HUD banner with holographic overlays","alt":"HUD banner"},{"type":"dataDashboard","title":"GRID LOAD","widgets":[{"title":"UPLINK","type":"metric","value":98,"unit":"%","trend":{"value":3,"direction":"up"}},{"title":"DECRYPT","type":"progress","progress":62},{"title":"TRAFFIC","type":"chart","chartType":"bar","data":[{"label":"00","value":4},{"label":"06","value":9},{"label":"12","value":14}]}]}]}`,
     styleTokens: { radius: "4px", borderStyle: "beveled", headerCase: "uppercase" },
     effects: { card: "hologram", stamp: "digital", screen: "none", bloom: 1.4 },
     atmosphere: {
       particle: "rain",
+      fog: true,
       particleColor: "#ff007f",
       lightningColor: "#00ffcc",
       vignetteColor: "#0a0512",
@@ -433,12 +541,23 @@ When the request is open-ended, compose like a heads-up display: a stat row acro
         "chrome cybernetic implant close-up",
         "a lone fixer silhouetted against billboards",
       ],
+      aspect: "16:9",
     },
+    sfxPrompts: {
+      typewriter: "a quick digital keypress blip with a slight synth edge",
+      thunder: "an electric surge with a deep bass impact and crackling energy",
+      phone: "a futuristic comms ping, two rising synthetic tones",
+      ambient: "rain on neon-lit streets with a low electric hum, looping",
+      crackle: "electrical static and data glitch textures, looping",
+    },
+    // Fast and loose — the fixer riffs.
+    sampling: { temperature: 0.9 },
     compositionSeed: 88,
     audioEvents: {
       "message.start": "phone",
       "component.placed": "typewriter",
       "dramatic.beat": "thunder",
+      "world.arrived": "phone",
     },
   },
 };
@@ -464,9 +583,11 @@ const nostromoConsole: AestheticDefinition = {
       error: "#ff3300",
     },
     fonts: {
-      body: "var(--font-mono)",
-      mono: "var(--font-mono)",
-      heading: "var(--font-mono)",
+      // Mirrors the [data-aesthetic="nostromo-console"] block in globals.css —
+      // Courier body, VT323 phosphor display headings (loaded in layout.tsx).
+      body: '"Courier New", courier, monospace',
+      mono: '"Courier New", courier, monospace',
+      heading: "var(--font-terminal)",
     },
   },
   audio: {
@@ -537,6 +658,31 @@ const nostromoConsole: AestheticDefinition = {
       dictaphoneEmptyHint: "Mount a log entry to replay",
       loadingImageLabel: "RENDERING IMAGE...",
       loadingStatus: "Compiling log",
+      emptyTitle: "MAIN DISPLAY // IDLE",
+      emptyBody:
+        "INTERFACE 2037 READY FOR INQUIRY. STATE THE DISPLAY YOU REQUIRE. ALL OUTPUT WILL BE COMPILED TO THIS TERMINAL.",
+      emptyLeadsLabel: "Suggested inquiries",
+      emptyHint: "Awaiting input at the console",
+      exhibitLabel: "IMG",
+      arrivalTitle: "USCSS NOSTROMO",
+      arrivalTagline: "MU-TH-UR 6000 ONLINE",
+      logTitle: "TRANSMISSION LOG",
+      thinkingLines: [
+        "[ANALYZING REQUEST… STAND BY]",
+        "[COMPILING RESPONSE… PLEASE WAIT]",
+        "[PROCESSING… DO NOT INTERRUPT]",
+        "[QUERY ACCEPTED. COMPUTING]",
+      ],
+      chatEmptyLine: "[NO TRANSMISSIONS LOGGED. AWAITING INPUT.]",
+      ttsUnavailableLine: "VOICE SYNTH OFFLINE — SET ELEVENLABS_API_KEY",
+      dictaphoneEmpty: "NO LOG MOUNTED",
+      dictaphoneArchiveTitle: "Archived Audio Logs",
+      dictaphoneArchiveHint: "NO AUDIO LOGS ON RECORD.",
+      dictaphoneArchiveSubhint: "Replay a transmission to archive an audio log.",
+      interrogationTitle: "Crew Debrief",
+      interrogationPlaceholder: "Crew designation",
+      interrogationRecordingLine: "[RECORDING…]",
+      interrogationActionLine: "Debrief",
     },
     samplePrompts: [
       "COMPILE a ship status readout with hull telemetry stats and a crew manifest table",
@@ -545,7 +691,8 @@ const nostromoConsole: AestheticDefinition = {
     ],
     voicePreviewLine: "INTERFACE ONLINE. ALL SYSTEMS NOMINAL. AWAITING INPUT.",
     layoutDoctrine: `LAYOUT DOCTRINE (Nostromo — terminal readout):
-When the request is open-ended, print top-to-bottom like a terminal: stacked sections, ALL-CAPS headings, monospace tables, a DataDashboard of ship telemetry, and a status line. Prefer Stat and tables over photos — favor schematics/ASCII over imagery. Keep it dry, bracketed, and official. Alternatives: a diagnostics panel (dashboard) or a manifest (table-heavy).`,
+When the request is open-ended, print top-to-bottom like a terminal: stacked sections, ALL-CAPS headings, monospace tables, a dataDashboard of ship telemetry, and a status line. Prefer stat and tables over photos — favor schematics/ASCII over imagery. Keep it dry, bracketed, and official. Alternatives: a diagnostics panel (dashboard) or a manifest (table-heavy).
+Example shape (adapt content, keep the composition): {"type":"container","children":[{"type":"heading","text":"USCSS NOSTROMO // SHIP STATUS","level":1},{"type":"dataDashboard","title":"TELEMETRY","widgets":[{"title":"HULL","type":"metric","value":"NOMINAL"},{"title":"REACTOR","type":"progress","progress":87},{"title":"O2 RESERVE","type":"metric","value":94,"unit":"%","trend":{"value":2,"direction":"down"}}]},{"type":"table","columns":["CREW","STATION","STATUS"],"rows":[["DALLAS","BRIDGE","ACTIVE"],["RIPLEY","DECK B","ACTIVE"]]},{"type":"text","content":"[ALL SYSTEMS NOMINAL. AWAITING INPUT.]"}]}`,
     styleTokens: { radius: "0px", borderStyle: "sharp", headerCase: "uppercase" },
     effects: { card: "wireframe", stamp: "none", screen: "scanlines", bloom: 1.1 },
     atmosphere: {
@@ -576,11 +723,22 @@ When the request is open-ended, print top-to-bottom like a terminal: stacked sec
         "a radar sweep over a dark sector map",
         "blinking warning indicators on a control panel",
       ],
+      aspect: "4:3",
     },
+    sfxPrompts: {
+      typewriter: "a chunky 1980s computer terminal keystroke with a relay click",
+      thunder: "a deep metallic groan of a spaceship hull under stress",
+      phone: "a flat electronic intercom buzz, two short bursts",
+      ambient: "a low spaceship reactor hum with hissing vents, looping",
+      crackle: "analog CRT static and electrical interference, looping",
+    },
+    // Rigid, repeatable, machine-deterministic — MU-TH-UR does not vary.
+    sampling: { temperature: 0.2 },
     compositionSeed: 7,
     audioEvents: {
       "message.start": "phone",
       "component.placed": "typewriter",
+      "world.arrived": "phone",
       error: "thunder",
     },
   },
@@ -607,9 +765,11 @@ const gothicManor: AestheticDefinition = {
       error: "#ff0011",
     },
     fonts: {
-      body: "var(--font-typewriter)",
+      // Mirrors the [data-aesthetic="gothic-manor"] block in globals.css —
+      // Georgia body, Cormorant Garamond display headings (loaded in layout.tsx).
+      body: 'georgia, garamond, "Times New Roman", serif',
       mono: "var(--font-mono)",
-      heading: "var(--font-typewriter)",
+      heading: "var(--font-gothic)",
     },
   },
   audio: {
@@ -680,6 +840,31 @@ const gothicManor: AestheticDefinition = {
       dictaphoneEmptyHint: "Summon a recording from the archive",
       loadingImageLabel: "Manifesting...",
       loadingStatus: "Manifesting the chronicle",
+      emptyTitle: "The Chronicle // Unwritten",
+      emptyBody:
+        "The page lies blank beneath the candlelight. Speak the artifact you desire and it shall be inscribed upon the chronicle.",
+      emptyLeadsLabel: "Whispers to pursue",
+      emptyHint: "Confess your request below",
+      exhibitLabel: "Plate",
+      arrivalTitle: "GOTHIC MANOR",
+      arrivalTagline: "The shadows kept your seat.",
+      logTitle: "THE CHRONICLE",
+      thinkingLines: [
+        "Summoning the words…",
+        "Consulting the shadows…",
+        "Inking the chronicle…",
+        "Listening to the whispers…",
+      ],
+      chatEmptyLine: "The page lies blank. Speak, and it shall be inscribed.",
+      ttsUnavailableLine: "The voice is silenced — set ELEVENLABS_API_KEY",
+      dictaphoneEmpty: "NO CONFESSION SEALED",
+      dictaphoneArchiveTitle: "Sealed Confessions",
+      dictaphoneArchiveHint: "No confessions sealed.",
+      dictaphoneArchiveSubhint: "Voice a chat message to seal a confession.",
+      interrogationTitle: "The Confessional",
+      interrogationPlaceholder: "Name of the accused",
+      interrogationRecordingLine: "Drawing it out…",
+      interrogationActionLine: "Extract Confession",
     },
     samplePrompts: [
       "Inscribe a family chronicle — portrait cards of three heirs, a curse ledger table, and ominous badges",
@@ -688,11 +873,13 @@ const gothicManor: AestheticDefinition = {
     ],
     voicePreviewLine: "The candles gutter, and still the shadows whisper their secrets.",
     layoutDoctrine: `LAYOUT DOCTRINE (Gothic Manor — manuscript / ledger):
-When the request is open-ended, compose like an illuminated manuscript: an ornate serif heading, a single centered chronicle card or a two-column ledger, a table acting as a registry, and a list as a chronicle of events. Favor a portrait image beside the text. Use ornamental dividers between sections. Keep it literary and dramatic. Alternatives: a portrait gallery (grid of cards) or a curse ledger (table-heavy).`,
+When the request is open-ended, compose like an illuminated manuscript: an ornate serif heading, a single centered chronicle card or a two-column ledger, a table acting as a registry, and a list as a chronicle of events. Favor a portrait image beside the text. Use ornamental dividers between sections. Keep it literary and dramatic. Alternatives: a portrait gallery (grid of cards) or a curse ledger (table-heavy).
+Example shape (adapt content, keep the composition): {"type":"container","children":[{"type":"heading","text":"The Blackwood Chronicle","level":1},{"type":"row","children":[{"type":"image","prompt":"oil-painted portrait of a pale aristocrat by candlelight","alt":"Portrait of the heir"},{"type":"card","title":"Edmund Blackwood","description":"Third heir of the manor; last seen at the winter séance."}]},{"type":"divider"},{"type":"table","columns":["Year","Omen","Witness"],"rows":[["1843","The mirror cracked","The governess"],["1847","Ravens at the gate","The groundskeeper"]]},{"type":"list","items":["The candles gutter at midnight","The portrait's eyes have moved","A letter arrived, unsigned"]}]}`,
     styleTokens: { radius: "3px", borderStyle: "double", headerCase: "titlecase" },
     effects: { card: "parchment", stamp: "blood", screen: "none", bloom: 0.8 },
     atmosphere: {
       particle: "ember",
+      fog: true,
       particleColor: "#990011",
       lightningColor: "#cc3344",
       vignetteColor: "#000000",
@@ -728,12 +915,215 @@ When the request is open-ended, compose like an illuminated manuscript: an ornat
         "an oil-painted portrait of a pale aristocrat",
         "wilting roses beside a melting candle",
       ],
+      aspect: "3:4",
     },
+    sfxPrompts: {
+      typewriter: "a quill pen scratching one stroke on parchment",
+      thunder: "a violent thunderclap echoing through a stone manor hall",
+      phone: "an old brass servant bell rung twice in a great hall",
+      ambient: "wind and rain against gothic windows, distant creaking timber, looping",
+      crackle: "a crackling fireplace with settling embers, looping",
+    },
+    // Florid and theatrical — the gothic narrator runs hot.
+    sampling: { temperature: 1.0 },
     compositionSeed: 31,
     audioEvents: {
       "component.placed": "typewriter",
       "dramatic.beat": "thunder",
+      "world.arrived": "thunder",
       error: "phone",
+    },
+  },
+};
+
+// =============================================================================
+// GRAND HOTEL (Art-Deco)
+// =============================================================================
+
+const grandHotel: AestheticDefinition = {
+  id: "grand-hotel",
+  name: "Grand Hotel",
+  description: "1920s art-deco grand hotel — brass, ebony, and champagne light",
+  theme: {
+    colors: {
+      background: "#0c0a08",
+      surface: "#171310",
+      surfaceAlt: "#241d16",
+      text: "#ece4d4",
+      textMuted: "#9c8f78",
+      accent: "#d4af37",
+      accentMuted: "#8a6d2f",
+      border: "#332a1d",
+      error: "#b3243a",
+    },
+    fonts: {
+      // Mirrors the [data-aesthetic="grand-hotel"] block in globals.css —
+      // Georgia body, Poiret One deco display headings (loaded in layout.tsx).
+      body: 'georgia, garamond, "Times New Roman", serif',
+      mono: "var(--font-mono)",
+      heading: "var(--font-deco)",
+    },
+  },
+  // The hotel's foley is GENERATED: each src hits /api/sfx/grand-hotel/<kind>,
+  // which renders the identity.sfxPrompts recipe through ElevenLabs text-to-SFX
+  // on first request, caches it to disk, and falls back to the noir assets when
+  // no ELEVENLABS_API_KEY is configured. Music is likewise GENERATED: its src
+  // hits /api/music/grand-hotel/atmosphere, which renders the
+  // identity.musicStylePrompt through the ElevenLabs Music API on first request
+  // and falls back to the noir jazz loop when no key is configured.
+  audio: {
+    sfx: {
+      typewriter: { src: "/api/sfx/grand-hotel/typewriter.mp3", volume: 0.55 },
+      thunder: { src: "/api/sfx/grand-hotel/thunder.mp3", volume: 0.6 },
+      phone: { src: "/api/sfx/grand-hotel/phone.mp3", volume: 0.65 },
+    },
+    music: { src: "/api/music/grand-hotel/atmosphere", volume: 0.2 },
+    ambient: {
+      rain: {
+        src: "/api/sfx/grand-hotel/ambient.mp3",
+        intensityVolume: { low: 0.12, medium: 0.18, high: 0.26 },
+      },
+      crackle: { src: "/api/sfx/grand-hotel/crackle.mp3", volume: 0.4 },
+    },
+  },
+  terminology: {
+    component: "arrangement",
+    generate: "make arrangements",
+    error: "the suite is unavailable",
+  },
+  voiceId: "21m00Tcm4TlvDq8ikWAM",
+  imageStylePrompt:
+    "1920s art-deco poster style, gilded geometric ornament, brass and ebony, champagne-gold lighting, marble grand-hotel lobby, symmetrical composition, jazz-age glamour, rich warm palette, no text or watermark",
+  // Ornate gilded detail — the higher-fidelity Gemini Pro image model.
+  imageModel: "gemini-3-pro-image",
+  identity: {
+    glowStrength: 0.9,
+    voiceDirection: { stability: 0.6, similarityBoost: 0.7, style: 0.35, speed: 0.95 },
+    musicStylePrompt:
+      "a 1920s jazz-age hotel-lobby band — brushed drums, upright piano, warm muted brass, gentle swing, champagne sparkle, elegant and unhurried",
+    musicPresets: [
+      {
+        icon: "🎹",
+        name: "Piano Bar",
+        prompt:
+          "An elegant 1920s hotel piano-bar piece — warm stride piano, soft brushes, gentle swing, late-evening glow.",
+      },
+      {
+        icon: "🎺",
+        name: "Lobby Band",
+        prompt:
+          "A warm jazz-age lobby band with muted brass, upright bass, and brushed drums, unhurried and gracious.",
+      },
+      {
+        icon: "🥂",
+        name: "Charleston",
+        prompt:
+          "A bright, playful Charleston with banjo, clarinet, and tack piano, champagne-light and brisk.",
+      },
+      {
+        icon: "🎻",
+        name: "String Quartet",
+        prompt:
+          "A refined salon string quartet playing a slow waltz, velvet warmth, gilded-ballroom acoustics.",
+      },
+    ],
+    copy: {
+      editorTitle: "REGISTRY // JSON LEDGER",
+      workspaceTitle: "The Grand Lobby",
+      imagePending: "PORTRAIT AWAITED",
+      audioPending: "PHONOGRAPH WARMING",
+      videoPending: "NEWSREEL PENDING",
+      dictaphoneTitle: "Concierge Messages",
+      dictaphoneItemLabel: "Message",
+      dictaphoneDeleteLabel: "Discard Message",
+      dictaphoneEmptyHint: "Select a message from the pigeonholes",
+      loadingImageLabel: "Composing...",
+      loadingStatus: "Making arrangements",
+      emptyTitle: "The Ledger // Blank",
+      emptyBody:
+        "The lobby is quiet and the ledger lies open. Tell the concierge what you require and it will be arranged — impeccably, and without being asked twice.",
+      emptyLeadsLabel: "Tonight's requests",
+      emptyHint: "Ring the front desk",
+      exhibitLabel: "Lot",
+      arrivalTitle: "THE GRAND MERIDIAN",
+      arrivalTagline: "est. 1924 — the band plays until two.",
+      logTitle: "GUEST LEDGER",
+      thinkingLines: [
+        "Making the arrangements…",
+        "Ringing the right floor…",
+        "Consulting the ledger…",
+        "A moment, while the concierge attends…",
+      ],
+      chatEmptyLine: "The ledger lies open. How may the concierge assist?",
+      ttsUnavailableLine: "The phonograph is silent — set ELEVENLABS_API_KEY",
+      dictaphoneEmpty: "NO MESSAGE FILED",
+      dictaphoneArchiveTitle: "Concierge Pigeonholes",
+      dictaphoneArchiveHint: "No messages filed.",
+      dictaphoneArchiveSubhint: "Play a chat message to file it with the concierge.",
+      interrogationTitle: "The Front Desk",
+      interrogationPlaceholder: "Guest's name",
+      interrogationRecordingLine: "Placing the call…",
+      interrogationActionLine: "Make Inquiry",
+    },
+    samplePrompts: [
+      "Prepare a guest registry — three suite cards with portraits, occupancy badges, and an arrivals table",
+      "Lay out tonight's ballroom programme as a dashboard of bookings, staff, and a seating chart",
+      "Draft a telegram form with the recipient, the suite number, and the message to wire",
+    ],
+    voicePreviewLine: "Good evening. Your usual suite is ready, and the band plays until two.",
+    layoutDoctrine: `LAYOUT DOCTRINE (Grand Hotel — gilded programme):
+When the request is open-ended, compose like a deco programme: a centered display heading, symmetrical pairs of cards (2-column grids), a table as a registry/ledger, and restrained gold badges. Favor symmetry and generous, even spacing — the lobby is never cluttered. Use a single elegant portrait or a wide lobby establishing image. Alternatives: a guest registry (table-heavy) or an evening programme (list + cards).
+Example shape (adapt content, keep the composition): {"type":"container","children":[{"type":"heading","text":"The Grand Meridian — Evening Programme","level":1},{"type":"grid","columns":"2","children":[{"type":"card","title":"The Gold Room","description":"Dinner seating at eight; the quartet plays Ravel."},{"type":"card","title":"The Mezzanine Bar","description":"Champagne service until two."}]},{"type":"image","prompt":"symmetrical art-deco hotel lobby in champagne-gold light","alt":"The lobby"},{"type":"table","columns":["Suite","Guest","Status"],"rows":[["701","Mme. Aubert","Arrived"],["802","Mr. Hale","Expected"]]}]}`,
+    styleTokens: { radius: "6px", borderStyle: "double", headerCase: "uppercase" },
+    effects: { card: "gilded", stamp: "none", screen: "none", bloom: 0.9 },
+    atmosphere: {
+      // Champagne motes — gold particles rising through the lobby light.
+      particle: "ember",
+      fog: false,
+      particleColor: "#e8c96a",
+      lightningColor: "#f0d98c",
+      vignetteColor: "#000000",
+      vignetteIntensity: 0.55,
+      lightningFrequency: 0.2,
+    },
+    motion: {
+      entrance: "waltz",
+      durationMs: 520,
+      staggerMs: 130,
+      easing: "ease-in-out",
+      imageReveal: "flashbulb",
+    },
+    imageSpec: {
+      medium: "1920s art-deco poster illustration, gilded ornament, fine linework",
+      lighting: "warm champagne-gold light, soft glow, polished reflections",
+      palette: "brass gold and ebony black over cream, rich and warm",
+      lens: "flat poster perspective, slight vignette",
+      framing: "symmetrical deco composition, marble grand-hotel lobby, geometric borders",
+      negative: ["text", "watermark", "neon", "grunge", "modern technology", "photorealism"],
+      motifs: [
+        "a sunburst brass elevator gate",
+        "champagne coupes on a silver tray",
+        "a marble staircase under a chandelier",
+        "a porter beneath a geometric gilded arch",
+      ],
+      aspect: "3:4",
+    },
+    sfxPrompts: {
+      typewriter: "a single crisp brass desk-bell ding in a marble lobby",
+      thunder: "a champagne cork pop followed by a short jazz cymbal swell",
+      phone: "a 1920s candlestick telephone ringing softly at a hotel desk",
+      ambient:
+        "the murmur of a grand hotel lobby — distant piano, glassware, soft chatter, looping",
+      crackle: "warm gramophone surface noise, gentle 78rpm crackle, looping",
+    },
+    // Urbane and measured — gracious, never erratic.
+    sampling: { temperature: 0.7 },
+    compositionSeed: 64,
+    audioEvents: {
+      "message.start": "phone",
+      "component.placed": "typewriter",
+      "dramatic.beat": "thunder",
+      "world.arrived": "phone",
     },
   },
 };
@@ -752,6 +1142,7 @@ export const AESTHETIC_DEFINITIONS: Record<BuiltInAestheticId, AestheticDefiniti
   "cyber-fixer": cyberFixer,
   "nostromo-console": nostromoConsole,
   "gothic-manor": gothicManor,
+  "grand-hotel": grandHotel,
 };
 
 /**

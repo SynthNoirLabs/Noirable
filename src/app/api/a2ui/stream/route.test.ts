@@ -289,12 +289,17 @@ describe("/api/a2ui/stream", () => {
     // Should have 3 separate updateComponents messages (one per tool call)
     expect(updateLines).toHaveLength(3);
 
-    // Each should contain exactly one component
-    for (const line of updateLines) {
+    // Each carries its section component PLUS the synthetic root Column that
+    // stitches the sections together (progressive assembly).
+    updateLines.forEach((line: string, i: number) => {
       const payload = JSON.parse(line.slice(6));
       expect(payload.type).toBe("updateComponents");
-      expect(payload.components).toHaveLength(1);
-    }
+      expect(payload.components).toHaveLength(2);
+      const root = payload.components[payload.components.length - 1];
+      expect(root.id).toBe("root");
+      expect(root.component).toBe("Column");
+      expect(root.children).toHaveLength(i + 1);
+    });
 
     // Verify component IDs arrive in order
     const ids = updateLines.map((l: string) => {

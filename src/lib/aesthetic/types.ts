@@ -14,7 +14,22 @@ export type BuiltInAestheticId =
   | "minimal"
   | "cyber-fixer"
   | "nostromo-console"
-  | "gothic-manor";
+  | "gothic-manor"
+  | "grand-hotel";
+
+/**
+ * Runtime list mirroring BuiltInAestheticId — the one place to extend when
+ * adding a world. The zod enums in tools.ts / theme-generator.ts and the
+ * isBuiltInAestheticId guard all derive from it.
+ */
+export const BUILT_IN_AESTHETIC_IDS = [
+  "noir",
+  "minimal",
+  "cyber-fixer",
+  "nostromo-console",
+  "gothic-manor",
+  "grand-hotel",
+] as const;
 
 // Custom profiles use prefixed IDs
 export type CustomProfileId = `custom-${string}`;
@@ -28,13 +43,7 @@ export function isCustomProfileId(id: string): id is CustomProfileId {
 }
 
 export function isBuiltInAestheticId(id: string): id is BuiltInAestheticId {
-  return (
-    id === "noir" ||
-    id === "minimal" ||
-    id === "cyber-fixer" ||
-    id === "nostromo-console" ||
-    id === "gothic-manor"
-  );
+  return (BUILT_IN_AESTHETIC_IDS as readonly string[]).includes(id);
 }
 
 /**
@@ -179,6 +188,47 @@ export interface AestheticCopy {
   loadingImageLabel: string;
   /** Status line under the loading skeleton's typing indicator, e.g. "Compiling evidence" */
   loadingStatus: string;
+  /** Empty-state headline, e.g. "Case File // Unopened" */
+  emptyTitle: string;
+  /** Empty-state body copy explaining what to do, in-world. */
+  emptyBody: string;
+  /** Label over the clickable sample prompts, e.g. "Leads to pursue" */
+  emptyLeadsLabel: string;
+  /** Footer hint pointing at the chat input, e.g. "Begin in the Interrogation Log" */
+  emptyHint: string;
+  /** Caption prefix for a developed image, e.g. "Exhibit" / "IMG" / "Plate" */
+  exhibitLabel: string;
+  /** World-arrival title card headline, e.g. "USCSS NOSTROMO" */
+  arrivalTitle: string;
+  /** World-arrival title card tagline, e.g. "MU-TH-UR 6000 ONLINE" */
+  arrivalTagline: string;
+  /** Chat header title, e.g. "INTERROGATION LOG" / "TRANSMISSION LOG". */
+  logTitle: string;
+  /**
+   * Rotating in-character "the AI is generating" lines shown in the chat loader.
+   * One is picked per generation (by index), so the loader reads in-world.
+   */
+  thinkingLines: string[];
+  /** Empty chat state line, e.g. "No record found. Begin interrogation." */
+  chatEmptyLine: string;
+  /** Shown when TTS is unavailable, e.g. "Wire dead — set ELEVENLABS_API_KEY". */
+  ttsUnavailableLine: string;
+  /** Dictaphone "no tape loaded" slot label, e.g. "NO TAPE MOUNTED". */
+  dictaphoneEmpty: string;
+  /** Header over the archived-recordings list, e.g. "Archived Tape Cassettes". */
+  dictaphoneArchiveTitle: string;
+  /** Hint inside the empty-archive box, e.g. "No cassettes recorded." */
+  dictaphoneArchiveHint: string;
+  /** Secondary hint under the empty archive, e.g. "Click play on a chat message…". */
+  dictaphoneArchiveSubhint: string;
+  /** Two-voice recorder section title, e.g. "Interrogation Room". */
+  interrogationTitle: string;
+  /** Recorder input placeholder, e.g. "Suspect's name". */
+  interrogationPlaceholder: string;
+  /** Recorder in-progress button label, e.g. "On the wire…". */
+  interrogationRecordingLine: string;
+  /** Recorder idle/start button label, e.g. "Interrogate". */
+  interrogationActionLine: string;
 }
 
 /**
@@ -203,7 +253,7 @@ export interface StyleTokens {
  */
 export interface EffectsProfile {
   /** Card material treatment (drives `[data-effect-card="…"]` rules). */
-  card: "paper" | "parchment" | "hologram" | "wireframe" | "flat";
+  card: "paper" | "parchment" | "hologram" | "wireframe" | "flat" | "gilded";
   /** Decorative stamp / seal on cards. */
   stamp: "wax" | "digital" | "blood" | "none";
   /** Full-surface screen treatment (drives `[data-effect-screen="…"]`). */
@@ -220,6 +270,12 @@ export interface EffectsProfile {
 export interface Atmosphere {
   /** Dominant particle system for the ambient layer. */
   particle: "rain" | "fog" | "grain" | "ember" | "none";
+  /**
+   * Secondary fog haze layered UNDER the dominant particle. Lets a world have
+   * embers AND fog (gothic) instead of one-or-the-other. The user's fog toggle
+   * still gates it. Defaults to false when omitted.
+   */
+  fog?: boolean;
   /** Particle color (CSS color) — fed to `--aesthetic-particle-color`. */
   particleColor: string;
   /** Lightning / arrival-flash color (CSS color). */
@@ -240,7 +296,7 @@ export interface Atmosphere {
  */
 export interface MotionPersonality {
   /** Entrance style for surface children. */
-  entrance: "cinematic" | "crisp" | "glitch" | "terminal" | "candle";
+  entrance: "cinematic" | "crisp" | "glitch" | "terminal" | "candle" | "waltz";
   /** Per-child reveal duration in ms. */
   durationMs: number;
   /** Stagger between sibling children in ms. */
@@ -248,7 +304,7 @@ export interface MotionPersonality {
   /** CSS/framer easing for the reveal. */
   easing: string;
   /** Which PhotoDeveloper reveal keyframe set this world uses. */
-  imageReveal: "darkroom" | "crisp" | "scanline" | "raster" | "candle";
+  imageReveal: "darkroom" | "crisp" | "scanline" | "raster" | "candle" | "flashbulb";
 }
 
 /**
@@ -272,6 +328,12 @@ export interface ImageStyleSpec {
   negative: string[];
   /** Rotating motifs — one is selected per image by index for coherent variety. */
   motifs: string[];
+  /**
+   * Default aspect ratio ("w:h") for this world's images when the component
+   * variant doesn't imply one (header → wide, avatar → square). Lets the
+   * doctrines' "wide HUD banner" / "portrait beside the text" actually happen.
+   */
+  aspect?: string;
 }
 
 /**
@@ -285,6 +347,8 @@ export interface AudioEventMap {
   "component.placed"?: SfxName;
   error?: SfxName;
   "dramatic.beat"?: SfxName;
+  /** Fired once when the user switches into this world (the arrival sting). */
+  "world.arrived"?: SfxName;
 }
 
 /**
@@ -322,6 +386,27 @@ export interface AestheticIdentity {
   imageSpec: ImageStyleSpec;
   /** Base layout-composition seed; offset per variant for "Take 1/2/3". (Bet 6.) */
   compositionSeed: number;
+  /**
+   * The world's personality expressed as SAMPLING parameters: the mainframe
+   * generates rigidly and repeatably (low temperature), the gothic narrator
+   * florid and varied (high). Threaded into the UI-generation and narration
+   * calls.
+   */
+  sampling: { temperature: number; topP?: number };
+  /**
+   * Text-to-SFX prompts for this world's foley (ElevenLabs sound generation).
+   * Worlds with recorded assets keep them as the regeneration recipe; worlds
+   * without (grand-hotel) point their audio srcs at /api/sfx/<world>/<kind>
+   * and the route renders these lazily. `ambient` and `crackle` are looping
+   * beds (the "rain" and "crackle" channels); the rest are one-shot cues.
+   */
+  sfxPrompts: {
+    typewriter: string;
+    thunder: string;
+    phone: string;
+    ambient: string;
+    crackle: string;
+  };
   /** Semantic-event → SFX mapping for the reactive audio bus. (Bet 4.) */
   audioEvents: AudioEventMap;
 }

@@ -4,7 +4,7 @@ import React from "react";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { useResolvedAesthetic } from "@/lib/aesthetic/useResolvedAesthetic";
-import { getSamplePrompts } from "@/lib/aesthetic/identity";
+import { getAestheticCopy, getSamplePrompts } from "@/lib/aesthetic/identity";
 
 interface CaseBoardEmptyStateProps {
   /**
@@ -28,6 +28,9 @@ interface CaseBoardEmptyStateProps {
 export function CaseBoardEmptyState({ onSelectPrompt }: CaseBoardEmptyStateProps) {
   const { baseId } = useResolvedAesthetic();
   const samplePrompts = getSamplePrompts(baseId);
+  // Per-world empty-state copy — the FIRST thing a user reads in a fresh world
+  // must speak in that world's voice, not noir's.
+  const copy = getAestheticCopy(baseId);
   const reduceMotion = useReducedMotion();
 
   const listVariants: Variants = {
@@ -47,16 +50,15 @@ export function CaseBoardEmptyState({ onSelectPrompt }: CaseBoardEmptyStateProps
   return (
     <div className="border border-[var(--aesthetic-border)]/40 bg-[var(--aesthetic-background)]/30 rounded-sm p-8 max-w-2xl backdrop-blur-sm shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
       <h2 className="text-[var(--aesthetic-accent)]/70 font-typewriter uppercase tracking-[0.3em] text-sm">
-        Case File // Unopened
+        {copy.emptyTitle}
       </h2>
       <p className="text-[var(--aesthetic-text)]/70 font-mono text-xs mt-4 leading-relaxed">
-        The board is clean. Describe the interface you want built and the detective will track it
-        down — every component lands here as evidence.
+        {copy.emptyBody}
       </p>
 
       <div className="mt-6 border-t border-[var(--aesthetic-border)]/20 pt-4">
         <span className="text-[var(--aesthetic-text)]/40 font-typewriter text-[10px] uppercase tracking-[0.3em]">
-          Leads to pursue
+          {copy.emptyLeadsLabel}
         </span>
         <motion.ul
           className="mt-3 space-y-1"
@@ -86,7 +88,7 @@ export function CaseBoardEmptyState({ onSelectPrompt }: CaseBoardEmptyStateProps
       </div>
 
       <div className="mt-6 flex items-center gap-2 text-[var(--aesthetic-accent)]/50 font-typewriter text-[10px] uppercase tracking-[0.3em]">
-        Begin in the Interrogation Log
+        {copy.emptyHint}
         <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
       </div>
     </div>

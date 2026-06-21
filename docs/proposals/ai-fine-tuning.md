@@ -1,5 +1,7 @@
 # AI Fine-Tuning Proposal for synthNoirUI
 
+> **ARCHIVED 2026-06:** References to `src/lib/training/` predate its removal in the repo-audit-2026-06 cleanup. Kept for historical reference.
+
 > Design document for training custom models on A2UI generation patterns
 
 ## Executive Summary

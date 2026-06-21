@@ -6,12 +6,17 @@ import {
   Code,
   LayoutTemplate,
   Disc,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NoirEffects } from "@/components/noir/NoirEffects";
-import { formatShortcut } from "@/lib/hooks/useKeyboardShortcuts";
+import { CaseYarn } from "@/components/noir/CaseYarn";
+import { WorldTransition } from "@/components/layout/WorldTransition";
+import { WorldSwitcher } from "@/components/layout/WorldSwitcher";
+import { useShortcut } from "@/lib/hooks/useKeyboardShortcuts";
 import type { AmbientSettings, AestheticId } from "@/lib/store/useA2UIStore";
 import { getAestheticCopy, getEffectsProfile, getStyleTokens } from "@/lib/aesthetic/identity";
+import type { MotionPersonality } from "@/lib/aesthetic/types";
 import { ResizeHandle } from "./ResizeHandle";
 
 interface DeskLayoutProps {
@@ -21,11 +26,15 @@ interface DeskLayoutProps {
   ejectPanel?: React.ReactNode;
   templatePanel?: React.ReactNode;
   dictaphonePanel?: React.ReactNode;
+  /** Case Archive drawer (rendered as a fixed bottom slide-up). */
+  caseArchive?: React.ReactNode;
   showEditor?: boolean;
   showSidebar?: boolean;
   showEject?: boolean;
   showDictaphone?: boolean;
   showTemplates?: boolean;
+  showArchive?: boolean;
+  onToggleArchive?: () => void;
   onToggleDictaphone?: () => void;
   editorWidth?: number;
   sidebarWidth?: number;
@@ -38,11 +47,22 @@ interface DeskLayoutProps {
   ambient?: AmbientSettings;
   soundEnabled?: boolean;
   musicEnabled?: boolean;
+  liveScoreEnabled?: boolean;
   musicVolume?: number;
   /** Base aesthetic to inherit (built-in id), drives CSS vars + audio pack */
   aestheticId?: AestheticId;
   /** Active custom profile id, if any — scopes injected override CSS */
   customProfileId?: string;
+  /**
+   * Bumped by useWorldSwitch on every committed world change — re-keys the
+   * generated surface so it re-deals itself in the new world's physics.
+   */
+  worldEpoch?: number;
+  /**
+   * Outgoing world's entrance during the strike-the-set phase (drives the
+   * data-world-exiting CSS exit animations + the noir shadow sweep).
+   */
+  exitingEntrance?: MotionPersonality["entrance"] | null;
   customMusicUrl?: string;
   className?: string;
 }
@@ -54,27 +74,33 @@ export function DeskLayout({
   ejectPanel,
   templatePanel,
   dictaphonePanel,
+  caseArchive,
   showEditor = true,
   showSidebar = true,
   showEject = false,
   showDictaphone = false,
   showTemplates = false,
+  showArchive = false,
   editorWidth = 300,
   sidebarWidth = 360,
   onToggleEditor,
   onToggleSidebar,
   onToggleEject,
   onToggleTemplates,
+  onToggleArchive,
   onToggleDictaphone,
   onResizeEditor,
   onResizeSidebar,
   ambient,
   soundEnabled,
   musicEnabled,
+  liveScoreEnabled,
   musicVolume,
   customMusicUrl,
   aestheticId,
   customProfileId,
+  worldEpoch = 0,
+  exitingEntrance = null,
   className,
 }: DeskLayoutProps) {
   const isEditorVisible = showEditor;
@@ -82,7 +108,7 @@ export function DeskLayout({
   const isEjectVisible = Boolean(ejectPanel) && showEject;
   const isTemplatesVisible = Boolean(templatePanel) && showTemplates;
   const isDictaphoneVisible = Boolean(dictaphonePanel) && showDictaphone;
-  const ejectShortcut = formatShortcut(["mod", "e"]);
+  const ejectShortcut = useShortcut(["mod", "e"]);
   // `persist` may rehydrate older saved settings that don't include newly added fields.
   // Merge with defaults to avoid undefined values.
   const ambientSettings: AmbientSettings = {
@@ -109,34 +135,42 @@ export function DeskLayout({
   const styleTokens = getStyleTokens(aestheticId);
   const effects = getEffectsProfile(aestheticId);
 
-  const getGridColsClass = () => {
+  // Grid template as an INLINE STYLE, never a runtime-built Tailwind class:
+  // Tailwind's scanner can only compile class strings that appear verbatim in
+  // the source, so a constructed `grid-cols-[…]` produced real CSS for exactly
+  // one panel combination and silently collapsed the desk into a single column
+  // for every other (eject/templates/dictaphone open, editor hidden).
+  const gridTemplateColumns = (() => {
     const cols: string[] = [];
     if (isEditorVisible) cols.push("var(--editor-w)");
     if (isTemplatesVisible) cols.push("280px");
-    cols.push("1fr");
+    // `minmax(0, 1fr)` (not a bare `1fr`, which is `minmax(auto, 1fr)`): the
+    // auto minimum refuses to shrink below the column's min-content width, so a
+    // wide toolbar (world switcher + archive buttons) would push the board past
+    // the reserved sidebar margin and overlap it. minmax(0,…) lets it shrink.
+    cols.push("minmax(0, 1fr)");
     if (isDictaphoneVisible) cols.push("380px");
     if (isEjectVisible) cols.push("400px");
-    // Sidebar is now fixed position, not in grid - but reserve space with margin
-    return `grid-cols-[${cols.join("_")}]`;
-  };
-
-  const gridColsClass = getGridColsClass();
+    // Sidebar is fixed position, not in grid — space is reserved via margin.
+    return cols.join(" ");
+  })();
 
   return (
     <div
       data-testid="desk-layout"
       data-aesthetic={aestheticId ?? "noir"}
       data-custom-profile={customProfileId || undefined}
+      data-world-exiting={exitingEntrance ?? undefined}
       data-effect-card={effects.card}
       data-effect-stamp={effects.stamp}
       data-effect-screen={effects.screen}
       className={cn(
         "min-h-screen grid gap-0 bg-[var(--aesthetic-surface)] text-[var(--aesthetic-text)] relative isolate overflow-hidden film-grain vignette",
-        gridColsClass,
         className
       )}
       style={
         {
+          gridTemplateColumns,
           "--editor-w": `${editorWidth}px`,
           "--sidebar-w": `${sidebarWidth}px`,
           // Material/shape tokens consumed by globals.css data-effect-* rules:
@@ -155,14 +189,32 @@ export function DeskLayout({
       >
         Skip to main content
       </a>
+      {/* Desktop-optimized notice for smaller screens */}
+      <div
+        className="md:hidden fixed top-0 left-0 right-0 z-[90] bg-[var(--aesthetic-accent)]/10 border-b border-[var(--aesthetic-accent)]/30 px-4 py-2 text-center"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="font-typewriter text-xs text-[var(--aesthetic-accent)]/80 uppercase tracking-wider">
+          Best viewed on desktop
+        </span>
+      </div>
       <NoirEffects
         ambient={ambientSettings}
         soundEnabled={soundSetting}
         musicEnabled={musicSetting}
+        liveScoreEnabled={liveScoreEnabled}
         musicVolume={musicVolume}
         customMusicUrl={customMusicUrl}
         aestheticId={aestheticId}
       />
+      {/* One-shot world-switch cinematic in the incoming world's physics. */}
+      <WorldTransition
+        aestheticId={aestheticId}
+        worldKey={`${aestheticId ?? "noir"}/${customProfileId ?? ""}`}
+      />
+      {/* Strike-the-set shadow sweep (only styled when leaving noir). */}
+      {exitingEntrance && <div className="world-exit-sweep" aria-hidden="true" />}
       <div
         data-testid="noir-rain-bg"
         className="absolute inset-0 bg-cover bg-top opacity-40 contrast-110 saturate-[0.85] brightness-90 pointer-events-none z-0"
@@ -340,6 +392,26 @@ export function DeskLayout({
                   Dictaphone
                 </button>
               )}
+              {onToggleArchive && (
+                <button
+                  type="button"
+                  onClick={onToggleArchive}
+                  aria-label={showArchive ? "Hide case archive" : "Show case archive"}
+                  title={showArchive ? "Hide case archive" : "Open the case archive"}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-typewriter border rounded-sm transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)]",
+                    showArchive
+                      ? "bg-[var(--aesthetic-accent)]/20 border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)]"
+                      : "bg-[var(--aesthetic-background)]/50 border-[var(--aesthetic-border)]/40 text-[var(--aesthetic-text)]/60 hover:text-[var(--aesthetic-accent)] hover:border-[var(--aesthetic-accent)]/40"
+                  )}
+                >
+                  <Archive className="w-3 h-3" />
+                  Archive
+                </button>
+              )}
+              {/* World-switch promoted onto the desk: a first-class gesture, not
+                  a buried Customization dropdown. */}
+              <WorldSwitcher />
             </div>
           </div>
         </div>
@@ -349,7 +421,14 @@ export function DeskLayout({
               empty desk space (long lines tire the eye). The width is a CSS var
               per [data-aesthetic] in globals.css; mx-auto keeps it centered and
               w-full lets it shrink on narrow panes. */}
-          <div className="mx-auto w-full max-w-[var(--aesthetic-max-width,72rem)]">{preview}</div>
+          <div className="mx-auto w-full max-w-[var(--aesthetic-max-width,72rem)]">
+            {/* CaseYarn adds pushpins + red thread between paper evidence
+                cards (noir worlds only; a no-op wrapper everywhere else).
+                Keyed on worldEpoch: a committed world switch remounts the
+                surface so every component RE-DEALS itself in the new world's
+                entrance physics. */}
+            <CaseYarn key={worldEpoch}>{preview}</CaseYarn>
+          </div>
         </div>
       </div>
 
@@ -383,6 +462,9 @@ export function DeskLayout({
           {sidebar}
         </div>
       )}
+
+      {/* Case Archive — a fixed slide-up drawer along the board's bottom edge. */}
+      {caseArchive}
     </div>
   );
 }

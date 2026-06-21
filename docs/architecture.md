@@ -1,281 +1,182 @@
 # Architecture
 
 > Technical blueprint for synthNoirUI's AI-driven UI generation system.
+> There is exactly ONE live rendering path — the A2UI v0.9 SSE pipeline.
 
 ## System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Client (Next.js)                        │
-├─────────────┬─────────────┬─────────────┬──────────────────────┤
-│ JSON Editor │ Evidence    │ Eject Panel │ Chat Sidebar         │
-│             │ Board       │ (React/JSON)│ (useChat)            │
-└──────┬──────┴──────┬──────┴──────┬──────┴──────────┬───────────┘
-       │             │             │                  │
-       └─────────────┴─────────────┴──────────────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │   Zustand Store   │
-                    │ (evidence, history)│
-                    └─────────┬─────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │  POST /api/chat   │
-                    │  (streamText)     │
-                    └─────────┬─────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-         ┌────────┐     ┌────────┐     ┌────────┐
-         │ OpenAI │     │Anthropic│    │ Google │
-         └────────┘     └────────┘     └────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                          Client (Next.js)                        │
+├─────────────┬──────────────────┬─────────────┬───────────────────┤
+│ JSON Editor │ Evidence Board   │ Eject Panel │ Chat Sidebar      │
+│             │ (SurfaceRenderer)│ (Sandpack)  │ (useA2UIStream)   │
+└──────┬──────┴────────┬─────────┴──────┬──────┴─────────┬─────────┘
+       │               │                │                │
+       │      ┌────────▼─────────┐      │                │
+       │      │ useSurfaceStore  │◄─────┴────────────────┤
+       │      │ (flat components,│                       │
+       │      │  data model)     │                       │
+       │      └────────▲─────────┘                       │
+       │               │ parsed SSE messages             │
+       │     ┌─────────┴──────────┐            ┌─────────▼──────────┐
+       └────►│  stream-parser     │◄───────────│ POST /api/a2ui/    │
+             │  (JSONL → typed    │    SSE     │ stream             │
+             │   ServerMessages)  │            │ (streamText +      │
+             └────────────────────┘            │  generate_ui tool) │
+                                               └─────────┬──────────┘
+                                         ┌───────────────┼───────────────┐
+                                         ▼               ▼               ▼
+                                    ┌────────┐     ┌─────────┐     ┌────────┐
+                                    │ OpenAI │     │Anthropic│     │ Google │
+                                    └────────┘     └─────────┘     └────────┘
 ```
 
 ## Tech Stack
 
-| Category | Technology | Version | Purpose |
-|----------|------------|---------|---------|
-| Framework | Next.js (App Router) | 16.x | Application core |
-| AI SDK | Vercel AI SDK | 6.x | Streaming & tools |
-| State | Zustand | 5.x | Evidence state |
-| Schema | Zod | 4.x | Protocol validation |
-| Styling | Tailwind CSS | 4.x | UI styling |
-| Testing | Vitest + Playwright | - | Unit + E2E tests |
-| Animation | Framer Motion | - | Noir effects |
+| Category  | Technology           | Version | Purpose             |
+| --------- | -------------------- | ------- | ------------------- |
+| Framework | Next.js (App Router) | 16.x    | Application core    |
+| AI SDK    | Vercel AI SDK        | 6.x     | Streaming & tools   |
+| State     | Zustand              | 5.x     | Surface state       |
+| Schema    | Zod                  | 4.x     | Protocol validation |
+| Styling   | Tailwind CSS         | 4.x     | UI styling          |
+| Testing   | Vitest + Playwright  | -       | Unit + E2E tests    |
+| Animation | Framer Motion        | -       | Entrance motion     |
 
 ---
 
-## Core Components
+## The Generation Pipeline
 
-### 1. API Layer (`/api/chat`)
+One request flows through these stages (server first, then client):
 
-**Role:** Orchestrate LLM interaction with tool calling.
-
-```typescript
-// Simplified flow
-POST /api/chat
-  → Parse messages + evidence from request
-  → Build system prompt with noir persona
-  → Call streamText() with generate_ui tool
-  → Stream UI messages back to client
+```
+prompt
+  → POST /api/a2ui/stream                 src/app/api/a2ui/stream/route.ts
+      → buildSystemPrompt()               src/lib/ai/prompts.ts
+          persona voice                   src/lib/aesthetic/personas.ts
+          + per-world LAYOUT DOCTRINE     src/lib/aesthetic/definitions.ts
+          + shared COMPONENT PLAYBOOK     src/lib/ai/composition.ts
+          + optional variant seed / baseline ("Current Evidence" update rules)
+      → streamText() forcing the generate_ui tool (component tree as a JSON STRING)
+      → per tool call:
+          coerceComponentInput()          src/lib/ai/tools.ts   (string → object)
+          normalizeA2UI() + a2uiInputSchema   src/lib/protocol/schema.ts
+          enrichA2UI()                    src/lib/a2ui/enrich.ts (auto-grid, heading promotion)
+          resolveA2UIImagePrompts()       src/lib/ai/images.ts  (prompt → /api/images/<id> deferred url)
+          flattenLegacyToCatalog()        src/lib/a2ui/adapter/legacyToCatalog.ts
+      → SSE: createSurface, updateComponents, source (pre-flatten tree for eject),
+             narration, [DONE]
+client
+  → useA2UIStream                         src/lib/a2ui/hooks/useA2UIStream.ts
+  → parseA2UIStream                       src/lib/a2ui/transport/stream-parser.ts
+  → useSurfaceStore                       src/lib/a2ui/store/useSurfaceStore.ts
+  → <SurfaceRenderer/>                    src/components/a2ui/SurfaceRenderer.tsx
 ```
 
-**Key file:** `src/app/api/chat/route.ts`
+### The model-emission contract (live, not legacy cruft)
 
-### 2. Provider Factory (Server-only)
+The model still emits "legacy-shaped" nested trees (`{ type: "card", … }`).
+That contract is fully alive: `normalizeA2UI` repairs common LLM variations
+(synonym keys, stray casing, object table rows, kanban/dashboard aliases),
+`a2uiInputSchema` validates, and the adapter flattens to the v0.9 catalog's
+flat adjacency list (`{ id, component: "Card", child: … }`).
 
-**Role:** Resolve API keys and create AI provider instances.
+The supported `type` list lives in ONE place — `SUPPORTED_LEGACY_TYPES` in
+`src/lib/protocol/schema.ts` — and is interpolated into the tool description,
+every persona's Core Directives, and (manually mirrored) the playbook. Never
+hand-write a type list anywhere else.
 
-**Priority order:**
-1. `OPENAI_BASE_URL` (OpenAI-compatible proxy)
-2. `OPENAI_API_KEY` (OpenAI direct)
-3. `ANTHROPIC_API_KEY` (Anthropic)
-4. `GOOGLE_GENERATIVE_AI_API_KEY` (Google)
-5. `~/.local/share/opencode/auth.json` (fallback)
+### Deferred images
 
-**Key file:** `src/lib/ai/factory.ts`
-
-### 3. Tool System
-
-**The `generate_ui` tool:**
-- Input: A2UI component JSON (validated by Zod)
-- Output: Validated A2UI component with resolved images
-- Execution: Server-side via AI SDK `tool()` helper
-
-```typescript
-// Tool schema (simplified)
-{
-  name: "generate_ui",
-  description: "Generate UI evidence",
-  inputSchema: a2uiInputSchema, // Zod schema
-  execute: async ({ component }) => {
-    const validated = a2uiComponentSchema.parse(component);
-    const resolved = await resolveImages(validated);
-    return resolved;
-  }
-}
-```
-
-**Key file:** `src/lib/ai/tools.ts`
-
-### 4. State Management (Zustand)
-
-**Store structure:**
-```typescript
-{
-  evidence: A2UIComponent | null,      // Current UI
-  evidenceHistory: A2UIComponent[],    // History
-  activeEvidenceId: string | null,     // Selected history item
-  settings: { model, imageModel },     // User preferences
-  layout: { sizes, collapsed },        // UI layout state
-}
-```
-
-**Key file:** `src/lib/store/useA2UIStore.ts`
-
-### 5. Client Synchronization
-
-**Pattern:** Observer on `messages` stream.
-
-```typescript
-// DetectiveWorkspace.tsx (simplified)
-useEffect(() => {
-  const lastMessage = messages[messages.length - 1];
-  
-  // Check for tool result in message parts
-  for (const part of lastMessage.parts) {
-    if (part.type === "tool-invocation" && 
-        part.toolInvocation.state === "result") {
-      const result = part.toolInvocation.result;
-      setEvidence(result);
-      addEvidence(result);
-    }
-  }
-}, [messages]);
-```
-
-**Key file:** `src/components/layout/DetectiveWorkspace.tsx`
+Image prompts become `/api/images/<uuid>.jpg` urls backed by a persisted
+"recipe" (prompt + aesthetic + sessionSeed + imageIndex). The GET route
+generates lazily on first request; `POST /api/images/<id>/redevelop` re-rolls
+one image from its recipe with the motif index advanced (the PhotoDeveloper's
+hover "Re-develop" button).
 
 ---
 
-## Data Flow
+## The Aesthetic System
 
-### UI Generation Flow
+`src/lib/aesthetic/definitions.ts` is the client-safe single source of truth
+for every built-in world: colors, fonts, audio pack, voice, copy, sample
+prompts, layout doctrine (+ JSON exemplar), style tokens, effects profile,
+atmosphere, motion personality, and image spec. `registry.ts` (server-only)
+attaches the persona prompt body; `audio-packs.ts`, `voice-defaults.ts`, and
+the settings panels all derive from the definitions.
 
-```
-1. User types "Create a suspect card"
-   ↓
-2. ChatSidebar sends POST /api/chat
-   Body: { messages, evidence: currentEvidence }
-   ↓
-3. API builds system prompt with:
-   - Noir persona instructions
-   - A2UI protocol reference
-   - Current evidence (for updates)
-   ↓
-4. LLM calls generate_ui tool
-   ↓
-5. Server validates output against Zod schema
-   ↓
-6. If images have prompts, generate them
-   ↓
-7. Stream response via toUIMessageStreamResponse
-   ↓
-8. Client parses message.parts for tool-invocation
-   ↓
-9. Update Zustand store with new evidence
-   ↓
-10. A2UIRenderer displays the component
-```
+Theming reaches the DOM three ways:
 
-### Image Generation Flow
+1. **CSS variables** — `[data-aesthetic="<id>"]` blocks in `globals.css`
+   mirror the definitions (colors, fonts, atmosphere colors, max-width).
+2. **Effect attributes** — DeskLayout emits `data-effect-card/stamp/screen`
+   from the effects profile; materials (paper/parchment/hologram/wireframe/
+   flat/gilded) are styled per attribute, never per preset id, so custom
+   profiles inherit them.
+3. **Motion personality** — `getMotionPersonality()` drives the per-child
+   entrance stagger in SurfaceRenderer, the PhotoDeveloper reveal, the
+   loading skeleton variant, and the world-switch cinematic
+   (`WorldTransition.tsx`).
 
-```
-1. Tool output contains: { type: "image", prompt: "..." }
-   ↓
-2. resolveImages() detects prompt field
-   ↓
-3. Generate image via AI provider (DALL-E, Imagen, etc.)
-   ↓
-4. Save to .data/images/{uuid}.png
-   ↓
-5. Replace prompt with src: "/api/images/{uuid}"
-   ↓
-6. Return modified component
-```
+Custom profiles overlay the base preset via injected CSS
+(`src/lib/customization/css-injection.ts`) scoped to
+`[data-custom-profile="<id>"]`, including optional atmosphere overrides
+(particle type + colors). AI-generated worlds (`src/lib/ai/theme-generator.ts`)
+emit the same shape, with a programmatic WCAG-AA nudge on the palette.
+
+### Reactive desk
+
+`src/lib/audio/audioEvents.ts` hosts two module-level channels: music ducking
+(TTS ↔ music bed) and semantic events. Rendered content can emit events —
+e.g. a `danger` Badge fires `dramatic.beat` (throttled) — which ChatSidebar
+resolves through the active world's `AudioEventMap` and pairs with the
+lightning overlay.
 
 ---
 
-## API Reference
+## Checklists
 
-### `POST /api/chat`
+### Add a new component
 
-**Request:**
-```typescript
-{
-  messages: UIMessage[],
-  evidence?: A2UIComponent  // Current state for updates
-}
-```
+1. Legacy schema arm + (if needed) `normalizeA2UI` coercions —
+   `src/lib/protocol/schema.ts`; add the type to `SUPPORTED_LEGACY_TYPES`.
+2. Adapter case emitting catalog component(s) —
+   `src/lib/a2ui/adapter/legacyToCatalog.ts`.
+3. Renderer + `COMPONENT_MAP` entry —
+   `src/components/a2ui/SurfaceRenderer.tsx`.
+4. (Optional) catalog schema for direct v0.9 emission —
+   `src/lib/a2ui/catalog/components.ts`.
+5. Playbook guidance — `src/lib/ai/composition.ts`.
 
-**Response:** Server-Sent Events stream with UI messages.
+### Add a new world
 
-### `GET /api/images/[id]`
-
-**Response:** Image file from `.data/images/` directory.
-
-### `POST /api/a2ui/stream` (A2UI v0.9)
-
-**Request:**
-```typescript
-{
-  prompt: string  // Natural language UI request
-}
-```
-
-**Response:** Server-Sent Events stream with A2UI v0.9 messages:
-```jsonl
-data: {"type":"createSurface","surfaceId":"...","catalogId":"standard"}
-data: {"type":"updateComponents","surfaceId":"...","components":[...]}
-data: [DONE]
-```
-
-**Message Types:**
-- `createSurface` - Initialize new surface with catalog
-- `updateComponents` - Add/update components in surface
-- `updateDataModel` - Update data at JSON Pointer path
-- `deleteSurface` - Remove surface
-
-> **Note:** This repo emits messages with a flat `type` discriminator (e.g. `{"type":"createSurface",...}`). The upstream A2UI v0.9 spec uses a named-key envelope instead (e.g. `{"createSurface":{...}}`). See `docs/reference/a2ui-v09-spec.md` for the upstream form.
-
-**Key Files:**
-- Endpoint: `src/app/api/a2ui/stream/route.ts`
-- Schemas: `src/lib/a2ui/schema/messages.ts`
-- Components: `src/lib/a2ui/catalog/components.ts`
-
-### `GET /print`
-
-**Response:** Print-friendly HTML view of current evidence.
-
-### Other routes
-
-The app also exposes supporting endpoints outside the core generation pipeline: `POST /api/tts` (voice synthesis), `/api/elevenlabs/*` (ElevenLabs `status` and `voices`), and `/api/settings/*` (e.g. `image-style` preferences).
+1. Add the id to `BUILT_IN_AESTHETIC_IDS` — `src/lib/aesthetic/types.ts`
+   (the zod enums and Record maps derive from it; the compiler walks you to
+   the rest).
+2. Full definition — `src/lib/aesthetic/definitions.ts`.
+3. `[data-aesthetic]` block (+ heading treatment, form controls, board
+   background) — `src/app/globals.css`.
+4. Persona — `src/lib/aesthetic/personas.ts`; narration voice —
+   `src/lib/ai/narration.ts`.
+5. If the world needs a new card material / entrance / image reveal, extend
+   the unions in `types.ts` and add the matching CSS + arms
+   (`entranceHiddenVariant`, `REVEAL_CONFIG`, `WorldTransition`,
+   `EvidenceSkeleton`).
 
 ---
 
-## Security Considerations
+## Surface state
 
-| Concern | Mitigation |
-|---------|------------|
-| API key exposure | Server-only imports, never in client |
-| Code injection | A2UI is declarative JSON, no execution |
-| Image storage | Local filesystem only, served via API |
-| Input validation | All tool inputs validated by Zod |
+`useSurfaceStore` holds surfaces as `Map<id, SurfaceComponent>` plus a JSON
+data model per surface. Two-way bindings are explicit `{ path: "/ptr" }`
+objects resolved against the data model (scope-aware for template-expanded
+children); `SurfaceRenderer` keeps a local working copy and writes through to
+the store. Server-event actions round-trip via `POST /api/a2ui/action`.
 
----
+## Eject / export
 
-## Extension Points
-
-### Adding a New A2UI Component
-
-1. Add type to `src/lib/protocol/schema.ts`
-2. Add renderer in `src/components/renderer/A2UIRenderer.tsx`
-3. Add exporter in `src/lib/eject/exportA2UI.ts`
-4. Add tests
-
-### Adding a New AI Provider
-
-1. Add detection logic in `src/lib/ai/factory.ts`
-2. Add models to `src/lib/ai/model-registry.ts`
-3. Add tests
-
-### Adding a New Tool
-
-1. Define tool in `src/lib/ai/tools.ts`
-2. Register in `/api/chat` route
-3. Handle client-side in DetectiveWorkspace
-4. Add tests
-
----
-
-*Last updated: 2026-06-03*
+The stream's `source` message carries the resolved pre-flatten legacy tree
+(image prompts already swapped for real urls) — the high-fidelity shape
+`src/lib/eject/exportA2UI.ts` converts to standalone React + Tailwind,
+previewed in Sandpack (`src/components/eject/`).

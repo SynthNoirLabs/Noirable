@@ -28,6 +28,9 @@ interface A2UIVariantControlsProps {
   onSelectVariant: (index: number) => void;
   /** Re-send the live surface as baseline with a canned refinement appended. */
   onIterate: (instruction: string) => void;
+  /** Live-wire feed: numeric stats/dashboards tick with a random walk. */
+  liveWire?: boolean;
+  onToggleLiveWire?: () => void;
 }
 
 const ITERATIONS: ReadonlyArray<{ label: string; instruction: string }> = [
@@ -44,6 +47,11 @@ const ITERATIONS: ReadonlyArray<{ label: string; instruction: string }> = [
     instruction:
       "Re-arrange the current evidence into a different layout and section order while keeping the same content.",
   },
+  {
+    label: "Art-director pass",
+    instruction:
+      "Act as a demanding art director reviewing the current evidence against your layout doctrine. First identify its three biggest compositional weaknesses (hierarchy, grouping, imagery, density, balance), then return an improved tree that fixes exactly those weaknesses while preserving all of the content.",
+  },
 ];
 
 const BUTTON_CLASS =
@@ -58,6 +66,8 @@ export function A2UIVariantControls({
   onGenerateVariants,
   onSelectVariant,
   onIterate,
+  liveWire = false,
+  onToggleLiveWire,
 }: A2UIVariantControlsProps) {
   // Loading a captured take clears + recreates the surface store, which would
   // race a stream still writing into it. Lock the picker while anything is in
@@ -92,6 +102,22 @@ export function A2UIVariantControls({
             {it.label}
           </button>
         ))}
+        {onToggleLiveWire && (
+          <button
+            type="button"
+            data-testid="live-wire-toggle"
+            aria-pressed={liveWire}
+            title="Tick the board's numbers like a live feed"
+            className={`px-3 py-1.5 font-typewriter text-xs uppercase tracking-wider rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--aesthetic-accent)] ${
+              liveWire
+                ? "bg-[var(--aesthetic-accent)]/30 border border-[var(--aesthetic-accent)] text-[var(--aesthetic-accent)]"
+                : "bg-[var(--aesthetic-accent)]/10 border border-[var(--aesthetic-accent)]/40 text-[var(--aesthetic-accent)] hover:bg-[var(--aesthetic-accent)]/25"
+            }`}
+            onClick={onToggleLiveWire}
+          >
+            {liveWire ? "● Live wire" : "Live wire"}
+          </button>
+        )}
       </div>
 
       {variants > 0 && (
