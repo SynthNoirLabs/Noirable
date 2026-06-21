@@ -483,11 +483,13 @@ export function flattenLegacyToCatalog(
     nextId: () => `${prefix}-${counter++}`,
   };
 
-  // Normalize common LLM output variations (badge text→label, card-as-container,
-  // text/content, image alt) before strict validation so reasonable model
-  // output isn't rejected outright.
+  // `a2uiInputSchema` normalizes internally (z.preprocess(normalizeA2UI)), so
+  // `safeParse(node)` repairs common LLM variations (badge text→label,
+  // card-as-container, …) before validation. We ALSO keep a `normalized` copy
+  // for the salvage path below, which walks the tree's structural fields
+  // directly (not through the schema) and so needs the canonical shape.
   const normalized = normalizeA2UI(node);
-  const parsed = a2uiInputSchema.safeParse(normalized);
+  const parsed = a2uiInputSchema.safeParse(node);
   if (parsed.success) {
     walk(builder, parsed.data, rootId);
     warnOnCatalogDrift(builder.components);
@@ -543,7 +545,9 @@ function salvageChildren(builder: Builder, normalized: unknown): string[] {
 
   const ids: string[] = [];
   for (const candidate of candidates) {
-    const parsed = a2uiInputSchema.safeParse(normalizeA2UI(candidate));
+    // safeParse normalizes internally (z.preprocess); recurse with an explicitly
+    // normalized candidate so salvageChildren walks the canonical shape.
+    const parsed = a2uiInputSchema.safeParse(candidate);
     if (parsed.success) {
       ids.push(walk(builder, parsed.data));
     } else {

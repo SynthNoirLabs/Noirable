@@ -7,7 +7,7 @@ import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { tools, coerceComponentInput } from "@/lib/ai/tools";
 import { resolveA2UIImagePrompts } from "@/lib/ai/images";
 import { generateNarration } from "@/lib/ai/narration";
-import { a2uiInputSchema, normalizeA2UI } from "@/lib/protocol/schema";
+import { a2uiInputSchema } from "@/lib/protocol/schema";
 import type { CreateSurfaceMessage, UpdateComponentsMessage } from "@/lib/a2ui/schema/messages";
 import { flattenLegacyToCatalog } from "@/lib/a2ui/adapter/legacyToCatalog";
 import { enrichA2UI } from "@/lib/a2ui/enrich";
@@ -372,9 +372,10 @@ export async function POST(req: NextRequest): Promise<Response> {
           if (!component || typeof component !== "object") return;
           // Resolve any image `prompt`s into real generated image URLs (the v0.9
           // route extracts the raw tool args and bypasses the tool's execute(),
-          // so we run the resolver here). Normalize first so the resolver sees a
-          // valid tree; fall back to the raw component if validation fails.
-          const validated = a2uiInputSchema.safeParse(normalizeA2UI(component));
+          // so we run the resolver here). `a2uiInputSchema` normalizes internally
+          // (z.preprocess(normalizeA2UI)), so pass the raw component; fall back to
+          // it if validation fails.
+          const validated = a2uiInputSchema.safeParse(component);
           if (validated.success) {
             // Deterministic tidy-ups (auto-grid card stacks, promote a leading
             // title) before image resolution + catalog flattening.

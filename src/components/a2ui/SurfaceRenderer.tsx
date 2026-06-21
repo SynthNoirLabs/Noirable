@@ -7,6 +7,7 @@ import { evaluateFunctionCall } from "@/lib/a2ui/binding/functions";
 import { dispatchAction } from "@/lib/a2ui/events/dispatch";
 import type { ActionMessage, ServerMessage } from "@/lib/a2ui/schema/messages";
 import { useSurfaceStore } from "@/lib/a2ui/store/useSurfaceStore";
+import type { A2UIComponent as CatalogComponent } from "@/lib/a2ui/catalog/components";
 import { cn } from "@/lib/utils";
 import {
   SurfaceContext,
@@ -52,9 +53,33 @@ import { StateImageRenderer } from "./renderers/StateImage";
 // dynamic ComponentRenderer dispatch. Renderers reference the registry's
 // ChildList/ComponentRenderer directly, so registration only needs to wire the
 // type → renderer mapping once at module load.
+//
+// COMPONENT_MAP is typed EXHAUSTIVELY so a missing/typo'd renderer is a COMPILE
+// error (mirroring the adapter's compiler-enforced `handlers` map) — it can no
+// longer slip through to a runtime "[Unknown: X]" box:
+//   - `CatalogComponentName` = every name in the standard v0.9 catalog union.
+//   - `ExtensionComponentName` = the extras the legacy→catalog adapter emits
+//     that aren't in the standard catalog (so they're listed explicitly).
+// Adding a component to either set without registering it here won't compile.
 // ============================================================================
 
-const COMPONENT_MAP: Record<string, React.FC<ComponentProps>> = {
+/** Every `component` discriminant in the standard v0.9 catalog union. */
+type CatalogComponentName = CatalogComponent["component"];
+
+/** Adapter-only components beyond the standard catalog (Badge/Stat/Grid/Table/
+ *  CustomCode + the reactive Reveal/StateImage). Keep in sync with the adapter. */
+type ExtensionComponentName =
+  | "Badge"
+  | "Stat"
+  | "Grid"
+  | "Table"
+  | "CustomCode"
+  | "Reveal"
+  | "StateImage";
+
+type RegisteredComponentName = CatalogComponentName | ExtensionComponentName;
+
+const COMPONENT_MAP: Record<RegisteredComponentName, React.FC<ComponentProps>> = {
   // Layout (7)
   Row: RowRenderer,
   Column: ColumnRenderer,
